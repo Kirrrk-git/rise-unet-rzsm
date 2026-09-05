@@ -1,0 +1,13 @@
+On branch parent-reproduction
+Your branch is up to date with 'origin/parent-reproduction'.
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   Data/masks/CONUS_mask.nc4
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	PARENT_COMMIT_SHA.txt
+
+no changes added to commit (use "git add" and/or "git commit -a")

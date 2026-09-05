@@ -1,0 +1,25 @@
+# Snapshots & Large Archives
+snapshot_staging/
+*.tar.gz
+*.zip
+
+# Python & Jupyter
+__pycache__/
+*.py[cod]
+*$py.class
+.ipynb_checkpoints/
+*.egg-info/
+dist/
+build/
+
+# Local Environment & Secrets
+.env
+*.key
+*.pem
+service_account*.json
+
+# OS & IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
