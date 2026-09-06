@@ -1,0 +1,129 @@
+{
+  "contract_name": "PARENT_INPUT_CONTRACT",
+  "study_citation": "Lesinger, K., & Tian, D. (2025). Nature Communications. DOI: 10.1038/s41467-025-62761-3",
+  "parent_repository": "https://github.com/kyle-lesinger/dl_dm_rzsm_subseasonal_forecast.git",
+  "frozen_parent_commit_sha": "4af8e8c869b7df6a398bf12e122a8e2af3f30eeb",
+  "experiment_designation": {
+    "primary_hybrid_recursive": "EX29",
+    "baseline_non_recursive": "EX10"
+  },
+  "target_variable": {
+    "name": "Root-Zone Soil Moisture Weekly Anomaly",
+    "depth_layer": "0-100 cm",
+    "temporal_aggregation": "weekly",
+    "ground_truth_source": "GLEAM v3.8a",
+    "output_value_range": [0.0, 1.0]
+  },
+  "geospatial_domain": {
+    "domain_name": "CONUS (Continental United States)",
+    "grid_specification_file": "Data/masks/conus_0.5_grid.grd",
+    "mask_file": "Data/masks/region_CONUS_mask.nc4",
+    "spatial_resolution_degrees": 0.5,
+    "grid_shape": [48, 96],
+    "total_grid_cells": 4608,
+    "active_land_cells": 3864,
+    "active_land_cell_ratio": 0.8385,
+    "latitude_bounds": {
+      "start": 50.0,
+      "end": 26.5,
+      "points": 48
+    },
+    "longitude_bounds": {
+      "start": 238.0,
+      "end": 285.5,
+      "points": 96
+    }
+  },
+  "temporal_specification": {
+    "training_period": "2000-2019",
+    "testing_period": "2020-2022",
+    "forecast_lead_times_weeks": [1, 2, 3, 4],
+    "ensemble_members_per_forecast": 11,
+    "total_training_samples": 9185
+  },
+  "input_tensor_specification": {
+    "shape": [null, 48, 96, 12],
+    "dtype": "float32",
+    "channels_total": 12,
+    "channel_layout": [
+      {
+        "channel_index": 0,
+        "variable_name": "RZSM_lag_5",
+        "category": "antecedent_soil_moisture",
+        "time_offset": "t - 5 weeks"
+      },
+      {
+        "channel_index": 1,
+        "variable_name": "RZSM_lag_4",
+        "category": "antecedent_soil_moisture",
+        "time_offset": "t - 4 weeks"
+      },
+      {
+        "channel_index": 2,
+        "variable_name": "RZSM_lag_3",
+        "category": "antecedent_soil_moisture",
+        "time_offset": "t - 3 weeks"
+      },
+      {
+        "channel_index": 3,
+        "variable_name": "RZSM_lag_2",
+        "category": "antecedent_soil_moisture",
+        "time_offset": "t - 2 weeks"
+      },
+      {
+        "channel_index": 4,
+        "variable_name": "RZSM_lag_1",
+        "category": "antecedent_soil_moisture",
+        "time_offset": "t - 1 weeks"
+      },
+      {
+        "channel_index": 5,
+        "variable_name": "RZSM_lag_0",
+        "category": "antecedent_soil_moisture",
+        "time_offset": "t_0 (initialization time)"
+      },
+      {
+        "channel_index": 6,
+        "variable_name": "Pwat",
+        "category": "antecedent_reanalysis",
+        "source": "ERA5",
+        "description": "Precipitable water"
+      },
+      {
+        "channel_index": 7,
+        "variable_name": "SPFH",
+        "category": "antecedent_reanalysis",
+        "source": "ERA5",
+        "description": "Specific humidity"
+      },
+      {
+        "channel_index": 8,
+        "variable_name": "Tmax",
+        "category": "antecedent_reanalysis",
+        "source": "ERA5",
+        "description": "Maximum 2-meter air temperature"
+      },
+      {
+        "channel_index": 9,
+        "variable_name": "T2m_fcst",
+        "category": "dynamic_model_forecast",
+        "sources": ["GEFSv12", "ECMWF"],
+        "description": "Forecasted 2-meter temperature anomaly"
+      },
+      {
+        "channel_index": 10,
+        "variable_name": "Precip_fcst",
+        "category": "dynamic_model_forecast",
+        "sources": ["GEFSv12", "ECMWF"],
+        "description": "Forecasted precipitation anomaly"
+      },
+      {
+        "channel_index": 11,
+        "variable_name": "RZSM_fcst",
+        "category": "dynamic_model_forecast",
+        "sources": ["GEFSv12", "ECMWF"],
+        "description": "Forecasted root-zone soil moisture anomaly"
+      }
+    ]
+  }
+}

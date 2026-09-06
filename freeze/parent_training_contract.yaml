@@ -1,0 +1,58 @@
+# =============================================================================
+# AUTHORITATIVE PARENT TRAINING CONTRACT (TABLE S3 ALIGNMENT)
+# Study: Lesinger & Tian (2025), Nature Communications (DOI: 10.1038/s41467-025-62761-3)
+# Commit: 4af8e8c869b7df6a398bf12e122a8e2af3f30eeb
+# =============================================================================
+
+contract_name: PARENT_TRAINING_CONTRACT
+version: "1.0.0"
+date_frozen: "2026-09-06"
+
+optimization:
+  optimizer: "Adam"
+  learning_rate: 0.0001
+  beta_1: 0.9
+  beta_2: 0.999
+  epsilon: 1.0e-07
+  decay: 0.0
+  amsgrad: false
+
+loss_formulation:
+  name: "crps2d_tf"
+  family: "Continuous Ranked Probability Score (CRPS)"
+  formula: "MAE - 0.08 * sigma"
+  equation: "L_CRPS(y, y_hat) = mean(|y - y_hat|) - 0.08 * std(y_hat)"
+  sigma_weight: 0.08
+  spatial_reduction: "mean across valid spatial grid cells"
+  implementation_reference: "function/losses.py:L34-L56"
+
+batch_configuration:
+  training_batch_size: 16
+  ensemble_batch_size: 11
+  evaluation_batch_size: 11
+  shuffle_buffer: true
+
+regularization:
+  technique: "SpatialDropout2D"
+  rate: 0.25
+  monte_carlo_inference: true
+  active_during_training: true
+  active_during_testing: true
+  kernel_regularization: null
+
+deep_supervision_training:
+  enabled: true
+  heads_count: 3
+  loss_aggregation: "sum(L_head_1 + L_head_2 + L_head_3)"
+  loss_weights: [1.0, 1.0, 1.0]
+
+reproducibility:
+  global_seed: 42
+  tf_random_seed: 42
+  np_random_seed: 42
+
+target_domain_normalization:
+  method: "min_max"
+  target_minimum: 0.0
+  target_maximum: 1.0
+  activation_compatibility: "ReLU output floor requires [0, 1] non-negative domain"

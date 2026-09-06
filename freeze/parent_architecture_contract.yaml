@@ -1,0 +1,78 @@
+# =============================================================================
+# AUTHORITATIVE PARENT ARCHITECTURE CONTRACT (TABLE S3 ALIGNMENT)
+# Study: Lesinger & Tian (2025), Nature Communications (DOI: 10.1038/s41467-025-62761-3)
+# Model: UNET_RZSM
+# =============================================================================
+
+contract_name: PARENT_ARCHITECTURE_CONTRACT
+version: "1.0.0"
+date_frozen: "2026-09-06"
+
+model_metadata:
+  model_name: "UNET_RZSM"
+  total_parameters: 1630307
+  trainable_weight_tensors: 298
+  non_trainable_weight_tensors: 132
+  input_tensor_shape: [null, 48, 96, 12]
+  backbone_type: "4-Stage Encoder-Decoder U-Net with Multi-Scale Inception"
+
+backbone_stages:
+  number_of_stages: 4
+  stage_filter_counts: [32, 64, 128, 256]
+  downsampling_operator: "MaxPooling2D(pool_size=(2, 2))"
+  upsampling_operator: "Conv2DTranspose(strides=(2, 2))"
+  skip_connections: "Concatenate(axis=-1) between matching encoder/decoder stages"
+
+multi_scale_inception:
+  blocks_count: 6
+  branches_per_block: 3
+  branch_receptive_fields:
+    - branch: 1
+      kernel_size: [3, 3]
+      type: "DepthwiseConv2D"
+    - branch: 2
+      kernel_size: [5, 5]
+      type: "DepthwiseConv2D"
+    - branch: 3
+      kernel_size: [7, 7]
+      type: "DepthwiseConv2D"
+  total_depthwise_layers: 18
+  pooling_branch: "MaxPooling2D(pool_size=(5, 5), strides=(1, 1), padding='same')"
+
+channel_attention:
+  mechanism: "SqueezeAndExcite2D"
+  total_attention_blocks: 4
+  placement: "Residual addition after each stage block"
+  excitation_activation: "sigmoid"
+
+regularization_layers:
+  spatial_dropout_layers: 56
+  rate: 0.25
+  batch_normalization_layers: 66
+
+deep_supervision_heads:
+  heads_count: 3
+  output_shapes:
+    - head_1: [null, 48, 96, 1]
+    - head_2: [null, 48, 96, 1]
+    - head_3: [null, 48, 96, 1]
+  originating_stages:
+    - head_1: "Stage 2 Decoder"
+    - head_2: "Stage 3 Decoder"
+    - head_3: "Stage 4 Decoder (Final Prediction)"
+  output_activation: "ReLU"
+  dtype: "float32"
+
+structural_census:
+  BatchNormalization: 66
+  SpatialDropout2D: 56
+  Conv2D: 51
+  DepthwiseConv2D: 18
+  Activation: 18
+  Concatenate: 18
+  MaxPooling2D: 9
+  Conv2DTranspose: 6
+  Add: 4
+  SqueezeAndExcite2D: 4
+  InputLayer: 1
+  total_layers: 251

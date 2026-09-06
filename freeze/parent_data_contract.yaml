@@ -1,0 +1,75 @@
+# =============================================================================
+# AUTHORITATIVE PARENT DATA CONTRACT (TABLE S1 ALIGNMENT)
+# Study: Lesinger & Tian (2025), Nature Communications (DOI: 10.1038/s41467-025-62761-3)
+# =============================================================================
+
+contract_name: PARENT_DATA_CONTRACT
+version: "1.0.0"
+date_frozen: "2026-09-06"
+
+ground_truth_dataset:
+  product_name: "GLEAM v3.8a"
+  variable: "root-zone soil moisture (SMroot)"
+  depth_interval: "0 to 100 cm"
+  spatial_resolution: "0.25 degree resampled to 0.5 degree"
+  climatology_period: "2000-2019"
+  anomaly_calculation: "weekly average minus multi-year weekly climatology"
+
+reanalysis_dataset:
+  product_name: "ERA5 Reanalysis (ECMWF)"
+  temporal_resolution: "hourly aggregated to antecedent weekly means"
+  predictors:
+    - code: "Pwat"
+      full_name: "Precipitable Water"
+      units: "kg/m^2"
+    - code: "SPFH"
+      full_name: "Specific Humidity"
+      level: "2-meter surface"
+      units: "kg/kg"
+    - code: "Tmax"
+      full_name: "Maximum Temperature"
+      level: "2-meter surface"
+      units: "Kelvin / Celsius"
+
+dynamic_numerical_forecasts:
+  models:
+    - name: "GEFSv12"
+      organization: "NOAA"
+      ensemble_members: 11
+    - name: "ECMWF S2S"
+      organization: "ECMWF"
+      ensemble_members: 11
+  forecasted_variables:
+    - name: "T2m"
+      description: "2-meter air temperature"
+    - name: "Precip"
+      description: "Total precipitation accumulation"
+    - name: "RZSM"
+      description: "Root-zone soil moisture"
+  forecast_horizons:
+    - week_1: "Days 1-7"
+    - week_2: "Days 8-14"
+    - week_3: "Days 15-21"
+    - week_4: "Days 22-28"
+
+spatial_reference_domain:
+  region_code: "CONUS"
+  coordinate_system: "Equirectangular / WGS84"
+  grid_step_lat: 0.5
+  grid_step_lon: 0.5
+  latitudes_count: 48
+  longitudes_count: 96
+  total_cells: 4608
+  active_land_cells: 3864
+  ocean_masked_cells: 744
+  mask_files:
+    - primary: "Data/masks/region_CONUS_mask.nc4"
+    - fallback: "Data/masks/conus_mask.nc4"
+    - grid_definition: "Data/masks/conus_0.5_grid.grd"
+
+normalization_and_scaling:
+  method: "min_max_scaling"
+  spatial_level: "pixel_wise / grid_cell"
+  formula: "X_scaled = (X - X_min) / (X_max - X_min)"
+  clipping: [0.0, 1.0]
+  author_implementation: "function/preprocessUtils.py:L736"
