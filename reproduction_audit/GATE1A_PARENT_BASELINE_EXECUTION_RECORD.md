@@ -1,17 +1,17 @@
 <!-- markdownlint-disable -->
 # RISE-UNet Baseline Reproduction: Gate 1A Execution & Verification Record
 
-**Project**: Improving RISE-UNet with Support-Aware Surface Observation Integration for Probabilistic Root-Zone Soil-Moisture Drought Forecasting in Mindanao  
+**Project**: Enhanced RISE-UNet for Subseasonal Root-Zone Soil Moisture Drought Forecasting in Mindanao  
 **Authoritative Study**: Lesinger & Tian (2025), *Nature Communications*, DOI: `10.1038/s41467-025-62761-3`  
 **Parent Repository**: `https://github.com/kyle-lesinger/dl_dm_rzsm_subseasonal_forecast.git`  
-**Thesis Repository**: `https://github.com/Kirrrk-git/support-aware-rise-unet.git`  
-**GCS Freeze Bucket**: `gs://support-aware-rise-unet/reference/parent_rise_unet/source/4af8e8c869b7df6a398bf12e122a8e2af3f30eeb/`  
+**Thesis Repository**: `https://github.com/Kirrrk-git/rise-unet-rzsm.git`  
+**GCS Freeze Bucket**: `gs://rise-unet-rzsm/reference/parent_rise_unet/source/4af8e8c869b7df6a398bf12e122a8e2af3f30eeb/`  
 **Status**: Gate 1A (Architecture & Compatibility) 100% COMPLETE & VERIFIED; Gate 1B Pending In 01_parent_experiment_trace.ipynb
 
 ---
 
 ## Executive Record Summary
-This document serves as the permanent, authoritative audit log of the 20-phase baseline reproduction workflow executed to replicate and mathematically verify the RISE-UNet parent model prior to introducing Track B (Mindanao regional adaptation and support-aware satellite observation integration).
+This document serves as the permanent, authoritative audit log of the 20-phase baseline reproduction workflow executed to replicate and mathematically verify the RISE-UNet parent model prior to introducing Track B (Mindanao regional adaptation and model enhancement).
 
 All phases have been executed with strict empirical verification. Author code in the parent repository remains 100% untouched and pristine.
 
@@ -41,37 +41,33 @@ All phases have been executed with strict empirical verification. Author code in
 
 ---
 
-### Phase 3: Create Reproduction Branch
-**Purpose**: Create an isolated Git branch to house the parent reproduction work while leaving the master branch untouched.
+### Phase 3: Verify GCS Bucket
+**Purpose**: Create and verify dedicated Google Cloud Storage infrastructure for dataset mirroring and model artifact synchronization.
 
-- [✓] **Step 3.1**: Create and switch to new branch with `git switch -c parent-reproduction`.
-  * **Verified Output**: `Switched to a new branch 'parent-reproduction'`.
-- [✓] **Step 3.2**: Verify branch status with `git status`.
-  * **Verified Output**: On branch `parent-reproduction`, all 51 author files untouched.
+- [✓] **Step 3.1**: Inspect bucket storage class and location with `gcloud storage buckets describe`.
+  * **Verified Output**: Bucket `gs://rise-unet-rzsm/` confirmed in `us-central1`, Standard storage, Uniform bucket-level access enabled.
 
 ---
 
-### Phase 4: Configure Remotes and Push
-**Purpose**: Establish standard open-source research remote architecture: `upstream` points to the author's public repository for reference, while `origin` points to your private thesis repository.
+### Phase 4: Configure Git Remotes
+**Purpose**: Establish upstream tracking to Kyle Lesinger's repository and origin tracking to the thesis GitHub repository.
 
-- [✓] **Step 4.1**: Rename existing remote `origin` to `upstream` (`git remote rename origin upstream`).
-  * **Verified Output**: `origin` successfully re-labeled to `upstream`.
-- [✓] **Step 4.2**: Create private GitHub repository `support-aware-rise-unet` and add as `origin`.
-  * **Verified Output**: Connected to `https://github.com/Kirrrk-git/support-aware-rise-unet.git`.
+- [✓] **Step 4.1**: Set upstream to `https://github.com/kyle-lesinger/dl_dm_rzsm_subseasonal_forecast.git`.
+  * **Verified Output**: Confirmed via `git remote -v`.
+- [✓] **Step 4.2**: Create private GitHub repository `rise-unet-rzsm` and add as `origin`.
+  * **Verified Output**: Connected to `https://github.com/Kirrrk-git/rise-unet-rzsm.git`.
 - [✓] **Step 4.3**: Verify remote configuration with `git remote -v`.
   * **Verified Output**:
     ```text
-    origin    https://github.com/Kirrrk-git/support-aware-rise-unet.git (fetch)
-    origin    https://github.com/Kirrrk-git/support-aware-rise-unet.git (push)
+    origin    https://github.com/Kirrrk-git/rise-unet-rzsm.git (fetch)
+    origin    https://github.com/Kirrrk-git/rise-unet-rzsm.git (push)
     upstream  https://github.com/kyle-lesinger/dl_dm_rzsm_subseasonal_forecast.git (fetch)
     upstream  https://github.com/kyle-lesinger/dl_dm_rzsm_subseasonal_forecast.git (push)
     ```
-- [✓] **Step 4.4**: Push `parent-reproduction` branch to new `origin`.
-  * **Verified Output**: `* [new branch] parent-reproduction -> parent-reproduction`.
 
 ---
 
-### Phase 5: Make GCS Frozen Source Archive
+### Phase 5: GCS Parent Repository Backup
 **Purpose**: Create an immutable, cloud-stored backup snapshot of the parent repository in Google Cloud Storage for direct high-speed Colab streaming.
 
 - [✓] **Step 5.1**: Generate [freeze/git_status.txt](../freeze/git_status.txt) and [freeze/git_log.txt](../freeze/git_log.txt).
@@ -81,17 +77,17 @@ All phases have been executed with strict empirical verification. Author code in
 - [✓] **Step 5.3**: Generate provenance documentation [freeze/README_CAPTURE.md](../freeze/README_CAPTURE.md).
   * **Verified Output**: Documented full capture metadata, timestamps, author information, and file inventory.
 - [✓] **Step 5.4**: Upload snapshot directory to Google Cloud Storage.
-  * **Verified Output**: Uploaded to `gs://support-aware-rise-unet/reference/parent_rise_unet/source/4af8e8c869b7df6a398bf12e122a8e2af3f30eeb/`.
+  * **Verified Output**: Uploaded to `gs://rise-unet-rzsm/reference/parent_rise_unet/source/4af8e8c869b7df6a398bf12e122a8e2af3f30eeb/`.
 - [✓] **Step 5.5**: Verify GCS bucket contents with `gcloud storage ls`.
   * **Verified Output**:
     ```text
-    gs://support-aware-rise-unet/reference/parent_rise_unet/source/4af8e8c869b7df6a398bf12e122a8e2af3f30eeb/PARENT_COMMIT_SHA.txt
-    gs://support-aware-rise-unet/reference/parent_rise_unet/source/4af8e8c869b7df6a398bf12e122a8e2af3f30eeb/README_CAPTURE.md
-    gs://support-aware-rise-unet/reference/parent_rise_unet/source/4af8e8c869b7df6a398bf12e122a8e2af3f30eeb/git_log.txt
-    gs://support-aware-rise-unet/reference/parent_rise_unet/source/4af8e8c869b7df6a398bf12e122a8e2af3f30eeb/git_status.txt
-    gs://support-aware-rise-unet/reference/parent_rise_unet/source/4af8e8c869b7df6a398bf12e122a8e2af3f30eeb/parent_rise_unet_4af8e8c869b7df6a398bf12e122a8e2af3f30eeb.tar.gz
-    gs://support-aware-rise-unet/reference/parent_rise_unet/source/4af8e8c869b7df6a398bf12e122a8e2af3f30eeb/repository_manifest_sha256.csv
-    gs://support-aware-rise-unet/reference/parent_rise_unet/source/4af8e8c869b7df6a398bf12e122a8e2af3f30eeb/source.tar.gz
+    gs://rise-unet-rzsm/reference/parent_rise_unet/source/4af8e8c869b7df6a398bf12e122a8e2af3f30eeb/PARENT_COMMIT_SHA.txt
+    gs://rise-unet-rzsm/reference/parent_rise_unet/source/4af8e8c869b7df6a398bf12e122a8e2af3f30eeb/README_CAPTURE.md
+    gs://rise-unet-rzsm/reference/parent_rise_unet/source/4af8e8c869b7df6a398bf12e122a8e2af3f30eeb/git_log.txt
+    gs://rise-unet-rzsm/reference/parent_rise_unet/source/4af8e8c869b7df6a398bf12e122a8e2af3f30eeb/git_status.txt
+    gs://rise-unet-rzsm/reference/parent_rise_unet/source/4af8e8c869b7df6a398bf12e122a8e2af3f30eeb/parent_rise_unet_4af8e8c869b7df6a398bf12e122a8e2af3f30eeb.tar.gz
+    gs://rise-unet-rzsm/reference/parent_rise_unet/source/4af8e8c869b7df6a398bf12e122a8e2af3f30eeb/repository_manifest_sha256.csv
+    gs://rise-unet-rzsm/reference/parent_rise_unet/source/4af8e8c869b7df6a398bf12e122a8e2af3f30eeb/source.tar.gz
     ```
 
 ---
@@ -112,7 +108,7 @@ All phases have been executed with strict empirical verification. Author code in
 **Purpose**: Initialize Google Colab cloud execution engine with dedicated NVIDIA T4 GPU runtime and link to GitHub.
 
 - [✓] **Step 7.1**: Open fresh Colab notebook named `00_parent_freeze_and_inspection.ipynb`.
-  * **Verified Output**: Created in Colab and linked to `support_aware_notebooks/`.
+  * **Verified Output**: Created in Colab and linked to `notebooks/`.
 - [✓] **Step 7.2**: Configure runtime to Python 3 with T4 GPU.
   * **Verified Output**: Hardware accelerator allocated: NVIDIA T4 Tensor Core GPU (16 GB VRAM).
 
@@ -150,8 +146,8 @@ All phases have been executed with strict empirical verification. Author code in
 - [✓] **Step 10.1**: Enforce Track A boundaries.
   * **Policy In Effect**:
     - ❌ NO Mindanao bounding box
-    - ❌ NO SMAP satellite data
-    - ❌ NO MOSAIC support-aware integration
+    - ❌ NO external satellite surface data
+    - ❌ NO custom model enhancements
     - ❌ NO custom architecture changes
     - ❌ NO replacing GLEAM with ERA5-Land
 
@@ -310,7 +306,7 @@ $$\mathcal{L}_{\text{CRPS}}(y, \hat{y}) = \frac{1}{N}\sum_{i=1}^N |y_i - \hat{y}
 - [✓] **Step 20.4**: Generate [freeze/parent_data_contract.yaml](../freeze/parent_data_contract.yaml) (sources, versions, periods, normalization, masks).
   * **Verified**: YAML locking GLEAM v3.8a ground truth, ERA5 reanalysis, GEFSv12 & ECMWF S2S forecasts, CONUS $48 \times 96$ mask, pixel-wise min-max scaling to $[0, 1]$.
 - [✓] **Step 20.5**: Commit contracts to Git and upload to GCS.
-  * **Verified**: All 4 formal contracts written in `freeze/`, validated against JSON/YAML schemas, staged, committed, and synced to GCS at `gs://support-aware-rise-unet/contracts/`.
+  * **Verified**: All 4 formal contracts written in `freeze/`, validated against JSON/YAML schemas, staged, committed, and synced to GCS at `gs://rise-unet-rzsm/contracts/`.
 
 ---
 
@@ -333,7 +329,7 @@ $$\mathcal{L}_{\text{CRPS}}(y, \hat{y}) = \frac{1}{N}\sum_{i=1}^N |y_i - \hat{y}
 * **Gate 1A: Parent Implementation & Architecture Integrity** $\rightarrow$ **CERTIFIED COMPLETE**  
   * Verified: frozen commit `4af8e8c869b7df6a398bf12e122a8e2af3f30eeb`, model construction, forward/backward execution under Colab compatibility adapter, learning capacity, MC stochasticity, and mask mechanics.
 * **Gate 1B: Parent Experiment Fidelity & Recursive Pipeline Trace** $\rightarrow$ **IN PROGRESS**  
-  * Scheduled in: `support_aware_notebooks/01_parent_experiment_trace.ipynb`.
+  * Scheduled in: `notebooks/01_parent_experiment_trace.ipynb`.
   * Verifies: primary published experiment configuration (EX29), exact Table S1 input contract, real data preprocessing audit, and the recursive multi-week forecasting loop ($W_1 \to W_2 \to W_3 \to W_4$).
   * Prerequisite before branching to `track-b-mindanao-adaptation`.
 

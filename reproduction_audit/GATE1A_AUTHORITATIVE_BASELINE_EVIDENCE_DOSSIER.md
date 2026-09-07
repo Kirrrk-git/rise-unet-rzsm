@@ -3,7 +3,7 @@
 ## Empirical Verification of Parent Implementation & Graph Integrity
 **Authoritative Study**: Lesinger, K., & Tian, D. (2025). *Subseasonal root-zone soil moisture drought forecasting using a deep learning-dynamic model hybrid approach*. **Nature Communications**, 16, 62761. DOI: `10.1038/s41467-025-62761-3`  
 **Parent Source Commit**: `4af8e8c869b7df6a398bf12e122a8e2af3f30eeb` (Merge PR #4 by Kyle Lesinger)  
-**Thesis Project**: Improving RISE-UNet with Support-Aware Surface Observation Integration for Probabilistic Root-Zone Soil-Moisture Drought Forecasting in Mindanao  
+**Thesis Project**: Enhanced RISE-UNet for Subseasonal Root-Zone Soil Moisture Drought Forecasting in Mindanao  
 **Verification Date**: September 6, 2026  
 **Auditor**: Advanced Agentic Coding Pair  
 **Verification Result**: **GATE 1A IMPLEMENTATION & ARCHITECTURAL INTEGRITY CONFIRMED (PASS)**
@@ -17,7 +17,7 @@ This evidence dossier provides formal proof that the parent deep learning archit
 ### The "Tri-Freeze" Provenance Chain
 To prevent reproducibility drift, the baseline is anchored by three identical cryptographic checkpoints:
 1. **Local Working Tree**: Commit `4af8e8c869b7df6a398bf12e122a8e2af3f30eeb` on branch `parent-reproduction`.
-2. **Cloud Storage Archive**: Immutable source tarball stored at `gs://support-aware-rise-unet/reference/parent_rise_unet/source/4af8e8c869b7df6a398bf12e122a8e2af3f30eeb/source.tar.gz` with complete SHA-256 file manifest (`repository_manifest_sha256.csv`).
+2. **Cloud Storage Archive**: Immutable source tarball stored at `gs://rise-unet-rzsm/reference/parent_rise_unet/source/4af8e8c869b7df6a398bf12e122a8e2af3f30eeb/source.tar.gz` with complete SHA-256 file manifest (`repository_manifest_sha256.csv`).
 3. **Execution Environment**: Checked out directly in Google Colab connected to an NVIDIA Tesla T4 GPU (16 GB VRAM).
 
 ### Strict Author Code Integrity Guarantee
@@ -193,6 +193,6 @@ To confirm functional execution fidelity beyond static parameter counts, four au
 1. **Gate 1A is officially CERTIFIED COMPLETE.** The parent architecture integrity, in-memory execution, learning dynamics, and compatibility shims are frozen, validated, and documented.
 2. **Gate 1B (Parent Experiment Fidelity & Pipeline Trace) is scheduled:**
    * Primary baseline experiment EX29 selected from Lesinger & Tian (2025).
-   * Exact Table S1 input contract and recursive multi-week forecasting loop ($W_1 \to W_2 \to W_3 \to W_4$) traced in `support_aware_notebooks/01_parent_experiment_trace.ipynb`.
+   * Exact Table S1 input contract and recursive multi-week forecasting loop ($W_1 \to W_2 \to W_3 \to W_4$) traced in `notebooks/01_parent_experiment_trace.ipynb`.
 3. **Transition to Track B (Mindanao Adaptation):** Cleared upon successful execution of the Gate 1B trace notebook.
 
