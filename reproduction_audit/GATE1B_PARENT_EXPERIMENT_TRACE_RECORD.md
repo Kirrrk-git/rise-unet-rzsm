@@ -6,7 +6,7 @@
 **Parent Repository**: `https://github.com/kyle-lesinger/dl_dm_rzsm_subseasonal_forecast.git`  
 **Thesis Repository**: `https://github.com/Kirrrk-git/rise-unet-rzsm.git`  
 **Executed Notebook**: [`notebooks/01_parent_experiment_trace.ipynb`](../notebooks/01_parent_experiment_trace.ipynb)  
-**Execution Commit**: `957989ff2ffd0fe93e888956e63da96f4975853d`  
+**Execution Commit**: `550fea497042a9693952f4ae2562d9dc6db157fa` (`550fea4`)  
 **Execution Environment**: Google Colab (GPU: NVIDIA Tesla T4, Python 3.13, TensorFlow 2.20.0)  
 **Status**: **GATE 1B (PARENT EX29 CONFIGURATION & RECURSIVE PIPELINE TRACE) VERIFIED (PASS)**
 

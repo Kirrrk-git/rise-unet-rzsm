@@ -329,7 +329,7 @@ $$\mathcal{L}_{\text{CRPS}}(y, \hat{y}) = \frac{1}{N}\sum_{i=1}^N |y_i - \hat{y}
 * **Gate 1A: Parent Implementation & Architecture Integrity** $\rightarrow$ **CERTIFIED COMPLETE**  
   * Verified: frozen commit `4af8e8c869b7df6a398bf12e122a8e2af3f30eeb`, model construction, forward/backward execution under Colab compatibility adapter, learning capacity, MC stochasticity, and mask mechanics.
 * **Gate 1B: Parent Experiment Configuration & Recursive Pipeline Trace** $\rightarrow$ **CERTIFIED COMPLETE (PASS)**  
-  * Executed in: `notebooks/01_parent_experiment_trace.ipynb` (Colab T4 GPU, commit `957989f`).
+  * Executed in: `notebooks/01_parent_experiment_trace.ipynb` (Colab T4 GPU, commit `550fea4`).
   * Verified: primary published experiment configuration (EX29), exact Table S1 input contract, author preprocessing mathematical pipeline, and recursive multi-week forecasting loop ($W_1 \to W_2 \to W_3 \to W_4$).
   * Formally audited in `reproduction_audit/GATE1B_PARENT_EXPERIMENT_TRACE_RECORD.md` and `reproduction_audit/GATE1B_AUTHORITATIVE_EXPERIMENT_EVIDENCE_DOSSIER.md`.
   * Track B (Mindanao Adaptation) is officially cleared to launch.

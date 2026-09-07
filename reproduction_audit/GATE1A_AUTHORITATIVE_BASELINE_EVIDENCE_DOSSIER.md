@@ -193,7 +193,7 @@ To confirm functional execution fidelity beyond static parameter counts, four au
 1. **Gate 1A is officially CERTIFIED COMPLETE.** The parent architecture integrity, in-memory execution, learning dynamics, and compatibility shims are frozen, validated, and documented.
 2. **Gate 1B (Parent Experiment Configuration & Recursive Pipeline Trace) is CERTIFIED COMPLETE:**
    * Primary baseline experiment EX29 traced from Lesinger & Tian (2025).
-   * Exact Table S1 input contract and recursive multi-week forecasting loop ($W_1 \to W_2 \to W_3 \to W_4$) traced in `notebooks/01_parent_experiment_trace.ipynb` (Colab commit `957989f`).
+   * Exact Table S1 input contract and recursive multi-week forecasting loop ($W_1 \to W_2 \to W_3 \to W_4$) traced in `notebooks/01_parent_experiment_trace.ipynb` (Colab commit `550fea4`).
    * Complete audit evidence documented in `reproduction_audit/GATE1B_AUTHORITATIVE_EXPERIMENT_EVIDENCE_DOSSIER.md`.
 3. **Transition to Track B (Mindanao Adaptation):** Cleared and active.
 
