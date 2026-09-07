@@ -1,6 +1,6 @@
 <!-- markdownlint-disable -->
-# Gate 1B Baseline Experiment Fidelity Evidence Dossier
-## Empirical Verification of Published EX29 Subseasonal Forecast Pipeline & Autoregressive Dynamics
+# Gate 1B Baseline Experiment Configuration & Recursive Pipeline Evidence Dossier
+## Empirical Verification of Published EX29 Subseasonal Forecast Configuration & Autoregressive Dynamics
 
 **Authoritative Study**: Lesinger, K., & Tian, D. (2025). *Subseasonal root-zone soil moisture drought forecasting using a deep learning-dynamic model hybrid approach*. **Nature Communications**, 16, 62761. DOI: `10.1038/s41467-025-62761-3`  
 **Parent Source Commit**: `4af8e8c869b7df6a398bf12e122a8e2af3f30eeb` (Merge PR #4 by Kyle Lesinger)  
@@ -9,15 +9,18 @@
 **Auditor**: Advanced Agentic Coding Pair  
 **Executed Notebook**: [`notebooks/01_parent_experiment_trace.ipynb`](../notebooks/01_parent_experiment_trace.ipynb)  
 **Execution Commit**: [`957989ff2ffd0fe93e888956e63da96f4975853d`](https://github.com/Kirrrk-git/rise-unet-rzsm/commit/957989f)  
-**Verification Result**: **GATE 1B EXPERIMENT FIDELITY & RECURSIVE PIPELINE CONFIRMED (PASS)**
+**Verification Result**: **GATE 1B PUBLISHED EXPERIMENT CONFIGURATION & RECURSIVE PIPELINE VERIFICATION CONFIRMED (PASS)**
 
 ---
 
-## 1. Executive Summary & Reproduction Guarantee
+## 1. Executive Summary & Verification Scope
 
 This evidence dossier serves as the formal scientific companion to [`GATE1A_AUTHORITATIVE_BASELINE_EVIDENCE_DOSSIER.md`](GATE1A_AUTHORITATIVE_BASELINE_EVIDENCE_DOSSIER.md). 
 
-While Gate 1A proved the structural instantiation, gradient flow, and learning capacity of the parent neural graph (`UNET_RZSM`), **Gate 1B certifies the published experiment-level execution fidelity** of the author's primary subseasonal baseline: **Experiment EX29** (*Lagged RZSM + ERA5 Atmospheric Reanalysis + ECMWF S2S Reforecasts + Recursive RZSM Feedback*).
+While Gate 1A proved the structural instantiation, gradient flow, and learning capacity of the parent neural graph (`UNET_RZSM`), **Gate 1B verifies the published experiment configuration, lead-dependent channel schedule, and autoregressive recursive tensor pathway** of the author's primary subseasonal baseline: **Experiment EX29** (*Lagged RZSM + ERA5 Atmospheric Reanalysis + ECMWF S2S Reforecasts + Recursive RZSM Feedback*).
+
+> [!NOTE]
+> **Scope Qualification**: This notebook verifies the deep-learning graph topology, experiment configuration dictionary, channel schedule contracts, preprocessing mathematics, and recursive tensor pathway using synthetic input vectors over the author's official CONUS land mask. Full historical climate reanalysis ingestion (GLEAM, ERA5, ECMWF) is executed in Track B under the Mindanao regional adaptation.
 
 ### The "Tri-Freeze" Provenance Chain
 The reproduction is anchored by three identical cryptographic checkpoints:
@@ -25,50 +28,53 @@ The reproduction is anchored by three identical cryptographic checkpoints:
 2. **Cloud Storage Archive**: Immutable source tarball stored at `gs://rise-unet-rzsm/reference/parent_rise_unet/source/4af8e8c869b7df6a398bf12e122a8e2af3f30eeb/source.tar.gz` with complete SHA-256 file manifest (`repository_manifest_sha256.csv`).
 3. **Execution Environment**: Checked out directly in Google Colab connected to an NVIDIA Tesla T4 GPU (16 GB VRAM) running TensorFlow 2.20.0.
 
-### Strict Author Code Integrity Guarantee
-**Zero modifications were made to the author's source code.** All 51 author files in the repository remain byte-for-byte identical to Kyle Lesinger's public repository. All modern runtime adaptations (e.g. Keras 3 `DepthwiseConv2D` shims and Protobuf version bypass) are executed strictly via in-memory Python shims during execution.
+### Author Code Integrity Guarantee
+**Zero modifications were made to the author's source code.** All 51 author files in `function/`, `Data/masks/`, and root author notebooks remain pristine and untouched relative to Kyle Lesinger's public repository. All modern runtime adaptations (e.g. Keras 3 `DepthwiseConv2D` shims and Protobuf version bypass) are executed strictly via in-memory Python shims during execution.
 
 ---
 
 ## 2. The 5 Methodological Pillars of Gate 1B Empirical Proof
 
-To defend the experiment-level replication before an examination committee or peer-review panel, the end-to-end forecasting pipeline was subjected to five distinct empirical verification layers:
+To establish an airtight, scientifically defendable baseline before transitioning to Track B, the pipeline trace was subjected to five distinct empirical verification layers:
 
 ```
                   ┌─────────────────────────────────────────────────────────┐
-                  │       GATE 1B EVIDENCE: EXPERIMENT EX29 FIDELITY        │
+                  │    GATE 1B: EXPERIMENT EX29 CONFIGURATION & PIPELINE    │
                   └─────────────────────────────────────────────────────────┘
                                            │
  ┌──────────────────┬──────────────────────┼──────────────────┬─────────────────┐
  ▼                  ▼                      ▼                  ▼                 ▼
-[Pillar 1: S1/S6]  [Pillar 2: Preproc]   [Pillar 3: Loop]   [Pillar 4: Causal]  [Pillar 5: Mask]
-Table S1 Channels   7-Day Mean, Anom.    W1 -> W2 -> W3->W4  Perturbation Test  Table S1 Domain
-[11, 12, 5, 6]      Min-Max + 0-Fill     11 Ensemble Mem.    Δy > 10^-4 Causal  3,864 Land Cells
+[Pillar 1: Config] [Pillar 2: Preproc]   [Pillar 3: Loop]   [Pillar 4: Dep.]    [Pillar 5: Mask]
+EX29 Dictionary    Formula Verification  W1 -> W2 -> W3->W4  Perturbation Test  Table S1 Domain
+[11, 12, 5, 6]     Min-Max + 0-Fill      11 Ensemble Mem.    Δy > 10^-4 Sens.   3,864 Land Cells
 ```
 
-### Pillar 1: Published Channel Schedule Enforcement (Supplementary Table S1 & S6)
-* Verified that the input tensor channel schedules match the author's exact experiment indexing logic in [`function/loadDataAllWeeks.py:L710-721`](file:///c:/Users/Jensville/Downloads/Rise-UNet/dl_dm_rzsm_subseasonal_forecast/function/loadDataAllWeeks.py#L710-L721).
-* Channel counts are lead-dependent: **Lead 1 = 11 channels**, **Lead 2 = 12 channels**, **Lead 3 = 5 channels**, **Lead 4 = 6 channels**.
+### Pillar 1: Published Experiment Configuration & Channel Schedule Enforcement
+* Programmatically retrieved the canonical EX29 configuration dictionary directly from author source [`function/experimentType.py`](file:///c:/Users/Jensville/Downloads/Rise-UNet/dl_dm_rzsm_subseasonal_forecast/function/experimentType.py):
+  `{'num_lags_obs_RZSM': 3, 'include_lags_obs_pwat_spfh_tmax': True, 'include_reforecast_or_not': True, 'experiment_test': 2}`.
+* Audited the lead-dependent channel layout against [`function/loadDataAllWeeks.py:L710-721`](file:///c:/Users/Jensville/Downloads/Rise-UNet/dl_dm_rzsm_subseasonal_forecast/function/loadDataAllWeeks.py#L710-L721) and Supplementary Tables S1 and S6:
+  **Lead 1 = 11 channels**, **Lead 2 = 12 channels**, **Lead 3 = 5 channels**, **Lead 4 = 6 channels**.
 
 ### Pillar 2: Data Preprocessing Mathematics & Boundary Integrity
-* Extracted and audited the author's data normalization pipeline from [`function/preprocessUtils.py:L736-760`](file:///c:/Users/Jensville/Downloads/Rise-UNet/dl_dm_rzsm_subseasonal_forecast/function/preprocessUtils.py#L736-L760):
+* Extracted and audited the author's data normalization rules from [`function/preprocessUtils.py:L736-760`](file:///c:/Users/Jensville/Downloads/Rise-UNet/dl_dm_rzsm_subseasonal_forecast/function/preprocessUtils.py#L736-L760):
   1. 7-day trailing rolling window temporal smoothing.
   2. Day-of-year seasonal anomaly subtraction relative to climatology (2000–2015).
   3. Pixel-wise min-max scaling to $[0, 1]$ based strictly on the training period min/max.
   4. Explicit ocean zero-filling: missing / `NaN` values are converted to $0.0$ to prevent numerical divergence.
+* Tested the normalization mathematics against boundary vectors, confirming exact $[0, 1]$ mapping and boundary zero-filling.
 
 ### Pillar 3: Multi-Week Autoregressive Recursive Forecasting Loop
 * Validated the autoregressive multi-week forward loop ($W_1 \to W_2 \to W_3 \to W_4$) on an 11-member ensemble over the CONUS domain ($48 \times 96$).
 * Verified that downstream lead predictor tensors dynamically ingest prior-week model predictions ($\hat{y}_{W(k-1)}$) into the channel dimension following [`function/loadDataAllWeeks.py:L820-825`](file:///c:/Users/Jensville/Downloads/Rise-UNet/dl_dm_rzsm_subseasonal_forecast/function/loadDataAllWeeks.py#L820-L825).
 
-### Pillar 4: Causal Sensitivity Validation
-* Proven that the recursive feedback channel is causally active and non-trivial:
+### Pillar 4: Recursive Dependency & Intervention Sensitivity Test
+* Verified computational dependency along the autoregressive graph via perturbation sensitivity:
   $$\Delta y_{W1} = +0.25 \implies \max |\hat{y}_{W2}(\hat{y}_{W1} + \Delta) - \hat{y}_{W2}(\hat{y}_{W1})| = 0.019729 > 10^{-4}$$
-* Downstream Lead 2 predictions exhibit a statistically significant response ($\approx 197\times$ above threshold), proving that upstream errors or signals propagate through the recursive pathway.
+* Downstream Lead 2 predictions exhibit a measurable response ($\approx 197\times$ above threshold), confirming that the recursive channel is computationally active and downstream states are functionally dependent on upstream predictions.
 
-### Pillar 5: Geospatial Domain Census & Masked Spatial Metrics
+### Pillar 5: Geospatial Domain Census & Synthetic Masked-Metric Pipeline Sanity
 * Verified exact domain compatibility with the author's official CONUS mask (`Data/masks/region_CONUS_mask.nc4`), confirming exactly **3,864 active land cells** (83.85% of the $48 \times 96 = 4,608$ grid).
-* Evaluated spatial CRPS loss ([`function/losses.py:crps2d_tf`](file:///c:/Users/Jensville/Downloads/Rise-UNet/dl_dm_rzsm_subseasonal_forecast/function/losses.py#L60-L85)) and spatial Anomaly Correlation Coefficient (ACC) across all 4 recursive leads with **zero NaNs and zero division-by-zero errors**.
+* Evaluated spatial CRPS loss ([`function/losses.py:crps2d_tf`](file:///c:/Users/Jensville/Downloads/Rise-UNet/dl_dm_rzsm_subseasonal_forecast/function/losses.py#L60-L85)) and spatial Anomaly Correlation Coefficient (ACC) across all 4 recursive leads with **zero NaNs and zero division-by-zero errors**, verifying loss and metric pipeline stability under land masking.
 
 ---
 
@@ -119,7 +125,7 @@ Testing with parameters $t_{\min} = -0.20$, $t_{\max} = +0.20$ ($\Delta = 0.40$)
 
 ---
 
-## 5. Autoregressive Multi-Week Inference & Causal Verification
+## 5. Autoregressive Multi-Week Inference & Dependency Verification
 
 ### Forward Execution Tensor Matrix ($B = 11$ Ensemble Members)
 The 4-week autoregressive pipeline was executed end-to-end on an NVIDIA Tesla T4 GPU:
@@ -144,17 +150,17 @@ The 4-week autoregressive pipeline was executed end-to-end on an NVIDIA Tesla T4
 | **Lead 3 (Week 3)** | `(11, 48, 96, 5)` | Stage 4 (`RZSM_output_3`) | `(11, 48, 96, 1)` | **True** | **PASS** |
 | **Lead 4 (Week 4)** | `(11, 48, 96, 6)` | Stage 4 (`RZSM_output_3`) | `(11, 48, 96, 1)` | **True** | **PASS** |
 
-### Causal Information Flow Metrics
+### Recursive Dependency & Intervention Sensitivity Metrics
 To confirm that upstream predictions $\hat{y}_{W1}$ actively modulate downstream Lead 2 predictions:
 - **Upstream Perturbation**: $\Delta y_{W1} = +0.25$ (clamped to $[0.0, 1.0]$)
 - **Downstream Response ($\Delta y_{W2}$)**:
   - **Maximum Pixel Divergence**: `0.019729` (Threshold: $> 1.0 \times 10^{-4}$, Safety Factor: $\approx 197\times$)
   - **Mean Spatial Response**: `0.000990`
-- **Scientific Conclusion**: The recursive connection is topologically verified. Predictions at Lead 2 are causally conditioned on Lead 1 states.
+- **Technical Conclusion**: Downstream predictions at Lead 2 are functionally dependent on Lead 1 states within the computational graph, confirming an active autoregressive information pathway.
 
 ---
 
-## 6. Geospatial Land Mask Census & Metric Verification
+## 6. Geospatial Land Mask Census & Synthetic Metric Verification
 
 ### Spatial Domain Census (CONUS $0.5^\circ$)
 * **Grid Bounds**: Latitude $[26.5^\circ\text{N}, 50.0^\circ\text{N}]$, Longitude $[238.0^\circ\text{E}, 285.5^\circ\text{E}]$
@@ -163,7 +169,7 @@ To confirm that upstream predictions $\hat{y}_{W1}$ actively modulate downstream
 * **Ocean / Masked Cells**: **744 cells** ($16.15\%$)
 * **Census Consistency**: Identical to the 3,864 land cell census recorded in Gate 1A ([`GATE1A_AUTHORITATIVE_BASELINE_EVIDENCE_DOSSIER.md:L66`](GATE1A_AUTHORITATIVE_BASELINE_EVIDENCE_DOSSIER.md#L66)).
 
-### Recursive Lead Loss & Correlation Results
+### Synthetic Masked Pipeline Metric Sanity Check
 Evaluated over the 3,864 active land cells:
 
 | Forecast Lead | Evaluated Channel | Land Masked Spatial CRPS | Land Spatial ACC | NaNs Detected | Numerical Stability |
@@ -173,7 +179,7 @@ Evaluated over the 3,864 active land cells:
 | **Lead 3 (Week 3)** | 5 Channels | `0.305239` | `-0.0170` | **0** | **Stable** |
 | **Lead 4 (Week 4)** | 6 Channels | `0.409803` | `-0.0070` | **0** | **Stable** |
 
-*Note: Spatial ACC values reflect untuned random weight initialization against synthetic targets and confirm that the correlation coefficient calculation executes across the 3,864 masked cells without numerical collapse.*
+*Note: These CRPS and ACC numbers serve strictly as numerical pipeline verification (confirming that tensor broadcasting, division by active land pixels, and correlation calculations execute without NaNs or zero-division). They do not represent real-world forecast skill, which will be evaluated on actual historical observations in Track B.*
 
 ---
 
@@ -193,35 +199,35 @@ The execution took place in a dedicated Google Colab cloud instance with the fol
 
 ---
 
-## 8. Dual Gate 1 Sign-Off & Thesis Status
+## 8. Dual Gate 1 Sign-Off & Thesis Transition
 
 With the completion and empirical recording of both Gate 1A and Gate 1B:
 
 ```
-   GATE 1A: ARCHITECTURE INTEGRITY          GATE 1B: EXPERIMENT PIPELINE FIDELITY
+   GATE 1A: ARCHITECTURE INTEGRITY          GATE 1B: EX29 CONFIGURATION & PIPELINE
  ┌───────────────────────────────────┐    ┌────────────────────────────────────────┐
- │ Model Graph: UNET_RZSM            │    │ Experiment: EX29 (Nature Comms 2025)   │
+ │ Model Graph: UNET_RZSM            │    │ Experiment: EX29 Configuration Audit   │
  │ Parameters: 1,630,307 (298 tensors│    │ Channels: [11, 12, 5, 6] across Leads  │
  │ Gradients: Non-zero backprop      │    │ Preprocessing: Min-Max + Ocean 0-Fill  │
  │ Overfit: -54.26% loss drop        │    │ Recursive Loop: W1 -> W2 -> W3 -> W4   │
- │ Runtime: Colab GPU T4 Verified    │    │ Causal Sensitivity: delta > 10^-4      │
+ │ Runtime: Colab GPU T4 Verified    │    │ Recursive Dependency: delta > 10^-4    │
  └───────────────────────────────────┘    └────────────────────────────────────────┘
                    │                                          │
                    └────────────────────┬─────────────────────┘
                                         ▼
                    ┌────────────────────────────────────────┐
-                   │     GATE 1: REPRODUCTION CERTIFIED     │
-                   │               100% COMPLETE            │
+                   │    GATE 1: BASELINE FOUNDATION VERIFIED│
+                   │               (PASS / READY)           │
                    └────────────────────────────────────────┘
                                         │
                                         ▼
                    ┌────────────────────────────────────────┐
                    │ TRACK B: MINDANAO REGIONAL ADAPTATION  │
-                   │      (Phase 21 Launch Authorized)      │
+                   │  (A0 Adaptation Contract & Phase 21)   │
                    └────────────────────────────────────────┘
 ```
 
 1. **Gate 1A is officially CERTIFIED COMPLETE** ([`GATE1A_AUTHORITATIVE_BASELINE_EVIDENCE_DOSSIER.md`](GATE1A_AUTHORITATIVE_BASELINE_EVIDENCE_DOSSIER.md)).
-2. **Gate 1B is officially CERTIFIED COMPLETE** ([`GATE1B_AUTHORITATIVE_EXPERIMENT_EVIDENCE_DOSSIER.md`](GATE1B_AUTHORITATIVE_EXPERIMENT_EVIDENCE_DOSSIER.md)).
+2. **Gate 1B Published Experiment Configuration & Recursive Pipeline is officially VERIFIED (PASS)** ([`GATE1B_AUTHORITATIVE_EXPERIMENT_EVIDENCE_DOSSIER.md`](GATE1B_AUTHORITATIVE_EXPERIMENT_EVIDENCE_DOSSIER.md)).
 3. **Parent Baseline is 100% Frozen & Decoupled** (Commit `4af8e8c869b7df6a398bf12e122a8e2af3f30eeb`).
-4. **Track B Authorization**: The repository is cleared to create branch `track-b-mindanao-adaptation` and commence Phase 21 (Mindanao 0.25° Domain Adaptation & Data Pipeline).
+4. **Track B Authorization**: The repository is cleared to branch to `track-b-mindanao-adaptation` and commence Phase 21 (where the Mindanao grid, data pipelines, and formal A0 baseline contract will be empirically established and frozen).

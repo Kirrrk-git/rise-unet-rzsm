@@ -8,17 +8,17 @@
 **Executed Notebook**: [`notebooks/01_parent_experiment_trace.ipynb`](../notebooks/01_parent_experiment_trace.ipynb)  
 **Execution Commit**: `957989ff2ffd0fe93e888956e63da96f4975853d`  
 **Execution Environment**: Google Colab (GPU: NVIDIA Tesla T4, Python 3.13, TensorFlow 2.20.0)  
-**Status**: **GATE 1B (PARENT EXPERIMENT FIDELITY & RECURSIVE TRACE) 100% COMPLETE & CERTIFIED**
+**Status**: **GATE 1B (PARENT EX29 CONFIGURATION & RECURSIVE PIPELINE TRACE) VERIFIED (PASS)**
 
 ---
 
 ## 1. Executive Summary
 
-This record documents the empirical execution and formal certification of **Gate 1B (Parent Experiment Fidelity & Recursive Pipeline Trace)**.
+This record documents the empirical execution and formal verification of **Gate 1B (Parent EX29 Configuration & Recursive Pipeline Trace)**.
 
 Following the certification of Gate 1A (deep neural graph instantiation and compatibility layer verification), Gate 1B validates the author's primary subseasonal baseline: **Experiment EX29** (*Lagged RZSM + ERA5 Atmospheric Reanalysis + ECMWF S2S Reforecasts + Recursive RZSM Feedback*).
 
-The notebook was executed on a Google Colab GPU runtime under TensorFlow 2.20.0. All 7 code cells executed in strict sequence with zero runtime errors, zero assertion failures, and zero NaN values.
+The notebook was executed on a Google Colab GPU runtime under TensorFlow 2.20.0. All 7 code cells executed in strict sequence with zero runtime errors, zero assertion failures, and zero NaN values, proving the model graph, channel schedule contracts, preprocessing normalization mathematics, and recursive tensor update loop. Full historical climate reanalysis ingestion is executed in Track B under the Mindanao regional adaptation.
 
 ---
 
@@ -121,7 +121,7 @@ The notebook was executed on a Google Colab GPU runtime under TensorFlow 2.20.0.
 
 ---
 
-### Step 6: Causal Sensitivity Validation
+### Step 6: Recursive Dependency & Intervention Sensitivity Validation
 * **Cell Index**: 13 (Execution `[6]`)
 * **Objective**: Prove that the recursive channel actively propagates information forward by perturbing the Week 1 prediction and measuring downstream response at Lead 2.
 * **Empirical Output**:
@@ -132,12 +132,12 @@ The notebook was executed on a Google Colab GPU runtime under TensorFlow 2.20.0.
   ```
 * **Mathematical Proof**:
   $$\Delta y_{W1} = +0.25 \implies \max |\hat{y}_{W2}(\hat{y}_{W1} + \Delta) - \hat{y}_{W2}(\hat{y}_{W1})| = 0.019729 > 10^{-4}$$
-  The measured response exceeds the required threshold by $\approx 197\times$, proving upstream feedback is active.
-* **Verdict**: **PASS**. Causal propagation confirmed.
+  The measured response exceeds the required threshold by $\approx 197\times$, proving that downstream predictions are computationally dependent on upstream predictions in the graph.
+* **Verdict**: **PASS**. Recursive dependency confirmed via intervention test.
 
 ---
 
-### Step 7: Geospatial Mask Integration & Spatial CRPS/ACC Metrics
+### Step 7: Geospatial Mask Integration & Synthetic Metric Pipeline Sanity
 * **Cell Index**: 15 (Execution `[7]`)
 * **Objective**: Load the authoritative CONUS land mask (`Data/masks/region_CONUS_mask.nc4`), perform spatial census, broadcast masks across all 4 lead predictions, and compute spatial CRPS and ACC without numerical divergence.
 * **Empirical Output**:
@@ -157,19 +157,19 @@ The notebook was executed on a Google Colab GPU runtime under TensorFlow 2.20.0.
 * **Validation Proof**:
   1. **Land Census Identity**: Exactly **3,864 active land cells** out of 4,608 total pixels ($83.85\%$), matching the exact census recorded in Gate 1A.
   2. **CRPS Stability**: Batch size $B = 11$ satisfied the author's constraint (`new_range = B // 11 = 1`), preventing division-by-zero errors.
-  3. **Zero NaNs**: All 4 recursive leads yielded strictly finite numbers.
-* **Verdict**: **PASS**. Mask broadcasting and geospatial loss evaluation verified.
+  3. **Zero NaNs**: All 4 recursive leads yielded strictly finite numbers under land masking.
+* **Verdict**: **PASS**. Mask broadcasting and metric calculation stability confirmed on synthetic vectors.
 
 ---
 
-## 3. Formal Gate 1 Closure
+## 3. Formal Gate 1 Closure & Handoff to Track B
 
-With both Gate 1A and Gate 1B empirically certified:
+With both Gate 1A and Gate 1B empirically verified:
 
 | Gate Certification | Target | Artifact | Colab Hardware | Status |
 | :--- | :--- | :--- | :--- | :--- |
 | **Gate 1A** | Architecture & Compatibility Layer | [`notebooks/00_parent_freeze_and_inspection.ipynb`](../notebooks/00_parent_freeze_and_inspection.ipynb) | NVIDIA Tesla T4 | **CERTIFIED (PASS)** |
-| **Gate 1B** | Published Experiment Fidelity & Recursive Trace | [`notebooks/01_parent_experiment_trace.ipynb`](../notebooks/01_parent_experiment_trace.ipynb) | NVIDIA Tesla T4 | **CERTIFIED (PASS)** |
+| **Gate 1B** | Published EX29 Configuration & Recursive Pipeline | [`notebooks/01_parent_experiment_trace.ipynb`](../notebooks/01_parent_experiment_trace.ipynb) | NVIDIA Tesla T4 | **VERIFIED (PASS)** |
 
-**Gate 1 (Parent Baseline Reproduction) is officially 100% COMPLETE.**  
-The repository is fully certified to proceed to **Track B (Mindanao Regional Adaptation & Support-Aware Enhancements)**.
+**Gate 1 (Parent Baseline Reproduction & Configuration Trace) is officially COMPLETE.**  
+The repository is cleared to branch to **Track B (Mindanao Regional Adaptation)** to commence Phase 21 (where the Mindanao grid, data pipelines, and formal A0 baseline contract will be empirically validated and frozen).
