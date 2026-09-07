@@ -18,7 +18,9 @@ model_metadata:
 
 backbone_stages:
   number_of_stages: 4
-  stage_filter_counts: [32, 64, 128, 256]
+  stage_filter_counts_published: [32, 64, 128, 256]
+  stage_filter_counts_model_rzsm_relu: [32, 32, 64, 128]
+  filter_reconciliation_note: "Nature Communications Table S3 defines [32, 64, 128, 256]. In author source code, modelRzsmRelu.py implements [32, 32, 64, 128] with 18 DepthwiseConv2D layers, while modelRzsmReluExtraConv.py implements [32, 64, 128, 256] with standard Conv2D."
   downsampling_operator: "MaxPooling2D(pool_size=(2, 2))"
   upsampling_operator: "Conv2DTranspose(strides=(2, 2))"
   skip_connections: "Concatenate(axis=-1) between matching encoder/decoder stages"

@@ -42,9 +42,17 @@
     "total_training_samples": 9185
   },
   "input_tensor_specification": {
-    "shape": [null, 48, 96, 12],
+    "primary_baseline_shape_lead2": [null, 48, 96, 12],
     "dtype": "float32",
-    "channels_total": 12,
+    "channels_lead2_total": 12,
+    "lead_dependent_channels_ex29": {
+      "lead_1_channels": 11,
+      "lead_2_channels": 12,
+      "lead_3_channels": 5,
+      "lead_4_channels": 6,
+      "specification_reference": "function/loadDataAllWeeks.py:L681 (load_all_data_EX29_after_week_0)",
+      "structural_rule": "EX29 includes dynamic atmospheric reforecasts up to Lead 2; Leads 3 and 4 drop atmospheric reforecasts and recursively ingest preceding week RZSM predictions."
+    },
     "channel_layout": [
       {
         "channel_index": 0,

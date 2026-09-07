@@ -1,18 +1,18 @@
 <!-- markdownlint-disable -->
-# Authoritative Baseline Architecture Evidence Dossier
-## Exact Empirical & Mathematical Replication of RISE-UNet
+# Gate 1A Baseline Architecture Evidence Dossier
+## Empirical Verification of Parent Implementation & Graph Integrity
 **Authoritative Study**: Lesinger, K., & Tian, D. (2025). *Subseasonal root-zone soil moisture drought forecasting using a deep learning-dynamic model hybrid approach*. **Nature Communications**, 16, 62761. DOI: `10.1038/s41467-025-62761-3`  
 **Parent Source Commit**: `4af8e8c869b7df6a398bf12e122a8e2af3f30eeb` (Merge PR #4 by Kyle Lesinger)  
 **Thesis Project**: Improving RISE-UNet with Support-Aware Surface Observation Integration for Probabilistic Root-Zone Soil-Moisture Drought Forecasting in Mindanao  
 **Verification Date**: September 6, 2026  
 **Auditor**: Advanced Agentic Coding Pair  
-**Verification Result**: **ALL 7 ARCHITECTURAL PILLARS PROVEN & EMPIRICALLY CONFIRMED (100% PASS)**
+**Verification Result**: **GATE 1A IMPLEMENTATION & ARCHITECTURAL INTEGRITY CONFIRMED (PASS)**
 
 ---
 
 ## 1. Executive Summary & Reproduction Guarantee
 
-This evidence dossier provides formal proof that the parent deep learning baseline, **RISE-UNet (UNET_RZSM)**, has been thoroughly and faithfully reproduced from first principles, source code, and published supplementary specifications.
+This evidence dossier provides formal proof that the parent deep learning architecture, **RISE-UNet (UNET_RZSM)**, has been successfully instantiated and functionally validated under a Google Colab compatibility runtime for Gate 1A, establishing learning capacity and gradient propagation prior to Gate 1B experiment-level reproduction.
 
 ### The "Tri-Freeze" Provenance Chain
 To prevent reproducibility drift, the baseline is anchored by three identical cryptographic checkpoints:
@@ -61,10 +61,10 @@ Inception + SE     MAE - 0.08 * σ        All Finite         Loss Drop (MC-Drop)
 * Driven by min-max scaled targets in $[0.1, 0.9]$, CRPS loss decreased monotonically (demonstrating $>55\%$ error reduction down to the baseline convergence floor $\approx 0.68–0.74$), proving convergence capacity even with active Monte Carlo `SpatialDropout2D(rate=0.25)` on every layer.
 * Enforces strict test isolation: pristine initial model weights are cached and restored post-verification to ensure downstream evaluations remain untainted.
 
-### Pillar 5: Geospatial Domain & Real Mask Alignment (Table S1)
+### Pillar 5: Geospatial Domain & Land Mask Pipeline Testing (Table S1)
 * Sliced the author's official NetCDF mask (`Data/masks/region_CONUS_mask.nc4`) onto the canonical $48 \times 96$ CONUS grid defined in `Data/masks/conus_0.5_grid.grd`.
 * Verified that exactly **3,864 active land cells** (83.85% of 4,608 total points) are active.
-* Forward inference under land masking yielded a valid Regional Land CRPS of `0.409421` (range $0.32–0.42$) and Anomaly Correlation Coefficient (ACC) of `-0.0090` (range $-0.02$ to $+0.02$) with zero NaNs across all active land cells.
+* Forward inference over synthetic uniform tensors under land masking yielded clean execution with zero NaNs across all active land cells (Regional Land CRPS = `0.409421`, ACC = `-0.0090`), confirming masked broadcasting without evaluating real data forecasting skill.
 
 ---
 
@@ -188,12 +188,11 @@ To confirm functional execution fidelity beyond static parameter counts, four au
 
 ---
 
-## 7. Gate 1 Sign-Off & Transition to Track B
+## 7. Gate 1 Status & Dual-Milestone Structure
 
-With all 21 phases completed and verified:
-1. **Gate 1 is officially CLOSED.** The parent baseline reproduction is frozen, validated, and documented.
-2. **Track B is cleared to commence.** We may now open the Track B development cycle:
-   * Defining the Mindanao regional bounding box ($5^\circ\text{N}–10^\circ\text{N}, 121^\circ\text{E}–127^\circ\text{E}$).
-   * Ingesting SMAP L3/L4 surface observation rasters.
-   * Developing the Support-Aware RISE-UNet architecture extension to assimilate observation support into root-zone drought forecasting.
+1. **Gate 1A is officially CERTIFIED COMPLETE.** The parent architecture integrity, in-memory execution, learning dynamics, and compatibility shims are frozen, validated, and documented.
+2. **Gate 1B (Parent Experiment Fidelity & Pipeline Trace) is scheduled:**
+   * Primary baseline experiment EX29 selected from Lesinger & Tian (2025).
+   * Exact Table S1 input contract and recursive multi-week forecasting loop ($W_1 \to W_2 \to W_3 \to W_4$) traced in `support_aware_notebooks/01_parent_experiment_trace.ipynb`.
+3. **Transition to Track B (Mindanao Adaptation):** Cleared upon successful execution of the Gate 1B trace notebook.
 
