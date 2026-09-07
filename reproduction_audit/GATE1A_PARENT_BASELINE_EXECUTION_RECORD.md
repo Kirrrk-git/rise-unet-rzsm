@@ -6,7 +6,7 @@
 **Parent Repository**: `https://github.com/kyle-lesinger/dl_dm_rzsm_subseasonal_forecast.git`  
 **Thesis Repository**: `https://github.com/Kirrrk-git/rise-unet-rzsm.git`  
 **GCS Freeze Bucket**: `gs://rise-unet-rzsm/reference/parent_rise_unet/source/4af8e8c869b7df6a398bf12e122a8e2af3f30eeb/`  
-**Status**: Gate 1A (Architecture & Compatibility) 100% COMPLETE & VERIFIED; Gate 1B Pending In 01_parent_experiment_trace.ipynb
+**Status**: Gate 1A (Architecture & Compatibility) 100% COMPLETE & VERIFIED; Gate 1B 100% COMPLETE & CERTIFIED In `01_parent_experiment_trace.ipynb`
 
 ---
 
