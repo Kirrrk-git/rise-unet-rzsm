@@ -185,7 +185,7 @@ All phases have been executed with strict empirical verification. Author code in
 | **Reanalysis Predictors** | ERA5 Antecedent $P_{\text{wat}}$, $SPFH$, $T_{\text{max}}$ | [`function/channelExperiment.py`](../function/channelExperiment.py) |
 | **Dynamic Models** | GEFSv12 (NOAA) & ECMWF S2S Reforecasts | [`02_run_model_EXPERIMENTS...ipynb`](../02_run_model_EXPERIMENTS_ECMWF_and_GEFSv12_v5.ipynb) |
 | **Dynamic Lead Inputs** | Forecasted $T_{2\text{m}}$, Precipitation, RZSM anomaly | [`function/preprocessUtils.py`](../function/preprocessUtils.py) |
-| **Lagged RZSM Inputs** | 6 consecutive antecedent weekly lags ($t-5$ to $t_0$) | [`function/channelExperiment.py:L93`](../function/channelExperiment.py#L93) |
+| **Lagged RZSM Inputs** | 6 consecutive antecedent weekly lags ($t-5$ to $t_0$) for EX10; 3 lags ($t-2$ to $t_0$) for EX29 | [`function/channelExperiment.py:L93`](../function/channelExperiment.py#L93) / [`function/loadDataAllWeeks.py:L710`](../function/loadDataAllWeeks.py#L710) |
 | **Recursive Autoregression** | Yes (predicts lead $k$ using predicted lead $k-1$) | [`function/experimentType.py:L53`](../function/experimentType.py#L53) |
 | **Forecast Leads** | Weeks 1, 2, 3, and 4 ($7, 14, 21, 28\text{ days}$) | [`function/loadDataAllWeeks.py`](../function/loadDataAllWeeks.py) |
 | **Ensemble Members** | 11 Ensemble realizations per initialization date | [`02_run_model_EXPERIMENTS...ipynb`](../02_run_model_EXPERIMENTS_ECMWF_and_GEFSv12_v5.ipynb) |
@@ -223,6 +223,7 @@ $$\mathcal{L}_{\text{CRPS}}(y, \hat{y}) = \frac{1}{N}\sum_{i=1}^N |y_i - \hat{y}
 - [✓] **Step 15.1**: Freeze 6-lag channel ordering.
   * **Verified Layout in Code** ([`function/channelExperiment.py`](../function/channelExperiment.py)):
     $$\mathbf{X} = [\underbrace{\text{RZSM}_{t-5}, \text{RZSM}_{t-4}, \text{RZSM}_{t-3}, \text{RZSM}_{t-2}, \text{RZSM}_{t-1}, \text{RZSM}_{t_0}}_{\text{6 Antecedent Soil Moisture Channels}}, \underbrace{P_{\text{wat}}, SPFH, T_{\text{max}}}_{\text{Antecedent Reanalysis}}, \underbrace{T_{2\text{m}}^{\text{fcst}}, P^{\text{fcst}}, \text{RZSM}^{\text{fcst}}}_{\text{Dynamic Model Forecasts}}]$$
+  * *Methodological Scope Note*: Phase 15 documents the 6-lag baseline configuration (EX10) from `function/channelExperiment.py`. The flagship recursive hybrid experiment (EX29) audited in Gate 1B and adapted in Track B uses **3 antecedent RZSM lags** ($t_0, t_{-1}, t_{-2}$) per `function/loadDataAllWeeks.py:L710-721`, which serves as the authoritative input contract for Track B Model A0.
 
 ---
 
