@@ -128,7 +128,7 @@ The notebook was executed on a Google Colab GPU runtime under TensorFlow 2.20.0.
   ```text
   Max Output Divergence at Lead 2: 0.019729
   Mean Response at Lead 2        : 0.000990
-  ✓ Causal Information Flow Verified: Recursive channel actively alters downstream predictions.
+  ✓ Recursive Input Dependency Flow Verified: Recursive channel actively alters downstream predictions.
   ```
 * **Mathematical Proof**:
   $$\Delta y_{W1} = +0.25 \implies \max |\hat{y}_{W2}(\hat{y}_{W1} + \Delta) - \hat{y}_{W2}(\hat{y}_{W1})| = 0.019729 > 10^{-4}$$
