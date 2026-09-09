@@ -1,0 +1,49 @@
+# =============================================================================
+# METADATA: MINDANAO 0.25° COMPUTATIONAL GRID & EVALUATION DOMAIN
+# Project: Enhanced RISE-UNet for Subseasonal RZSM Drought Forecasting in Mindanao
+# Milestone: Phase 21A Spatial Foundation
+# =============================================================================
+
+grid_id: "mindanao_025deg_32x48"
+crs: "EPSG:4326"
+resolution_deg: 0.25
+shape: [32, 48]
+total_cells: 1536
+
+lat_coords:
+  start: 11.75
+  stop: 4.00
+  step: -0.25
+  num_points: 32
+  convention: "cell_center_descending"
+
+lon_coords:
+  start: 116.00
+  stop: 127.75
+  step: 0.25
+  num_points: 48
+  convention: "cell_center_ascending"
+
+bounding_box_edges:
+  south: 3.875
+  north: 11.875
+  west: 115.875
+  east: 127.875
+
+mask_census:
+  fractional_mask_file: "processed/grid/mindanao_fraction_025.nc"
+  fractional_mask_sha256: "9294a1c74ec5aa2288c9e9bf54fc6763f905dbda1c4ff0ecda0a9b9ae9ff6325"
+  binary_eval_mask_file: "processed/grid/mindanao_eval_mask_025.nc"
+  binary_eval_mask_sha256: "d7fd80e1f95cdd840daded176b06b2a0d23557df555acfaf0c01d2d1964621f6"
+  inclusion_threshold: 0.50
+  active_boundary_footprint_cells: 253
+  binary_eval_cells: 126
+  non_eval_cells: 1410
+  non_eval_pure_ocean_buffer: 1283
+  non_eval_sub_threshold_coastal: 127
+
+authoritative_hashes:
+  boundary_gpkg: "9c7478ec02718153c124e8f528211951c6a855c0221dfd8e443b5c430bd623d2"
+  grid_nc: "51a691994a16b75b3a103efdb539febce2695179dbb89f5cb346a477e694548f"
+  grid_grd: "b8fabe5c21a6b5beda2df8b9ef4438d8b63d74427e86223137a55c3afff40049"
+  generator_script: "b8565a5cb33a7e583c27e0256860d5b4d707b227e85c2c77f0a6d23467610660"

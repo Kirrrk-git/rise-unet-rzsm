@@ -1,0 +1,17 @@
+#
+# CDO grid definition for Mindanao 0.25-degree reference domain (Candidate A)
+#
+gridtype  = lonlat
+gridsize  = 1536
+xsize     = 48
+ysize     = 32
+xname     = lon
+xlongname = "longitude"
+xunits    = "degrees_east"
+yname     = lat
+ylongname = "latitude"
+yunits    = "degrees_north"
+xfirst    = 116.00
+xinc      = 0.25
+yfirst    = 11.75
+yinc      = -0.25

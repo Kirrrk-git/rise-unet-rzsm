@@ -1,0 +1,29 @@
+<PAMDataset>
+  <Metadata>
+    <MDI key="fractional_coverage#long_name">Fractional coverage of grid cell by Mindanao analysis boundary</MDI>
+    <MDI key="fractional_coverage#units">1</MDI>
+    <MDI key="fractional_coverage#valid_range">{0,1}</MDI>
+    <MDI key="lat#axis">Y</MDI>
+    <MDI key="lat#long_name">latitude coordinate of grid cell center</MDI>
+    <MDI key="lat#standard_name">latitude</MDI>
+    <MDI key="lat#units">degrees_north</MDI>
+    <MDI key="lon#axis">X</MDI>
+    <MDI key="lon#long_name">longitude coordinate of grid cell center</MDI>
+    <MDI key="lon#standard_name">longitude</MDI>
+    <MDI key="lon#units">degrees_east</MDI>
+    <MDI key="NC_GLOBAL#Conventions">CF-1.8</MDI>
+    <MDI key="NC_GLOBAL#history">Generated 2026-09-09 21:07:08 UTC</MDI>
+    <MDI key="NC_GLOBAL#institution">RISE-UNet Mindanao RZSM Drought Forecasting Project</MDI>
+    <MDI key="NC_GLOBAL#method">WGS84 ellipsoidal geodesic quadrature</MDI>
+    <MDI key="NC_GLOBAL#source">PSA-NAMRIA Regional Boundary (mindanao_analysis_boundary.gpkg)</MDI>
+    <MDI key="NC_GLOBAL#title">Mindanao 0.25° Fractional Regional Boundary Coverage Mask</MDI>
+  </Metadata>
+  <PAMRasterBand band="1">
+    <Metadata>
+      <MDI key="STATISTICS_MINIMUM">0</MDI>
+      <MDI key="STATISTICS_MAXIMUM">1</MDI>
+      <MDI key="STATISTICS_MEAN">0.085328239027306</MDI>
+      <MDI key="STATISTICS_STDDEV">0.25390798614004</MDI>
+    </Metadata>
+  </PAMRasterBand>
+</PAMDataset>
