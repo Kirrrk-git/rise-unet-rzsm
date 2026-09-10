@@ -50,13 +50,13 @@ EX29 Dictionary    Formula Verification  W1 -> W2 -> W3->W4  Perturbation Test  
 ```
 
 ### Pillar 1: Published Experiment Configuration & Channel Schedule Enforcement
-* Programmatically retrieved the canonical EX29 configuration dictionary directly from author source [`function/experimentType.py`](file:///c:/Users/Jensville/Downloads/Rise-UNet/dl_dm_rzsm_subseasonal_forecast/function/experimentType.py):
+* Programmatically retrieved the canonical EX29 configuration dictionary directly from author source [`function/experimentType.py`](../function/experimentType.py):
   `{'num_lags_obs_RZSM': 3, 'include_lags_obs_pwat_spfh_tmax': True, 'include_reforecast_or_not': True, 'experiment_test': 2}`.
-* Audited the lead-dependent channel layout against [`function/loadDataAllWeeks.py:L710-721`](file:///c:/Users/Jensville/Downloads/Rise-UNet/dl_dm_rzsm_subseasonal_forecast/function/loadDataAllWeeks.py#L710-L721) and Supplementary Tables S1 and S6:
+* Audited the lead-dependent channel layout against [`function/loadDataAllWeeks.py:L710-721`](../function/loadDataAllWeeks.py#L710-L721) and Supplementary Tables S1 and S6:
   **Lead 1 = 11 channels**, **Lead 2 = 12 channels**, **Lead 3 = 5 channels**, **Lead 4 = 6 channels**.
 
 ### Pillar 2: Data Preprocessing Mathematics & Boundary Integrity
-* Extracted and audited the author's data normalization rules from [`function/preprocessUtils.py:L736-760`](file:///c:/Users/Jensville/Downloads/Rise-UNet/dl_dm_rzsm_subseasonal_forecast/function/preprocessUtils.py#L736-L760):
+* Extracted and audited the author's data normalization rules from [`function/preprocessUtils.py:L736-760`](../function/preprocessUtils.py#L736-L760):
   1. 7-day trailing rolling window temporal smoothing.
   2. Day-of-year seasonal anomaly subtraction relative to climatology (2000–2015).
   3. Pixel-wise min-max scaling to $[0, 1]$ based strictly on the training period min/max.
@@ -65,7 +65,7 @@ EX29 Dictionary    Formula Verification  W1 -> W2 -> W3->W4  Perturbation Test  
 
 ### Pillar 3: Multi-Week Autoregressive Recursive Forecasting Loop
 * Validated the autoregressive multi-week forward loop ($W_1 \to W_2 \to W_3 \to W_4$) on an 11-member ensemble over the CONUS domain ($48 \times 96$).
-* Verified that downstream lead predictor tensors dynamically ingest prior-week model predictions ($\hat{y}_{W(k-1)}$) into the channel dimension following [`function/loadDataAllWeeks.py:L820-825`](file:///c:/Users/Jensville/Downloads/Rise-UNet/dl_dm_rzsm_subseasonal_forecast/function/loadDataAllWeeks.py#L820-L825).
+* Verified that downstream lead predictor tensors dynamically ingest prior-week model predictions ($\hat{y}_{W(k-1)}$) into the channel dimension following [`function/loadDataAllWeeks.py:L820-825`](../function/loadDataAllWeeks.py#L820-L825).
 
 ### Pillar 4: Recursive Dependency & Intervention Sensitivity Test
 * Verified computational dependency along the autoregressive graph via perturbation sensitivity:
@@ -74,7 +74,7 @@ EX29 Dictionary    Formula Verification  W1 -> W2 -> W3->W4  Perturbation Test  
 
 ### Pillar 5: Geospatial Domain Census & Synthetic Masked-Metric Pipeline Sanity
 * Verified exact domain compatibility with the author's official CONUS mask (`Data/masks/region_CONUS_mask.nc4`), confirming exactly **3,864 active land cells** (83.85% of the $48 \times 96 = 4,608$ grid).
-* Evaluated spatial CRPS loss ([`function/losses.py:crps2d_tf`](file:///c:/Users/Jensville/Downloads/Rise-UNet/dl_dm_rzsm_subseasonal_forecast/function/losses.py#L60-L85)) and spatial Anomaly Correlation Coefficient (ACC) across all 4 recursive leads with **zero NaNs and zero division-by-zero errors**, verifying loss and metric pipeline stability under land masking.
+* Evaluated spatial CRPS loss ([`function/losses.py:crps2d_tf`](../function/losses.py#L60-L85)) and spatial Anomaly Correlation Coefficient (ACC) across all 4 recursive leads with **zero NaNs and zero division-by-zero errors**, verifying loss and metric pipeline stability under land masking.
 
 ---
 
@@ -91,7 +91,7 @@ In the author's primary model (Experiment EX29), predictors vary dynamically acr
 | **Lead 4 (Week 4)** | **6** | 3 Lags ($t-1, t-7, t-14\text{ d}$) | *Omitted (Skill decay)* | *Omitted (Skill decay)* | 3 Channels ($\hat{y}_{W1}, \hat{y}_{W2}, \hat{y}_{W3}$) | `loadDataAllWeeks.py:L719` |
 
 ### Author Experiment Configuration Dictionary
-Extracted programmatically from [`function/experimentType.py`](file:///c:/Users/Jensville/Downloads/Rise-UNet/dl_dm_rzsm_subseasonal_forecast/function/experimentType.py):
+Extracted programmatically from [`function/experimentType.py`](../function/experimentType.py):
 ```python
 EX29 = {
     'region_name': 'CONUS',
