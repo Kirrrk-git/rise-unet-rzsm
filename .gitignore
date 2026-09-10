@@ -27,4 +27,9 @@ scratch/
 
 # Local Pipeline Data & Raw Pilots
 pilot_raw/
-processed/rzsm/
+
+# NetCDF Data Policy: Cloud Lake with Local Reference Sample
+processed/**/*.nc
+!processed/grid/*.nc
+!processed/rzsm/pilot/*.nc
+processed/rzsm/production/

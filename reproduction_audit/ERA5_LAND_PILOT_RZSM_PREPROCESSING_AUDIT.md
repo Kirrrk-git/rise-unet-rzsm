@@ -6,7 +6,7 @@
 **Repository**: `dl_dm_rzsm_subseasonal_forecast` (`https://github.com/Kirrrk-git/rise-unet-rzsm.git`)  
 **Active Git Branch**: `mindanao-adaptation`  
 **Milestones**: Sub-Phase 21B Steps 21B.3 & 21B.4  
-**Validation Notebook**: [`notebooks/04_mindanao_rzsm_pilot_preprocessing.ipynb`](file:///c:/Users/Jensville/Downloads/Rise-UNet/dl_dm_rzsm_subseasonal_forecast/notebooks/04_mindanao_rzsm_pilot_preprocessing.ipynb)  
+**Validation Notebook**: [`notebooks/04_mindanao_rzsm_pilot_preprocessing.ipynb`](../notebooks/04_mindanao_rzsm_pilot_preprocessing.ipynb)  
 **Status**: **PRE-EXECUTION AUDIT SPECIFICATION & FORMAL PROTOCOL**  
 **Date**: 2026-09-11  
 
@@ -15,15 +15,15 @@
 ## 1. Executive Summary & Objective
 
 Following the empirical completion of **Step 21B.1** (archive integrity verification) and **Step 21B.2** (targeted 20-day 2014 antecedent ingestion and 100% GCS synchronization), this audit report establishes the formal mathematical, computational, and spatial protocol for:
-1. **Step 21B.3**: Pilot depth-weighted Root-Zone Soil Moisture (RZSM, 0–100 cm) calculation and bilinear remapping to our frozen $0.25^\circ$ reference grid ([`processed/grid/mindanao_0.25_grid.grd`](file:///c:/Users/Jensville/Downloads/Rise-UNet/dl_dm_rzsm_subseasonal_forecast/processed/grid/mindanao_0.25_grid.grd)).
-2. **Step 21B.4**: Spatial masking against the frozen binary evaluation mask ([`processed/grid/mindanao_eval_mask_025.nc`](file:///c:/Users/Jensville/Downloads/Rise-UNet/dl_dm_rzsm_subseasonal_forecast/processed/grid/mindanao_eval_mask_025.nc), 126 active cells) and physical distribution verification.
+1. **Step 21B.3**: Pilot depth-weighted Root-Zone Soil Moisture (RZSM, 0–100 cm) calculation and bilinear remapping to our frozen $0.25^\circ$ reference grid ([`processed/grid/mindanao_0.25_grid.grd`](../processed/grid/mindanao_0.25_grid.grd)).
+2. **Step 21B.4**: Spatial masking against the frozen binary evaluation mask ([`processed/grid/mindanao_eval_mask_025.nc`](../processed/grid/mindanao_eval_mask_025.nc), 126 active cells) and physical distribution verification.
 
 ---
 
 ## 2. Mathematical Formulation & Code Lineage
 
 ### 2.1 Depth-Weighted Root-Zone Soil Moisture Integration
-In accordance with Kyle Lesinger's parent study implementation ([`Data/raw_downloads/ERA5_real/process_soil.sh:L27-35`](file:///c:/Users/Jensville/Downloads/Rise-UNet/dl_dm_rzsm_subseasonal_forecast/Data/raw_downloads/ERA5_real/process_soil.sh#L27-35)), the volumetric soil water content across the top 100 cm is computed as the depth-weighted sum of the three upper ECMWF model layers:
+In accordance with Kyle Lesinger's parent study implementation ([`Data/raw_downloads/ERA5_real/process_soil.sh:L27-35`](../Data/raw_downloads/ERA5_real/process_soil.sh#L27-L35)), the volumetric soil water content across the top 100 cm is computed as the depth-weighted sum of the three upper ECMWF model layers:
 
 $$\text{RZSM}_{0-100} = 0.07 \cdot \text{swvl}_1 + 0.21 \cdot \text{swvl}_2 + 0.72 \cdot \text{swvl}_3$$
 
@@ -37,7 +37,7 @@ Before or during depth weighting, each calendar day's 24 hourly values ($t = 00:
 
 $$\bar{x}_{\text{daily}} = \frac{1}{24}\sum_{t=0}^{23} x_{\text{hourly}}(t)$$
 
-This matches author line [`process_soil.sh:L20`](file:///c:/Users/Jensville/Downloads/Rise-UNet/dl_dm_rzsm_subseasonal_forecast/Data/raw_downloads/ERA5_real/process_soil.sh#L20) (`cdo daymean "$file" "$daymean_file"`).
+This matches author line [`process_soil.sh:L20`](../Data/raw_downloads/ERA5_real/process_soil.sh#L20) (`cdo daymean "$file" "$daymean_file"`).
 
 ---
 
@@ -57,7 +57,7 @@ $$I(x, y) \approx \sum_{k=1}^4 w_k \cdot S(x_k, y_k), \quad \sum_{k=1}^4 w_k = 1
 ## 4. Evaluation Masking & Computational Zeroing Protocol
 
 Per the parent RISE-UNet contract (Lesinger & Tian 2025):
-1. **Active Evaluation Cells ($N = 126$, $8.20\%$ of grid)**: Confined strictly to cells where fractional administrative boundary coverage $f \ge 0.50$ ([`processed/grid/mindanao_eval_mask_025.nc`](file:///c:/Users/Jensville/Downloads/Rise-UNet/dl_dm_rzsm_subseasonal_forecast/processed/grid/mindanao_eval_mask_025.nc)).
+1. **Active Evaluation Cells ($N = 126$, $8.20\%$ of grid)**: Confined strictly to cells where fractional administrative boundary coverage $f \ge 0.50$ ([`processed/grid/mindanao_eval_mask_025.nc`](../processed/grid/mindanao_eval_mask_025.nc)).
 2. **Buffer / Ocean Cells ($N = 1,410$, $91.80\%$ of grid)**: Padded to constant `0.0` in model input tensors, isolating model training and metric computation strictly to valid regional land.
 3. **NaN Enforcement**: Zero NaNs or Infs permitted across the 126 evaluation cells for any time step.
 
