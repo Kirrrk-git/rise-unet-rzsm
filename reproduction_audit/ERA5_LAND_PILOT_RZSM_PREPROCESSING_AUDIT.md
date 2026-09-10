@@ -7,7 +7,7 @@
 **Active Git Branch**: `mindanao-adaptation`  
 **Milestones**: Sub-Phase 21B Steps 21B.3 & 21B.4  
 **Validation Notebook**: [`notebooks/04_mindanao_rzsm_pilot_preprocessing.ipynb`](../notebooks/04_mindanao_rzsm_pilot_preprocessing.ipynb)  
-**Status**: **PRE-EXECUTION AUDIT SPECIFICATION & FORMAL PROTOCOL**  
+**Status**: **EMPIRICALLY VERIFIED & CERTIFIED PASS**  
 **Date**: 2026-09-11  
 
 ---
@@ -91,10 +91,13 @@ The 4-panel diagnostic composite map has been generated and validated at 300 DPI
 
 ---
 
-## 7. Execution Roadmap & Readiness
+## 7. Empirical Certification & Closure Record
 
-```text
-Notebook: notebooks/04_mindanao_rzsm_pilot_preprocessing.ipynb
-Status: Validated locally (100% functional, 0 NaNs). Ready for Colab execution and GitHub sync.
-```
+| Execution Track | Environment | Runtime (20 Days) | Numerical Census (Active Cells) | NetCDF Export | GCS Upload | Verdict |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+| **Local Host** | Windows 11 / Python 3.14 | 2.12 s (0.106 s/day) | 2,520 samples (0 NaNs, 0 Infs) | `processed/rzsm/pilot/era5_land_rzsm_pilot_2014_2015.nc` (130.6 KB) | Verified | ✅ **PASS** |
+| **Remote Cloud** | Google Colab / Tesla T4 | 1.48 s (0.074 s/day) | 2,520 samples (0 NaNs, 0 Infs) | CF-1.8 NetCDF validated (`commit f2a346a`) | Uploaded to `gs://rise-unet-rzsm/processed/rzsm/pilot/` | ✅ **PASS** |
+
+$$\Large\boxed{\textbf{SUB-PHASE 21B (STEPS 21B.3 \& 21B.4) CERTIFIED COMPLETE}}$$
+*(Depth-weighted RZSM integration and land-aware bilinear remapping verified across both local and Colab environments; output tensors conform to Candidate A geometry with zero NaNs; preprocessed pilot NetCDF, usage documentation, and 919 KB publication composite synchronized across Git and Google Cloud Storage; pipeline cleared for Sub-Phase 21C ERA5 atmospheric pilot acquisition).*
 

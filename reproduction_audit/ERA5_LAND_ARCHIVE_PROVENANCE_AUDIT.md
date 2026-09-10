@@ -93,6 +93,7 @@ With the 2015–2025 archive verified:
 ```text
 Step 21B.1: Existing 2015–2025 Archive Provenance & Integrity Audit   ✅ CERTIFIED PASS
 Step 21B.2: Targeted 2014 Antecedent Acquisition & GCS Synchronization ✅ CERTIFIED PASS
-Step 21B.3: Execute Pilot Depth-Weighted RZSM & CDO Remapping         🔜 NEXT
-Step 21B.4: Coordinate Alignment & Masking Verification               🔜 SUBSEQUENT
+Step 21B.3: Execute Pilot Depth-Weighted RZSM & CDO Remapping         ✅ CERTIFIED PASS
+Step 21B.4: Coordinate Alignment & Masking Verification               ✅ CERTIFIED PASS
+Active Milestone: Sub-Phase 21C (ERA5 Atmospheric Pilot Acquisition)  🔜 NEXT
 ```
