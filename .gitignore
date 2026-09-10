@@ -24,3 +24,7 @@ Thumbs.db
 .vscode/
 .idea/
 scratch/
+
+# Local Pipeline Data & Raw Pilots
+pilot_raw/
+processed/rzsm/

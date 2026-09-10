@@ -71,7 +71,7 @@ Because uncompressed or standard NetCDF compression scales with the total number
 
 ---
 
-## 4. Resolution of the 2014 Antecedent Window
+## 4. Resolution & Ingestion of the 2014 Antecedent Window
 
 With the 2015–2025 archive verified:
 * **Nominal Split Retention**:
@@ -79,19 +79,20 @@ With the 2015–2025 archive verified:
   * Validation: 2022–2023 (2 years)
   * Held-Out Test: 2024–2025 (2 years)
 * **Antecedent Role**: Calendar year 2014 is **not part of the model's nominal training or validation periods**; it serves solely as antecedent lag support for early 2015 forecast initialization.
-* **Targeted Acquisition Requirement**:
-  *“For an earliest forecast issue date of 2015-01-01, the verified EX29 lag construction requires observations beginning 12 December 2014. The exact production requirement will be derived from the finalized case calendar.”*
-  * If earliest case = 2015-01-01: requires **12–31 December 2014 (20 calendar days)**.
-  * If earliest case = Week 1 (e.g., 7 January 2015): requires **18–31 December 2014 (14 calendar days)**.
-  * In all scenarios, full calendar year 2014 acquisition is averted.
+* **Empirical Execution (Step 21B.2 PASS)**:
+  * Retrieved `era5-land-2014-12-antecedent.nc` (6,185,331 bytes; SHA-256 `29292cf600a398ac61eabe111150e1aa3acf0f17356fb2da6a02c1dc92cd64fc`).
+  * Time Coverage: Exactly 480 hourly timesteps (12 Dec 2014 00:00 to 31 Dec 2014 23:00 UTC).
+  * Variable Coverage: All 3 volumetric soil water layers (`swvl1`, `swvl2`, `swvl3`) present on the $0.10^\circ$ grid ($[116.5^\circ, 4.0^\circ] \to [127.5^\circ, 11.0^\circ]$).
+  * Storage: Uploaded to `gs://rise-unet-rzsm/raw/era5_land/production/era5-land-2014-12-antecedent.nc` and `gs://mindanao-drought-aaron-jalapon-drought-data/raw/era5-land/`.
+  * Archive Closure: Full 2015–2025 archive synchronized via cloud-to-cloud rsync (511.2 MiB/s). The production bucket now holds **265 NetCDF files** (3.68 GiB), achieving 100% gapless coverage from 12 December 2014 to 31 December 2025.
 
 ---
 
-## 5. Next Steps in Sub-Phase 21B
+## 5. Sub-Phase 21B Status & Next Steps
 
 ```text
 Step 21B.1: Existing 2015–2025 Archive Provenance & Integrity Audit   ✅ CERTIFIED PASS
-Step 21B.2: Targeted Missing 2014 Antecedent Acquisition Spec       🔜 NEXT
-Step 21B.3: Execute Pilot Depth-Weighted RZSM & CDO Remapping       🔜 SUBSEQUENT
-Step 21B.4: Coordinate Alignment & Masking Verification             🔜 SUBSEQUENT
+Step 21B.2: Targeted 2014 Antecedent Acquisition & GCS Synchronization ✅ CERTIFIED PASS
+Step 21B.3: Execute Pilot Depth-Weighted RZSM & CDO Remapping         🔜 NEXT
+Step 21B.4: Coordinate Alignment & Masking Verification               🔜 SUBSEQUENT
 ```
