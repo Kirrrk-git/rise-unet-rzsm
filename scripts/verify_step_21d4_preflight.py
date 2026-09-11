@@ -74,17 +74,22 @@ def check_spatial_contract_consistency() -> Dict[str, Any]:
     boundary_sha = compute_sha256(boundary_gpkg)
     expected_boundary_sha = contract["administrative_boundary"]["boundary_sha256"]
 
-    # 5. CDO Grid File
+    # 5. CDO Grid File (support cross-platform CRLF/LF line ending normalization)
     cdo_grd = REPO_DIR / "processed" / "grid" / "mindanao_0.25_grid.grd"
-    cdo_sha = compute_sha256(cdo_grd)
+    with open(cdo_grd, "rb") as f:
+        cdo_bytes = f.read()
+    cdo_sha_raw = hashlib.sha256(cdo_bytes).hexdigest()
+    cdo_sha_crlf = hashlib.sha256(cdo_bytes.replace(b"\r\n", b"\n").replace(b"\n", b"\r\n")).hexdigest()
+    cdo_sha_lf = hashlib.sha256(cdo_bytes.replace(b"\r\n", b"\n")).hexdigest()
     expected_cdo_sha = contract["authoritative_artifacts"]["cdo_grid_description"]["sha256"]
+    cdo_sha_matched = expected_cdo_sha in (cdo_sha_raw, cdo_sha_crlf, cdo_sha_lf)
 
     all_matched = (
         grid_sha == expected_grid_sha
         and mask_sha == expected_mask_sha
         and frac_sha == expected_frac_sha
         and boundary_sha == expected_boundary_sha
-        and cdo_sha == expected_cdo_sha
+        and cdo_sha_matched
         and lat_match
         and lon_match
         and n_active == 126
@@ -97,7 +102,7 @@ def check_spatial_contract_consistency() -> Dict[str, Any]:
         "mask_sha_match": mask_sha == expected_mask_sha,
         "frac_sha_match": frac_sha == expected_frac_sha,
         "boundary_sha_match": boundary_sha == expected_boundary_sha,
-        "cdo_sha_match": cdo_sha == expected_cdo_sha,
+        "cdo_sha_match": cdo_sha_matched,
         "lat_coordinates_match": bool(lat_match),
         "lon_coordinates_match": bool(lon_match),
         "active_cell_count": n_active,
