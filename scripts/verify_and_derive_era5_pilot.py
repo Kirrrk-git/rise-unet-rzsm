@@ -260,7 +260,7 @@ def main():
     print(f"\n[EXPORT] Verified pilot NetCDF saved to: {out_nc_path} ({out_nc_path.stat().st_size / 1e3:.2f} KB)")
 
     # Step 8: Generate 5-panel Publication Verification Figure
-    fig_dir = Path("processed/atmospheric/figures")
+    fig_dir = Path("figures")
     fig_dir.mkdir(parents=True, exist_ok=True)
     fig_path = fig_dir / "mindanao_era5_atmospheric_pilot_verification.png"
 
