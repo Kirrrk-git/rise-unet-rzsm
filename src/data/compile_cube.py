@@ -303,9 +303,12 @@ def verify_production_cube_census(
             if first_year < target_start_yr:
                 ds_eval = ds.sel({time_dim: slice(f"{target_start_yr}-01-01", None)})
             else:
-                # If no antecedent buffer was provided, slice past the initial rolling warmup days
-                window_days = int(ds.attrs.get("rolling_window_days", 7))
-                ds_eval = ds.isel({time_dim: slice(window_days - 1, None)})
+                # If dataset was compiled with antecedent buffer, first nominal timestep is already finite.
+                # Only slice initial warmup if the first timestep actually contains NaNs in active cells.
+                first_slice = ds["rzsm_0_100_normalized"].isel({time_dim: 0}).values
+                if np.isnan(first_slice[m_arr == 1]).any():
+                    window_days = int(ds.attrs.get("rolling_window_days", 7))
+                    ds_eval = ds.isel({time_dim: slice(window_days - 1, None)})
 
     eval_bool = m_arr == 1
     ocean_bool = m_arr == 0
