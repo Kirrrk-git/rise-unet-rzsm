@@ -25,11 +25,15 @@ Thumbs.db
 .idea/
 scratch/
 
-# Local Pipeline Data & Raw Pilots
+# Local Pipeline Data & Raw Downloads
 pilot_raw/
+Data/raw_downloads/**/*.nc
+!Data/raw_downloads/**/README.md
 
 # NetCDF Data Policy: Cloud Lake with Local Reference Sample
 processed/**/*.nc
 !processed/grid/*.nc
 !processed/rzsm/pilot/*.nc
+!processed/atmospheric/pilot/*.nc
 processed/rzsm/production/
+processed/atmospheric/production/

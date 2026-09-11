@@ -64,8 +64,8 @@ An audit of the cloud archive at `gs://mindanao-drought-aaron-jalapon-drought-da
   * 12 of 12 months present for all 11 years (2015 through 2025).
 
 ### 3.2 Operational Stream Policy: Daily Statistics vs. Hourly Fallback
-* **Primary Operational Choice**: In accordance with the Master Plan and user directives, **daily dataset retrieval** via Copernicus CDS (`derived-era5-land-daily-statistics`) is the designated operational pathway. The derived daily-statistics product natively aggregates the 24-hour daily mean during retrieval, reducing transfer volume by ~96% while maintaining exact physical consistency with `cdo daymean`.
-* **Secondary Fallback Role**: The existing hourly archive in the bucket is retained strictly as an **offline contingency fallback** if CDS API quotas or service downtime impede daily-statistics requests. It will not be assumed as the primary source.
+* **Primary Operational Choice**: In accordance with the Master Plan and user directives, **daily dataset retrieval** via Copernicus CDS (`derived-era5-land-daily-statistics`) is the designated operational pathway. The derived daily-statistics product natively aggregates the 24-hour daily mean during retrieval, providing daily statistics derived from the underlying hourly ERA5-Land reanalysis and substantially reducing temporal data volume by ~96%.
+* **Secondary Fallback Role**: The existing hourly archive in the bucket is retained strictly as an **offline contingency fallback** if CDS API quotas or service downtime impede daily-statistics requests. It will not be assumed as the primary source. Numerical equivalence against offline hourly-to-daily CDO aggregation can be empirically evaluated as an explicit diagnostic check.
 
 ### 3.3 Critical Finding: The 2014 Antecedent Gap
 * **The EX29 Lag Contract**: In Step 21A.3, the antecedent lag schedule was verified as:
