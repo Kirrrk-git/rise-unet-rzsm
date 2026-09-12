@@ -147,7 +147,7 @@ class TestProductionCubePipeline(unittest.TestCase):
         )
 
     def test_fast_remapper_numerical_parity(self):
-        """Assert FastLandAwareRemapper matches remap_era5_land_to_candidate_a bitwise."""
+        """Assert FastLandAwareRemapper matches remap_era5_land_to_candidate_a (observed max diff = 0.0; test tolerance = 1e-6)."""
         ant_file = Path("pilot_raw/era5-land-2014-12-antecedent.nc")
         grid_nc = Path("processed/grid/mindanao_025deg.nc")
         mask_nc = Path("processed/grid/mindanao_eval_mask_025.nc")
@@ -172,7 +172,11 @@ class TestProductionCubePipeline(unittest.TestCase):
             )
             fast_remapped = remapper.remap_source_da(sample_2d)
 
-            # Assert bitwise numerical equivalence
+            # Assert observed maximum absolute difference = 0.0 on tested data
+            obs_max_diff = float(np.max(np.abs(ref_remapped.values - fast_remapped.values)))
+            self.assertEqual(obs_max_diff, 0.0, "Observed difference exceeds 0.0!")
+
+            # Formal assertion tolerance: 1e-6
             np.testing.assert_allclose(
                 ref_remapped.values,
                 fast_remapped.values,

@@ -105,7 +105,9 @@ spatial_masks:
     inclusion_rule: "fractional_coverage >= 0.50"
     evaluation_cells_count: 126
     evaluation_cells_pct: 8.20
-    evaluation_domain_area_km2: 96085.57
+    evaluation_domain_full_cell_footprint_km2: 96085.57
+    evaluation_domain_boundary_intersection_area_km2: 86418.83
+    boundary_coverage_captured_pct: 86.46
     non_evaluation_cells_count: 1410
     non_evaluation_cells_pct: 91.80
     non_evaluation_breakdown:

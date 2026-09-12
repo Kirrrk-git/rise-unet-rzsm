@@ -1,3 +1,4 @@
+<!-- markdownlint-disable -->
 # ERA5-Land Mindanao RZSM Pilot Reference Dataset
 
 **Filename**: `era5_land_rzsm_pilot_2014_2015.nc`  
@@ -31,7 +32,7 @@ This dataset is committed to the Git repository as a **lightweight, offline refe
 | **Depth Integration** | Top 100 cm: $\text{RZSM}_{0-100} = 0.07\,\text{swvl}_1 + 0.21\,\text{swvl}_2 + 0.72\,\text{swvl}_3$ |
 | **Spatial Grid** | Candidate A Mindanao Grid ($32 \times 48$, regular $0.25^\circ \times 0.25^\circ$) |
 | **Coordinate Bounds** | Longitude: $116.00^\circ\text{E} \to 127.75^\circ\text{E}$ (48 points) <br> Latitude: $11.75^\circ\text{N} \to 4.00^\circ\text{N}$ (32 points, descending) |
-| **Active Evaluation Cells** | **126 cells** (Majority land rule: fractional coverage $f \ge 0.50$, covering $96,085.57\text{ km}^2$) |
+| **Active Evaluation Cells** | **126 cells** (Majority land rule: fractional coverage $f \ge 0.50$; full-cell footprint $96,085.57\text{ km}^2$, representing $86,418.83\text{ km}^2$ or $86.46\%$ of the $99,948.76\text{ km}^2$ boundary) |
 | **Zero-Padded Buffer** | **1,410 cells** (buffer/ocean cells strictly padded with constant `0.0`) |
 | **Numerical Integrity** | **0 NaNs, 0 Infs** across all $20 \times 126 = 2,520$ valid evaluation samples |
 | **Physical Value Range** | $[0.2488, 0.5087]\text{ m}^3/\text{m}^3$ (Mean: $0.4156\text{ m}^3/\text{m}^3$) |

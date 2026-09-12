@@ -9,9 +9,9 @@ Authoritative Foundation:
   - Lesinger & Tian (2025), Nature Communications, DOI: 10.1038/s41467-025-62761-3
   - Verified Parent & Adaptation Contracts:
       1. Depth-weighted RZSM: 0.07 * SM1 + 0.21 * SM2 + 0.72 * SM3
-      2. Land-aware bilinear remapping with nearest-neighbor boundary fallback to 0.25° (32 x 48)
+      2. Land-aware linear spatial interpolation with nearest-neighbor boundary fallback to 0.25° (32 x 48)
          [ACCEPTED: Mindanao spatial remapping implementation]
-      3. 7-day backward trailing rolling mean (center=False, zero future leakage)
+      3. 7-day backward trailing rolling mean (center=False, causal by construction)
       4. Locked Model A0 3-month seasonal climatology ('season': DJF, MAM, JJA, SON, train_end=2021)
       5. Four-part immutable normalization scope:
          - Training fold only (2015 <= year <= 2021)
@@ -223,8 +223,9 @@ def compile_production_rzsm_pipeline(
             "active_evaluation_cells": config.expected_eval_cells,
             "total_computational_cells": config.expected_grid_shape[0] * config.expected_grid_shape[1],
             "depth_weighting_formula": "0.07*SM1 + 0.21*SM2 + 0.72*SM3",
-            "remapping_method": "land_aware_bilinear_with_nearest_boundary_fallback",
+            "remapping_method": "land_aware_linear_with_nearest_boundary_fallback",
             "rolling_window_days": config.rolling_window,
+
             "climatology_method": config.climatology_method,
             "train_start_year": config.train_start_year,
             "train_end_year": config.train_end_year,
@@ -368,7 +369,8 @@ class FastLandAwareRemapper:
     to Candidate A (0.25°, 32x48) with 126 active evaluation cells and coastal extrapolation.
 
     Precomputes Delaunay triangulation and nearest-neighbor KD-tree once, enabling
-    vectorized multi-day evaluation with 100% bitwise parity to `remap_era5_land_to_candidate_a`.
+    vectorized multi-day evaluation with exact numerical agreement on tested data
+    (observed maximum absolute difference = 0.0; test tolerance = 1e-6) relative to `remap_era5_land_to_candidate_a`.
     """
 
     def __init__(
@@ -701,6 +703,19 @@ def compile_full_11yr_rzsm_cube(
             raise ValueError(
                 f"Archive day count mismatch: Expected {config.expected_archive_days} days, got {n_days}"
             )
+        # Validate date uniqueness and canonical archive endpoints (2014-12-12 to 2025-12-31)
+        dates = pd.to_datetime(full_daily_da.time.values)
+        if len(dates) != len(np.unique(dates)):
+            raise ValueError(
+                f"Duplicate dates detected in concatenated time index: {len(dates) - len(np.unique(dates))} duplicates."
+            )
+        start_date = str(dates[0].date())
+        end_date = str(dates[-1].date())
+        if start_date != "2014-12-12" or end_date != "2025-12-31":
+            raise ValueError(
+                f"Archive date endpoints mismatch: Expected 2014-12-12 to 2025-12-31, got {start_date} to {end_date}"
+            )
+
 
     # Step 5: Execute complete temporal transformation pipeline
     if verbose:

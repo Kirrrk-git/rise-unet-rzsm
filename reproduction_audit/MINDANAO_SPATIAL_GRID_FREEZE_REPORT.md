@@ -88,6 +88,8 @@ The spatial grid has been generated and validated with zero warnings:
 
 * **Step 21A.6 Status**: **CERTIFIED PASS**.
 * **Next Sequence**:
-  * **Step 21A.7**: Target Acceptance & Independent GLEAM Cross-Reference.
-  * **Step 21A.8**: Construct Fractional Boundary Coverage Mask (`processed/grid/mindanao_fraction_025.nc`) and Binary Evaluation Mask (`processed/grid/mindanao_eval_mask_025.nc`).
-  * **Step 21A.9**: Formally freeze machine-readable spatial and target contracts.
+  * **Step 21A.7A**: Fractional Boundary-Coverage Mask (`processed/grid/mindanao_fraction_025.nc`).
+  * **Step 21A.7B**: Binary Evaluation Mask (`processed/grid/mindanao_eval_mask_025.nc`, [`reproduction_audit/MINDANAO_SPATIAL_MASK_AUDIT_REPORT.md`](MINDANAO_SPATIAL_MASK_AUDIT_REPORT.md)).
+  * **Step 21A.8**: Freeze Machine-Readable Spatial Contract ([`contracts/spatial/spatial_grid_contract.yaml`](../contracts/spatial/spatial_grid_contract.yaml)).
+  * **Step 21A.9**: ERA5-Land RZSM Target Acceptance & Independent Cross-Reference ([`reproduction_audit/ERA5_LAND_TARGET_ACCEPTANCE_REPORT.md`](ERA5_LAND_TARGET_ACCEPTANCE_REPORT.md)).
+

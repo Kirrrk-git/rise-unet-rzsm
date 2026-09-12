@@ -5,6 +5,7 @@
 **Project**: Enhanced RISE-UNet for Subseasonal RZSM Drought Forecasting in Mindanao  
 **Repository**: `dl_dm_rzsm_subseasonal_forecast` (`https://github.com/Kirrrk-git/rise-unet-rzsm.git`)  
 **Active Git Branch**: `mindanao-adaptation`  
+**Milestone**: Sub-Phase 21A Step 21A.2  
 **Evaluation Status**: **CERTIFIED PASS (Methodological, Administrative & Geometric)**  
 **Date of Certification**: 2026-09-10  
 

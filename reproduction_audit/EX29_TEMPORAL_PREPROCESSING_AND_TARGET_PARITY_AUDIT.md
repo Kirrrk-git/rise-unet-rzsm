@@ -17,14 +17,15 @@
 
 Following external review and rigorous scrutiny of **Sub-Phase 21D Step 21D.3**, this audit dossier provides direct, line-by-line source-code reconciliation against Kyle Lesinger's authoritative EX29 codebase. 
 
-Passing unit tests (**24/24 OK with 0 failures and 0 errors**) confirm software and numerical execution, while line-by-line reconciliation establishes methodological parity for explicitly verified parent contracts. This audit explicitly resolves four critical methodological checkpoints:
+Passing unit tests (**24/24 OK with 0 failures and 0 errors at the time of the Step 21D.3 reconciliation; subsequently expanded in Step 21D.4 to 27 tests, all passing**) confirm software and numerical execution, while line-by-line reconciliation establishes methodological parity for explicitly verified parent contracts. This audit explicitly resolves four critical methodological checkpoints:
 
 1. **Target Window Lead Offsets**: Resolves the exact mathematical indexing of forecast weeks $W_1, W_2, W_3, W_4$ versus antecedent lags.
 2. **Locked Climatology Definition**: Formally locks the **3-month seasonal climatology (`season`)** as the immutable Model A0 baseline.
 3. **Min-Max Normalization Scope**: Reconciles the **domain-wide active-cell scalar** versus pixel-wise scaling controversy.
 4. **Masking Reporting Standard**: Formalizes the precise reporting standard:
    > *“Zero NaNs/Infs across the 126 active evaluation cells; non-evaluation computational cells follow the frozen masking/zero-fill convention.”*
-5. **Remapping Specification**: Documents the exact land-aware bilinear remapping protocol from $0.10^\circ$ ERA5-Land to $0.25^\circ$ Candidate A.
+5. **Remapping Specification**: Documents the exact land-aware linear spatial interpolation protocol (piecewise-linear on Delaunay triangulation with nearest-neighbor fallback) from $0.10^\circ$ ERA5-Land to $0.25^\circ$ Candidate A.
+
 
 ---
 
@@ -195,9 +196,14 @@ All top-level audit reports, console outputs, and master plan checkpoints must a
 
 ---
 
-## 7. Automated Unit Test Verification Suite (24/24 Certified)
+## 7. Automated Unit Test Verification Suite (24/24 Certified at Step 21D.3; Expanded to 27/27 in Step 21D.4)
 
-The updated test suite reflecting all reconciled parent contracts, dedicated target reconciliation assertions, and the production compilation pipeline was executed:
+> [!NOTE]
+> **Historical Test Suite Scope & Lifecycle Progression**:
+> At the time of this Step 21D.3 temporal audit, exactly **24 automated unit tests** were authored and passed. In subsequent Step 21D.4 production work, three additional pipeline and numerical remapper tests (`test_fast_remapper_numerical_parity`, `test_process_era5_land_antecedent_file`, `test_compile_full_cube_partial_pipeline`) were added to `tests/test_compile_cube.py`, expanding the repository-wide suite to **27 tests**, all 27 passing.
+
+The test suite execution log at the time of the Step 21D.3 reconciliation was:
+
 
 ```
 test_out_of_sample_leakage_isolation (test_compile_cube.TestProductionCubePipeline) ......... ok

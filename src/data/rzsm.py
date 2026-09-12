@@ -278,19 +278,22 @@ def remap_era5_land_to_candidate_a(
     time_dim: str = "time",
 ) -> xr.DataArray:
     """
-    Executes land-aware bilinear interpolation from ERA5-Land native grid (~0.10 deg)
-    to the frozen Candidate A reference grid (0.25 deg, 32 x 48).
+    Executes land-aware linear spatial interpolation (piecewise-linear Delaunay triangulation
+    with nearest-neighbor fallback) from ERA5-Land native grid (~0.10 deg) to the frozen
+    Candidate A reference grid (0.25 deg, 32 x 48).
 
     Methodological Parity & Coastal Behavior:
       1. Source Points: Extracted strictly where source soil moisture observations are finite
          (non-NaN valid land points). Ocean cells in ERA5-Land are NaNs.
-      2. Bilinear Interpolation: Evaluated on target evaluation points (cells where eval_mask == 1).
-      3. Coastal Extrapolation Fallback: For target coastal edge cells where the 4 surrounding
-         source points touch ocean nulls, NearestNDInterpolator provides fallback extrapolation
-         from adjacent valid land observations, completely eliminating peninsula truncation.
+      2. Piecewise-Linear Interpolation: Evaluated on target evaluation points (cells where eval_mask == 1)
+         via Delaunay simplex barycentric interpolation.
+      3. Coastal Extrapolation Fallback: For target coastal edge cells outside the convex hull of valid land,
+         NearestNDInterpolator provides fallback extrapolation from adjacent valid land observations,
+         completely eliminating peninsula truncation.
       4. Masking & Padding: 126 active evaluation cells receive interpolated values; all 1,410
          computational buffer/ocean cells are padded strictly to `fill_value` (default: 0.0).
       5. Guarantees Zero NaNs/Infs across all 126 active evaluation cells.
+
 
     Parameters
     ----------
@@ -380,6 +383,7 @@ def remap_era5_land_to_candidate_a(
 
     remapped_da = xr.DataArray(out_arr, coords=coords, dims=dims, name=source_da.name)
     remapped_da.attrs.update(source_da.attrs)
-    remapped_da.attrs["remapping_method"] = "land_aware_bilinear_with_nearest_boundary_fallback"
+    remapped_da.attrs["remapping_method"] = "land_aware_linear_with_nearest_boundary_fallback"
     remapped_da.attrs["grid"] = "Candidate_A_025deg_32x48"
     return remapped_da
+

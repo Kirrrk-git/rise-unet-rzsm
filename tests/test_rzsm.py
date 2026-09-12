@@ -153,7 +153,7 @@ class TestRealPilotDataIntegrity(unittest.TestCase):
 
 
 class TestLandAwareRemapping(unittest.TestCase):
-    """Verifies land-aware bilinear remapping with boundary extrapolation fallback."""
+    """Verifies land-aware linear spatial remapping with boundary extrapolation fallback."""
 
     def test_remap_synthetic_grid_zero_nan_and_zero_fill(self):
         # Source grid: 0.10 deg resolution covering Mindanao bounding box

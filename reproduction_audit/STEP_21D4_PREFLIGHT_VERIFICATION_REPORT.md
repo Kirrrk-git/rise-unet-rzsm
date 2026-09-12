@@ -82,7 +82,7 @@ The deterministic preflight script computed the SHA-256 hashes of all referenced
 | `processed/boundary/mindanao_analysis_boundary.gpkg` | `9c7478ec02718153c124e8f528211951c6a855c0221dfd8e443b5c430bd623d2` | `9c7478ec02718153c124e8f528211951c6a855c0221dfd8e443b5c430bd623d2` | ✅ **EXACT MATCH** |
 | `processed/grid/mindanao_0.25_grid.grd` | `b8fabe5c21a6b5beda2df8b9ef4438d8b63d74427e86223137a55c3afff40049` | `b8fabe5c21a6b5beda2df8b9ef4438d8b63d74427e86223137a55c3afff40049` | ✅ **EXACT MATCH** |
 
-* **Active Evaluation Cells**: Strictly 126 cells ($86,418.83\text{ km}^2$, 86.46% of regional land area).
+* **Active Evaluation Cells**: Strictly 126 cells (total full-cell footprint: $96,085.57\text{ km}^2$; actual boundary-intersection area: $86,418.83\text{ km}^2$, representing 86.46% of the authoritative $99,948.76\text{ km}^2$ boundary).
 * **Buffer / Ocean Cells**: Strictly 1,410 cells (zero-filled).
 * **Total Grid Cells**: $32 \times 48 = 1,536$ cells.
 

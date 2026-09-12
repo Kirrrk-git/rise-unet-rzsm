@@ -5,6 +5,7 @@
 **Project**: Enhanced RISE-UNet for Subseasonal RZSM Drought Forecasting in Mindanao  
 **Repository**: `dl_dm_rzsm_subseasonal_forecast` (`https://github.com/Kirrrk-git/rise-unet-rzsm.git`)  
 **Active Git Branch**: `mindanao-adaptation`  
+**Milestone**: Sub-Phase 21A Steps 21A.7A & 21A.7B  
 **Evaluation Status**: **CERTIFIED PASS (Geodesic Quadrature, Census & Topology)**  
 **Date of Certification**: 2026-09-10  
 
@@ -76,8 +77,8 @@ The frozen computational domain consists of $32 \times 48 = 1,536$ cells.
 | **Substantial Land Dominance** | $0.500 \le f < 0.750$ | 25 | 1.63% | **Included in Binary Evaluation Mask ($M=1$)** |
 | **Near-Complete Coverage** | $0.750 \le f < 1.000$ | 38 | 2.47% | **Included in Binary Evaluation Mask ($M=1$)** |
 | **100% Solid Interior Land** | $f = 1.000$ | 63 | 4.10% | **Included in Binary Evaluation Mask ($M=1$)** |
-| **Total Active Boundary Cells** | $f > 0.000$ | **253** | **16.47%** | Complete geographic footprint of Mindanao |
-| **Total Binary Evaluation Mask** | $f \ge 0.500$ | **126** | **8.20%** | **Core verification domain ($96,085.57\text{ km}^2$)** |
+| **Total Active Boundary Cells** | $f > 0.000$ | **253** | **16.47%** | Complete geographic footprint of Mindanao ($\sum f \cdot A = 99,948.76\text{ km}^2$) |
+| **Total Binary Evaluation Mask** | $f \ge 0.500$ | **126** | **8.20%** | **Core evaluation domain: 126 included cells (full-cell footprint: $96,085.57\text{ km}^2$; actual boundary-intersection area: $86,418.83\text{ km}^2$ or $86.46\%$ of the $99,948.76\text{ km}^2$ boundary)** |
 
 ---
 

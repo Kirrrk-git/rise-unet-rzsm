@@ -18,14 +18,15 @@
 | **Target Variable Definition** | 0–100 cm depth-weighted volumetric soil-water index | $\text{RZSM}_{0-100} = 0.07\,\text{SM}_1 + 0.21\,\text{SM}_2 + 0.72\,\text{SM}_3$ (matches author `process_soil.sh`) | ✅ **PASS** |
 | **Physical Units & Bounds** | Volumetric fraction $\text{m}^3/\text{m}^3 \in [0.0, 0.7]$ | Physical bounds verified; min-max normalization to $[0, 1]$ | ✅ **PASS** |
 | **Existing Archive Inventory** | 2015–2025 monthly NetCDF blocks in GCS bucket | 264 objects parsed across 11 years (2015–2025); 132 monthly pairs complete | ✅ **PASS** |
-| **Operational Stream Policy** | Prioritize CDS daily statistics over hourly | Daily statistics (`derived-era5-land-daily-statistics`) confirmed primary; bucket hourly is fallback | ✅ **PASS** |
-| **Antecedent Lag Completeness** | Availability of 2014 data for $W_1$ 2015 initialization | **Archive starts at 2015-01-01; 2014 is MISSING** (requires December 2014 for 14-day lags) | ⚠️ **CONDITIONAL** |
-| **Spatial Remapping Alignment** | Bilinear interpolation to frozen 0.25° grid | CDO grid descriptor `mindanao_0.25_grid.grd` verified compatible | ✅ **PASS** |
-| **Evaluation Mask Integration** | Confinement to 126 binary evaluation cells ($f \ge 0.50$) | Evaluated strictly on 126 cells ($96,085.57\text{ km}^2$); 1,410 buffer cells zero-masked | ✅ **PASS** |
+| **Operational Stream Policy** | Hourly ERA5-Land reanalysis as source-of-record with pipeline daily aggregation | Certified: A0 production RZSM cube uses hourly ERA5-Land reanalysis as source-of-record and performs explicit daily aggregation in pipeline; Copernicus derived daily-statistics product is not the source | ✅ **PASS** |
+| **Antecedent Lag Completeness** | Availability of 2014 data for $W_1$ 2015 initialization | **Archive starts at 2015-01-01; 2014 is MISSING** (resolved in Step 21B.2 via December 2014 antecedent support file) | ⚠️ **CONDITIONAL** |
+| **Spatial Remapping Alignment** | Land-aware linear spatial interpolation with nearest fallback | CDO descriptor `mindanao_0.25_grid.grd` compatible; native engine in `compile_cube.py` | ✅ **PASS** |
+
+| **Evaluation Mask Integration** | Confinement to 126 binary evaluation cells ($f \ge 0.50$) | Evaluated strictly on 126 cells (full-cell footprint $96,085.57\text{ km}^2$, boundary-intersection area $86,418.83\text{ km}^2$ or $86.46\%$); 1,410 buffer cells zero-masked | ✅ **PASS** |
 | **Independent Cross-Reference** | Independent GLEAM v3.8a RZSM comparison | Protocol defined; GLEAM retained strictly as external validation reference | ✅ **PASS** |
 
 $$\Large\boxed{\textbf{AUDIT VERDICT: CONDITIONAL PASS}}$$
-*(Technical formulation certified; operational daily retrieval path cleared; 2014 antecedent acquisition flagged before full production training).*
+*(Technical formulation certified; hourly source-of-record with pipeline daily aggregation established; 2014 antecedent support flagged and integrated in Step 21B.2).*
 
 ---
 
@@ -63,9 +64,9 @@ An audit of the cloud archive at `gs://mindanao-drought-aaron-jalapon-drought-da
   * Contains layer 3 (`swvl3`) extract (average file size: ~2.6 MiB per month).
   * 12 of 12 months present for all 11 years (2015 through 2025).
 
-### 3.2 Operational Stream Policy: Daily Statistics vs. Hourly Fallback
-* **Primary Operational Choice**: In accordance with the Master Plan and user directives, **daily dataset retrieval** via Copernicus CDS (`derived-era5-land-daily-statistics`) is the designated operational pathway. The derived daily-statistics product natively aggregates the 24-hour daily mean during retrieval, providing daily statistics derived from the underlying hourly ERA5-Land reanalysis and substantially reducing temporal data volume by ~96%.
-* **Secondary Fallback Role**: The existing hourly archive in the bucket is retained strictly as an **offline contingency fallback** if CDS API quotas or service downtime impede daily-statistics requests. It will not be assumed as the primary source. Numerical equivalence against offline hourly-to-daily CDO aggregation can be empirically evaluated as an explicit diagnostic check.
+### 3.2 Operational Stream Policy: Hourly Reanalysis Source-of-Record & Pipeline Daily Aggregation
+* **Frozen Source-of-Record Decision**: **The A0 production RZSM cube uses the hourly ERA5-Land reanalysis as the source-of-record and performs explicit daily aggregation within the project pipeline. The Copernicus derived daily-statistics product is not the source of the certified 21D.4 production cube.**
+* **Scientific & Reproducibility Rationale**: Utilizing the synchronized multi-year hourly archive (`265 files, 96,912 hours`) ensures complete provenance and mathematical control over the 24-hour daily mean calculation (`.resample(time='1D').mean(dim='time')`) and leap-day handling, completely independent of external CDS API rate limits, downtime, or black-box server-side aggregation differences.
 
 ### 3.3 Critical Finding: The 2014 Antecedent Gap
 * **The EX29 Lag Contract**: In Step 21A.3, the antecedent lag schedule was verified as:
@@ -80,15 +81,19 @@ An audit of the cloud archive at `gs://mindanao-drought-aaron-jalapon-drought-da
 
 ## 4. Spatial Coordinate Remapping & Evaluation Mask Integration
 
-### 4.1 Remapping Pipeline
+### 4.1 Remapping Pipeline & CDO Specification Compatibility
 * **Input Grid**: Native ERA5-Land $0.10^\circ \times 0.10^\circ$ geographic grid.
 * **Target Grid**: Frozen Mindanao $0.25^\circ \times 0.25^\circ$ reference grid (`mindanao_025deg.nc`, $32 \times 48 = 1,536$ cells).
-* **CDO Remapping Specification**:
+* **CDO Specification Compatibility vs. Production Engine Implementation**:
+  The frozen target grid is formally compatible with the Climate Data Operators (CDO) standard description format (`processed/grid/mindanao_0.25_grid.grd`):
   ```bash
+  # CDO interoperability verification syntax:
   cdo remapbil,processed/grid/mindanao_0.25_grid.grd era5_land_daily_010.nc era5_land_daily_025.nc
   ```
+  However, the actual production Model A0 data pipeline executes via the project's native Python remapping engine (`FastLandAwareRemapper` in `src/data/compile_cube.py`). This engine executes land-aware linear spatial interpolation (piecewise-linear Delaunay barycentric interpolation on valid finite land points) with nearest-neighbor coastal fallback, avoiding ocean-mask clipping on island edges and peninsulas while maintaining exact numerical agreement on tested data (observed maximum absolute difference = 0.0; test tolerance = 1e-6).
 * **Bounding Box Alignment**:
   * Native ERA5-Land window covers: $[115.8^\circ\text{E}, 3.8^\circ\text{N}] \to [128.0^\circ\text{E}, 12.0^\circ\text{N}]$, completely covering the frozen cell-edge envelope ($[115.875^\circ, 3.875^\circ] \to [127.875^\circ, 11.875^\circ]$). Zero extrapolation is required.
+
 
 ### 4.2 Non-Evaluation Buffer vs. Active Evaluation Cells
 In strict adherence to the frozen spatial contract ([`contracts/spatial/spatial_grid_contract.yaml`](../contracts/spatial/spatial_grid_contract.yaml)):
@@ -96,7 +101,7 @@ In strict adherence to the frozen spatial contract ([`contracts/spatial/spatial_
   * Pure exterior ocean buffer ($f = 0.000$): 1,283 cells. Zero-filled per author convention to provide convolutional receptive field padding without NaNs.
   * Sub-threshold coastal transition cells ($0.000 < f < 0.500$): 127 cells. Excluded from loss and skill metrics to prevent coastal ocean water contamination.
 * **Binary Evaluation Domain ($f \ge 0.50$, 126 cells, 8.20%)**:
-  * Covers $96,085.57\text{ km}^2$ of the validated six-region administrative domain.
+  * Total full-cell footprint of 126 included $0.25^\circ$ cells spans $96,085.57\text{ km}^2$, representing $86,418.83\text{ km}^2$ of actual boundary-intersection area (86.46% of the authoritative $99,948.76\text{ km}^2$ Mindanao boundary).
   * All training loss updates and validation metrics (ACC, CRPSS, RMSE, KGE) are strictly confined to these 126 cells.
 
 ---
@@ -128,24 +133,24 @@ Over the common historical period (2015–2022), the remapped ERA5-Land $\text{R
                ┌────────────────────────────┴────────────────────────────┐
                ▼                                                         ▼
      [CRITERION 1: FORMULATION]                                [CRITERION 2: SOURCE STREAM]
-   RZSM = 0.07*SM1 + 0.21*SM2 + 0.72*SM3                     Primary: CDS Derived Daily Statistics
-   Matches author code process_soil.sh                       Secondary: Bucket Hourly Fallback (2015-2025)
+   RZSM = 0.07*SM1 + 0.21*SM2 + 0.72*SM3                     Hourly ERA5-Land Reanalysis Source-of-Record
+   Matches author code process_soil.sh                       Project-Side Pipeline Daily Aggregation
                │                                                         │
                └────────────────────────────┬────────────────────────────┘
                                             ▼
                               [CRITERION 3: ANTECEDENT GAP]
-                           2014 data missing from bucket archive;
-                           requires Dec 2014 retrieval or 21-day offset
+                           2014 data missing from 2015-2025 archive;
+                           resolved via 12-31 Dec 2014 antecedent retrieval
                                             │
                                             ▼
                            ┌─────────────────────────────────┐
                            │      OVERALL VERDICT: GO        │
-                           │   (Proceed to 21B Pilot with    │
-                           │  explicit daily CDS pipeline)   │
+                           │  (Proceed to 21B Pilot & 21D    │
+                           │  Production with local pipeline) │
                            └─────────────────────────────────┘
 ```
 
 **Decision Actions**:
 1. **Approve ERA5-Land Definition**: The depth-weighted 0–100 cm volumetric soil water index is formally certified as the target and antecedent RZSM state for Mindanao Model A0.
-2. **Operational Pipeline Direction**: Proceed to **Sub-Phase 21B (Step 21B.1 / 21B.2)** by setting up the Copernicus CDS API client to retrieve a **1-month pilot** (e.g., October 2020) using `derived-era5-land-daily-statistics`.
-3. **No Bulk Download Yet**: As instructed, no large-scale 144-month retrieval will be initiated until the 1-month pilot validates coordinate alignment, units, missing-value masking, and CDO regridding against `mindanao_025deg.nc`.
+2. **Operational Pipeline Direction**: The production pipeline utilizes the synchronized hourly ERA5-Land reanalysis archive (265 NetCDF files covering 12 Dec 2014–31 Dec 2025) as the source-of-record, with explicit daily aggregation performed within the project pipeline (`resample(valid_time='1D').mean()`). The Copernicus derived daily-statistics product is not the source of the certified production cube.
+3. **No Bulk Download Redundancy**: Antecedent and multi-year production archives are fully synchronized across the local codebase and GCS lake (`gs://rise-unet-rzsm/raw/era5_land/production/`), satisfying all nominal training, validation, and test requirements without external API dependencies.

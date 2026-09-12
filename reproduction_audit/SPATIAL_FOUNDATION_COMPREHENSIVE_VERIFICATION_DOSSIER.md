@@ -17,7 +17,7 @@
 | :--- | :--- | :--- | :--- | :---: |
 | **CF-1.8 NetCDF Grid** | [`processed/grid/mindanao_025deg.nc`](../processed/grid/mindanao_025deg.nc) | $(32, 48)$, lat $11.75 \to 4.00$, lon $116.00 \to 127.75$, bounds verified, zero NaNs | Dimensions exact, cell edges $[115.875, 3.875] \to [127.875, 11.875]$, 0 NaNs | ✅ **PASS** |
 | **Fractional Mask** | [`processed/grid/mindanao_fraction_025.nc`](../processed/grid/mindanao_fraction_025.nc) | $f \in [0.0, 1.0]$, WGS84 geodesic area quadrature, area parity with boundary | 253 active cells ($16.47\%$), integrated area $99,948.76\text{ km}^2$ ($0.0000\%$ error) | ✅ **PASS** |
-| **Binary Eval Mask** | [`processed/grid/mindanao_eval_mask_025.nc`](../processed/grid/mindanao_eval_mask_025.nc) | $f \ge 0.50$, int8 $\{0, 1\}$, exact census accounting, zero NaNs | Exactly 126 active evaluation cells ($8.20\%$, $96,085.57\text{ km}^2$), 1,410 buffer cells | ✅ **PASS** |
+| **Binary Eval Mask** | [`processed/grid/mindanao_eval_mask_025.nc`](../processed/grid/mindanao_eval_mask_025.nc) | $f \ge 0.50$, int8 $\{0, 1\}$, exact census accounting, zero NaNs | Exactly 126 active evaluation cells ($8.20\%$, full-cell footprint: $96,085.57\text{ km}^2$, boundary-intersection area: $86,418.83\text{ km}^2$ or $86.46\%$), 1,410 buffer cells | ✅ **PASS** |
 | **CDO Grid Descriptor** | [`processed/grid/mindanao_0.25_grid.grd`](../processed/grid/mindanao_0.25_grid.grd) | CDO `lonlat` specification, $1,536$ points, step $\pm 0.25^\circ$ | Validated syntax, identical to CF coordinates, verified for `cdo remapbil` | ✅ **PASS** |
 | **Spatial Contract** | [`contracts/spatial/spatial_grid_contract.yaml`](../contracts/spatial/spatial_grid_contract.yaml) | Full governance, CRS EPSG:4326, 16-divisibility, hashes, boundaries | Authoritative contract locked with exact SHA-256 digests of all artifacts | ✅ **PASS** |
 | **Metadata Definition** | [`metadata/grid_definition.yaml`](../metadata/grid_definition.yaml) | Machine-readable schema, census counts, coordinates | 100% schema parity with spatial contract and NetCDF headers | ✅ **PASS** |
@@ -48,7 +48,7 @@ All three NetCDF4 files were programmatically inspected with `netCDF4` and `xarr
 3. **`mindanao_eval_mask_025.nc` (SHA-256: `d7fd80e1f95cdd840daded176b06b2a0d23557df555acfaf0c01d2d1964621f6`)**:
    * Data variable `evaluation_mask` (`int8`, shape `(32, 48)`).
    * Values strictly in $\{0, 1\}$ with 0 NaNs.
-   * Exactly 126 active evaluation cells ($8.20\%$, $96,085.57\text{ km}^2$) where $f \ge 0.50$.
+   * Exactly 126 active evaluation cells ($8.20\%$, full-cell footprint: $96,085.57\text{ km}^2$, capturing $86,418.83\text{ km}^2$ or $86.46\%$ of boundary) where $f \ge 0.50$.
    * Exactly 1,410 buffer cells ($91.80\%$) where $f < 0.50$ (comprising 1,283 pure ocean cells and 127 sub-threshold coastal islet transition cells).
 
 ### 2.2 CDO Grid Descriptor (`mindanao_0.25_grid.grd`)

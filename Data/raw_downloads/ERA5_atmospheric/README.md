@@ -1,3 +1,4 @@
+<!-- markdownlint-disable -->
 # ERA5 Atmospheric Reanalysis Archive (Mindanao Domain)
 
 **Authoritative Cloud Storage of Record**: `gs://rise-unet-rzsm/raw/era5/`  
