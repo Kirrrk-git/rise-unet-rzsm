@@ -26,7 +26,9 @@ import xarray as xr
 @dataclass(frozen=True)
 class CaseTensorHierarchy:
     """Encapsulates the complete input-target tensor hierarchy for a single forecast case."""
-    issue_date: str
+    issue_date: str         # Primary forecast issuance date (hdate)
+    hdate: str              # Historical hindcast issue date
+    model_version_date: Optional[str]  # Operational model version date (ECMWF date)
     # Input tensors (M=11, 32, 48, C_k)
     x_w1: np.ndarray        # (11, 32, 48, 11)
     x_w2_base: np.ndarray   # (11, 32, 48, 11) - ready for y_hat_w1 concatenation to form 12 channels
@@ -177,8 +179,15 @@ def assemble_single_a0_case(
         y_w3[:, ocean, :] = 0.0
         y_w4[:, ocean, :] = 0.0
 
+    hdate = str(s2s_ds.attrs.get("hdate", t0_str))
+    model_version_date = s2s_ds.attrs.get("model_version_date", None)
+    if model_version_date == "unknown":
+        model_version_date = None
+
     return CaseTensorHierarchy(
         issue_date=t0_str,
+        hdate=hdate,
+        model_version_date=model_version_date,
         x_w1=x_w1,
         x_w2_base=x_w2_base,
         x_w3_base=x_w3_base,

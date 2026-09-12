@@ -138,7 +138,9 @@ def parse_ecmwf_s2s_grib_messages(filepath: Union[str, Path]) -> List[Dict]:
                 ref_year = struct.unpack(">H", msg_bytes[sec_pos + 12 : sec_pos + 14])[0]
                 ref_mon = msg_bytes[sec_pos + 14]
                 ref_day = msg_bytes[sec_pos + 15]
-                msg_meta["date"] = f"{ref_year:04d}-{ref_mon:02d}-{ref_day:02d}"
+                hdate_str = f"{ref_year:04d}-{ref_mon:02d}-{ref_day:02d}"
+                msg_meta["hdate"] = hdate_str
+                msg_meta["date"] = hdate_str  # Maintained as primary historical forecast issue date
 
             elif sec_num == 3:
                 # Grid Definition Section
@@ -169,6 +171,15 @@ def parse_ecmwf_s2s_grib_messages(filepath: Union[str, Path]) -> List[Dict]:
                     msg_meta["member"] = pert_num
                 else:
                     msg_meta["member"] = 0
+
+                # Operational model version date in PDT 60/61 (Octets 39-45 in Sec 4)
+                if pdt in (60, 61) and sec_len >= 42:
+                    model_year = struct.unpack(">H", msg_bytes[sec_pos + 37 : sec_pos + 39])[0]
+                    model_mon = msg_bytes[sec_pos + 39]
+                    model_day = msg_bytes[sec_pos + 40]
+                    msg_meta["model_version_date"] = f"{model_year:04d}-{model_mon:02d}-{model_day:02d}"
+                else:
+                    msg_meta["model_version_date"] = None
 
             elif sec_num == 5:
                 # Data Representation Section
@@ -265,10 +276,20 @@ def harmonize_s2s_cycle(
     pf_path: Optional[Union[str, Path]] = None,
     target_date: Optional[str] = None,
     eval_mask_path: Optional[Union[str, Path]] = None,
+    allow_step0_fallback: bool = False,
 ) -> xr.Dataset:
     """
     Harmonizes an ECMWF S2S reforecast cycle (Control + Perturbed forecasts)
     into a standardized xarray Dataset conforming to RISE-UNet EX29 specifications.
+
+    Parameters:
+        cf_path: Path to Control Forecast GRIB2 file (Member 0).
+        pf_path: Optional path to Perturbed Forecast GRIB2 file (Members 1-10).
+        target_date: Forecast issuance date (hdate, YYYY-MM-DD). If None, uses earliest available date.
+        eval_mask_path: Optional path to binary evaluation mask NetCDF (for ocean zero-filling).
+        allow_step0_fallback: If False (DEFAULT/PRODUCTION), missing required forecast steps raise a hard
+                              ValueError, rejecting defective cases. If True (DEBUG/PILOT ONLY), permits fallback
+                              to step 0 with an explicit warning and logs a diagnostic flag in dataset attributes.
 
     Output Dimensions:
         (lead=2, member=11, lat=32, lon=48)
@@ -284,23 +305,36 @@ def harmonize_s2s_cycle(
         pf_msgs = parse_ecmwf_s2s_grib_messages(pf_path)
         all_msgs.extend(pf_msgs)
 
-    # Determine target issue date
-    available_dates = sorted(list(set(m["date"] for m in all_msgs)))
+    # Determine target issue date (hdate)
+    available_dates = sorted(list(set(m["hdate"] for m in all_msgs if "hdate" in m)))
+    if not available_dates:
+        available_dates = sorted(list(set(m["date"] for m in all_msgs)))
     if target_date is None:
         target_date = available_dates[0]
     elif target_date not in available_dates:
         raise ValueError(f"Requested date {target_date} not in file. Available: {available_dates}")
 
+    # Extract operational model version date if present in PDT 60/61
+    model_version_dates = sorted(list(set(m["model_version_date"] for m in all_msgs if m.get("model_version_date") is not None)))
+    model_version_date = model_version_dates[0] if model_version_dates else None
+
     # Filter messages for the target date and variables
-    cycle_msgs = [m for m in all_msgs if m["date"] == target_date and m["var"] in ["t2m", "d2m", "tcw"]]
+    cycle_msgs = [
+        m for m in all_msgs
+        if (m.get("hdate") == target_date or m.get("date") == target_date)
+        and m["var"] in ["t2m", "d2m", "tcw"]
+    ]
 
     # Members present
     members = sorted(list(set(m["member"] for m in cycle_msgs)))
     num_members = len(members)
 
     # Weekly lead aggregation bins:
-    # Lead 1: steps 0 to 168 hours (Week 1, days 1-7)
-    # Lead 2: steps 168 to 336 hours (Week 2, days 8-14)
+    # Under the author's daily lead index contract (00_min_max_...:Cell 13, 29):
+    # Week 1: daily leads L=0..6, corresponding to forecast steps 0 <= step < 168 hours
+    #         (hours 0, 24, 48, 72, 96, 120, 144 for daily resolution; hours 0..162 for 6-hourly)
+    # Week 2: daily leads L=7..13, corresponding to forecast steps 168 <= step < 336 hours
+    #         (hours 168, 192, 216, 240, 264, 288, 312 for daily resolution; hours 168..330 for 6-hourly)
     lead_bins = {
         1: (0, 168),
         2: (168, 336),
@@ -317,6 +351,7 @@ def harmonize_s2s_cycle(
             dtype=np.float32,
         )
 
+    contains_fallback_detected = False
     for m_idx, mem in enumerate(members):
         for lead_idx, lead in enumerate([1, 2]):
             step_min, step_max = lead_bins[lead]
@@ -326,15 +361,28 @@ def harmonize_s2s_cycle(
                     for m in cycle_msgs
                     if m["member"] == mem
                     and m["var"] == var
-                    and step_min <= m["step"] <= step_max
+                    and step_min <= m["step"] < step_max
                 ]
                 if not matching:
-                    # Fallback to step=0 if available (e.g. pilot files where tcw was archived only at step 0)
-                    matching = [
-                        m["grid"]
-                        for m in cycle_msgs
-                        if m["member"] == mem and m["var"] == var and m["step"] == 0
-                    ]
+                    if allow_step0_fallback:
+                        # Fallback to step=0 permitted ONLY in explicit debug/pilot mode
+                        matching = [
+                            m["grid"]
+                            for m in cycle_msgs
+                            if m["member"] == mem and m["var"] == var and m["step"] == 0
+                        ]
+                        if matching:
+                            contains_fallback_detected = True
+                            print(
+                                f"[WARNING: STEP-0 FALLBACK APPLIED] Member {mem}, var '{var}', lead {lead} "
+                                f"missing forecast steps in [{step_min}, {step_max})h; fell back to step 0."
+                            )
+                    else:
+                        raise ValueError(
+                            f"[CRITICAL S2S ERROR] Missing required forecast steps for member {mem}, "
+                            f"var '{var}', lead {lead} (expected in window [{step_min}, {step_max})h). "
+                            f"Step-0 fallback is strictly forbidden in production mode (allow_step0_fallback=False). Case rejected."
+                        )
 
                 if matching:
                     # Average over steps within the lead week
@@ -345,9 +393,8 @@ def harmonize_s2s_cycle(
                     compiled_vars[var][lead_idx, m_idx, :, :] = remapped_grid
                 else:
                     raise ValueError(
-                        f"Missing S2S steps for member {mem}, var {var}, lead {lead} ({step_min}-{step_max}h)"
+                        f"Missing S2S steps for member {mem}, var '{var}', lead {lead} ({step_min}-{step_max}h)"
                     )
-
 
     # Optional masking
     if eval_mask_path is not None and Path(eval_mask_path).exists():
@@ -361,7 +408,7 @@ def harmonize_s2s_cycle(
                         eval_mask == 1, compiled_vars[var][l, m, :, :], 0.0
                     )
 
-    # Assemble xarray Dataset
+    # Assemble xarray Dataset with explicit hdate and model_version_date
     ds = xr.Dataset(
         data_vars={
             "t2m": (("lead", "member", "lat", "lon"), compiled_vars["t2m"]),
@@ -375,11 +422,14 @@ def harmonize_s2s_cycle(
             "lon": CANDIDATE_A_LONS,
         },
         attrs={
-            "description": "Harmonized ECMWF S2S subseasonal reforecast pilot for Mindanao RISE-UNet",
+            "description": "Harmonized ECMWF S2S subseasonal reforecast dataset for Mindanao RISE-UNet",
             "issue_date": target_date,
+            "hdate": target_date,
+            "model_version_date": model_version_date if model_version_date else "unknown",
             "variables": "t2m, d2m, tcw",
-            "leads": "Week 1 (days 1-7), Week 2 (days 8-14)",
+            "leads": "Week 1 (daily leads L=0..6, hours 0-144h), Week 2 (daily leads L=7..13, hours 168-312h)",
             "ensemble_members": num_members,
+            "contains_step0_fallback": contains_fallback_detected,
             "remapping_method": "bilinear_with_nearest_boundary_fallback",
         },
     )

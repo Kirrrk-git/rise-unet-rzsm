@@ -98,8 +98,8 @@ class TestS2SPilotData(unittest.TestCase):
         self.pf_file = Path("../scratch/sample_forcing_pf.grib")
         self.mask_file = Path("processed/grid/mindanao_eval_mask_025.nc")
 
-    def test_pilot_cycle_harmonization(self):
-        """Full harmonization must yield (lead=2, member=11, lat=32, lon=48) with physical bounds."""
+    def test_pilot_cycle_harmonization_with_fallback_allowed(self):
+        """Debug/pilot mode with fallback enabled must yield (lead=2, member=11, lat=32, lon=48) and flag fallback."""
         if not (self.cf_file.exists() and self.pf_file.exists() and self.mask_file.exists()):
             self.skipTest("Pilot GRIB sample files not present in scratch/ directory.")
 
@@ -107,6 +107,7 @@ class TestS2SPilotData(unittest.TestCase):
             cf_path=self.cf_file,
             pf_path=self.pf_file,
             eval_mask_path=self.mask_file,
+            allow_step0_fallback=True,
         )
 
         # Coordinate assertions
@@ -115,6 +116,9 @@ class TestS2SPilotData(unittest.TestCase):
         self.assertEqual(ds.sizes["member"], 11)
         self.assertEqual(ds.sizes["lat"], 32)
         self.assertEqual(ds.sizes["lon"], 48)
+
+        # Diagnostic fallback flag must be True for legacy pilot file
+        self.assertTrue(ds.attrs["contains_step0_fallback"])
 
         # Member list assertion: 0 (CF) + 1..10 (PF)
         self.assertEqual(list(ds["member"].values), list(range(11)))
@@ -138,16 +142,46 @@ class TestS2SPilotData(unittest.TestCase):
 
             # Physical ranges over Mindanao
             if var == "t2m":
-                # Temperature: 285 K (12 C) to 315 K (42 C)
                 self.assertTrue(np.all(eval_vals >= 285.0))
                 self.assertTrue(np.all(eval_vals <= 315.0))
             elif var == "d2m":
-                # Dewpoint: 275 K (2 C) to 310 K (37 C)
                 self.assertTrue(np.all(eval_vals >= 275.0))
                 self.assertTrue(np.all(eval_vals <= 310.0))
             elif var == "tcw":
-                # Total column water: > 0 kg/m2
                 self.assertTrue(np.all(eval_vals > 0.0))
+
+    def test_production_mode_hard_fails_on_missing_steps(self):
+        """Production mode (default allow_step0_fallback=False) must reject defective files missing forecast steps."""
+        if not (self.cf_file.exists() and self.pf_file.exists()):
+            self.skipTest("Pilot GRIB sample files not present in scratch/ directory.")
+
+        with self.assertRaises(ValueError) as ctx:
+            harmonize_s2s_cycle(
+                cf_path=self.cf_file,
+                pf_path=self.pf_file,
+                eval_mask_path=self.mask_file,
+                allow_step0_fallback=False,  # Default safe production mode
+            )
+        self.assertIn("Step-0 fallback is strictly forbidden in production mode", str(ctx.exception))
+
+    def test_clean_production_grib_passes_production_mode(self):
+        """Clean ECDS production file must pass production mode with zero fallbacks and separate hdate/model dates."""
+        clean_cf = Path("../scratch/clean_s2s_audit/s2s_cf_2015-01-16.grib")
+        clean_pf = Path("../scratch/clean_s2s_audit/s2s_pf_2015-01-16.grib")
+        if not (clean_cf.exists() and self.mask_file.exists()):
+            self.skipTest("Clean ECDS production GRIB files not present in scratch/clean_s2s_audit/.")
+
+        pf_arg = clean_pf if clean_pf.exists() else None
+        ds = harmonize_s2s_cycle(
+            cf_path=clean_cf,
+            pf_path=pf_arg,
+            eval_mask_path=self.mask_file,
+            allow_step0_fallback=False,  # Must pass cleanly without fallback
+        )
+
+        self.assertFalse(ds.attrs["contains_step0_fallback"])
+        self.assertEqual(ds.attrs["hdate"], "2015-01-16")
+        self.assertEqual(ds.attrs["model_version_date"], "2020-01-16")
 
 
 if __name__ == "__main__":

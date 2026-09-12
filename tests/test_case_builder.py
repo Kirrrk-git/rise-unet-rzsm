@@ -179,6 +179,9 @@ class TestCaseBuilderRealData(unittest.TestCase):
         self.assertTrue(np.all(case.x_w1[:, active, :] != 0.0))
         self.assertTrue(np.all(case.y_w1[:, active, :] != 0.0))
 
+        # Assert hdate preservation
+        self.assertEqual(case.hdate, "2015-01-15")
+
 
 if __name__ == "__main__":
     unittest.main()
