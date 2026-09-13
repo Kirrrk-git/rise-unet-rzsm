@@ -3,6 +3,11 @@ snapshot_staging/
 *.tar.gz
 *.zip
 
+# Checkpoints & Model Weights (Archived in GCS)
+checkpoints/
+*.weights.h5
+*.weights.npz
+
 # Python & Jupyter
 __pycache__/
 *.py[cod]

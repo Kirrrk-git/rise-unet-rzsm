@@ -42,6 +42,7 @@ class CaseTensorHierarchy:
     # Metadata
     channel_schedule: Dict[int, int]
     num_members: int = 11
+    target_dates: Optional[Dict[int, str]] = None
 
 
 def assemble_single_a0_case(
@@ -149,13 +150,15 @@ def assemble_single_a0_case(
 
     # -------------------------------------------------------------------------
     # 5. Extract Ground Truth Targets for Leads W1 to W4
-    #    Target W1: day t_0 + 7d
-    #    Target W2: day t_0 + 14d
-    #    Target W3: day t_0 + 21d
-    #    Target W4: day t_0 + 28d
+    #    Verified parent EX29 target endpoint contract: L = (lead * 7) - 1
+    #    Target W1: day t_0 + 6d  (captures trailing 7d mean over days t_0 .. t_0 + 6d)
+    #    Target W2: day t_0 + 13d (captures trailing 7d mean over days t_0 + 7d .. t_0 + 13d)
+    #    Target W3: day t_0 + 20d (captures trailing 7d mean over days t_0 + 14d .. t_0 + 20d)
+    #    Target W4: day t_0 + 27d (captures trailing 7d mean over days t_0 + 21d .. t_0 + 27d)
     # -------------------------------------------------------------------------
     targets = []
-    for lead_days in [7, 14, 21, 28]:
+    target_dates_dict = {}
+    for lead_idx, lead_days in enumerate([6, 13, 20, 27], start=1):
         target_date = (t0 + pd.Timedelta(days=lead_days)).strftime("%Y-%m-%d")
         if target_date not in rzsm_cube_ds["time"].dt.strftime("%Y-%m-%d").values:
             raise KeyError(f"Target date {target_date} (+{lead_days}d) not found in RZSM cube.")
@@ -164,6 +167,7 @@ def assemble_single_a0_case(
             tgt_2d = tgt_2d[0]
         # Shape: (1, 32, 48, 1)
         targets.append(tgt_2d[np.newaxis, :, :, np.newaxis].astype(np.float32))
+        target_dates_dict[lead_idx] = target_date
 
     y_w1, y_w2, y_w3, y_w4 = targets
 
@@ -198,6 +202,7 @@ def assemble_single_a0_case(
         y_w4=y_w4,
         channel_schedule={1: 11, 2: 12, 3: 5, 4: 6},
         num_members=num_members,
+        target_dates=target_dates_dict,
     )
 
 

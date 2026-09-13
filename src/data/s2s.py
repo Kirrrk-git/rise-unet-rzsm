@@ -40,6 +40,26 @@ TRIPLET_PARAMS = {
 }
 
 
+def decode_grib2_signed_int16(raw_val: int) -> int:
+    """
+    Decodes a 16-bit signed integer using WMO GRIB2 sign-magnitude encoding.
+    (Bit 15 is sign bit: 1 = negative; Bits 0-14 represent magnitude).
+    """
+    if raw_val & 0x8000:
+        return -(raw_val & 0x7FFF)
+    return raw_val
+
+
+def decode_grib2_signed_int32(raw_val: int) -> int:
+    """
+    Decodes a 32-bit signed integer using WMO GRIB2 sign-magnitude encoding.
+    (Bit 31 is sign bit: 1 = negative; Bits 0-30 represent magnitude).
+    """
+    if raw_val & 0x80000000:
+        return -(raw_val & 0x7FFFFFFF)
+    return raw_val
+
+
 def unpack_grib2_section7_simple(
     sec7_bytes: bytes,
     shape: Tuple[int, int],
@@ -145,10 +165,14 @@ def parse_ecmwf_s2s_grib_messages(filepath: Union[str, Path]) -> List[Dict]:
             elif sec_num == 3:
                 # Grid Definition Section
                 ni, nj = struct.unpack(">II", msg_bytes[sec_pos + 30 : sec_pos + 38])
-                la1 = struct.unpack(">i", msg_bytes[sec_pos + 46 : sec_pos + 50])[0] / 1e6
-                lo1 = struct.unpack(">i", msg_bytes[sec_pos + 50 : sec_pos + 54])[0] / 1e6
-                la2 = struct.unpack(">i", msg_bytes[sec_pos + 55 : sec_pos + 59])[0] / 1e6
-                lo2 = struct.unpack(">i", msg_bytes[sec_pos + 59 : sec_pos + 63])[0] / 1e6
+                la1_raw = struct.unpack(">I", msg_bytes[sec_pos + 46 : sec_pos + 50])[0]
+                lo1_raw = struct.unpack(">I", msg_bytes[sec_pos + 50 : sec_pos + 54])[0]
+                la2_raw = struct.unpack(">I", msg_bytes[sec_pos + 55 : sec_pos + 59])[0]
+                lo2_raw = struct.unpack(">I", msg_bytes[sec_pos + 59 : sec_pos + 63])[0]
+                la1 = decode_grib2_signed_int32(la1_raw) / 1e6
+                lo1 = decode_grib2_signed_int32(lo1_raw) / 1e6
+                la2 = decode_grib2_signed_int32(la2_raw) / 1e6
+                lo2 = decode_grib2_signed_int32(lo2_raw) / 1e6
                 shape = (nj, ni)
                 lats_1d = np.linspace(la1, la2, nj, dtype=np.float32)
                 lons_1d = np.linspace(lo1, lo2, ni, dtype=np.float32)
@@ -185,8 +209,10 @@ def parse_ecmwf_s2s_grib_messages(filepath: Union[str, Path]) -> List[Dict]:
                 # Data Representation Section
                 drt = struct.unpack(">H", msg_bytes[sec_pos + 9 : sec_pos + 11])[0]
                 r = struct.unpack(">f", msg_bytes[sec_pos + 11 : sec_pos + 15])[0]
-                e = struct.unpack(">h", msg_bytes[sec_pos + 15 : sec_pos + 17])[0]
-                d = struct.unpack(">h", msg_bytes[sec_pos + 17 : sec_pos + 19])[0]
+                e_raw = struct.unpack(">H", msg_bytes[sec_pos + 15 : sec_pos + 17])[0]
+                d_raw = struct.unpack(">H", msg_bytes[sec_pos + 17 : sec_pos + 19])[0]
+                e = decode_grib2_signed_int16(e_raw)
+                d = decode_grib2_signed_int16(d_raw)
                 nbits = msg_bytes[sec_pos + 19]
                 packing = (drt, r, e, d, nbits)
 

@@ -42,6 +42,20 @@ from src.data.case_builder import (
     assemble_single_a0_case,
     simulate_recursive_cascade_step,
 )
+from src.data.tf_dataset import (
+    A0CaseBatchGenerator,
+    create_a0_tf_dataset,
+    crps2d_numpy,
+    crps_exact_analytical,
+    save_a0_checkpoint,
+    restore_a0_checkpoint,
+    validate_batch_size,
+    prepare_case_lead_tensors,
+    load_case_npz,
+    ENSEMBLE_MEMBERS,
+    LEAD_CHANNELS,
+    OUTPUT_HEADS,
+)
 
 __all__ = [
     "compute_depth_weighted_rzsm",
@@ -75,7 +89,20 @@ __all__ = [
     "CaseTensorHierarchy",
     "assemble_single_a0_case",
     "simulate_recursive_cascade_step",
+    "A0CaseBatchGenerator",
+    "create_a0_tf_dataset",
+    "crps2d_numpy",
+    "crps_exact_analytical",
+    "save_a0_checkpoint",
+    "restore_a0_checkpoint",
+    "validate_batch_size",
+    "prepare_case_lead_tensors",
+    "load_case_npz",
+    "ENSEMBLE_MEMBERS",
+    "LEAD_CHANNELS",
+    "OUTPUT_HEADS",
 ]
+
 
 
 

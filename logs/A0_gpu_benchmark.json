@@ -1,0 +1,199 @@
+{
+  "milestone": "Sub-Phase 21J (Hardware Profiling & VRAM Feasibility Benchmark)",
+  "status": "NOT_CERTIFIED_CPU_MOCK",
+  "timestamp": "2026-09-13T18:19:02Z",
+  "gpu_environment": {
+    "gpu_available": false,
+    "device_name": "CPU",
+    "total_memory_mb": 0.0,
+    "current_allocated_mb": 0.0,
+    "peak_allocated_mb": 0.0,
+    "python_version": "3.14.0",
+    "tensorflow_version": "N/A",
+    "cuda_version": "N/A",
+    "cudnn_version": "N/A",
+    "dtype": "float32",
+    "mixed_precision_enabled": false,
+    "xla_enabled": false
+  },
+  "pillars": {
+    "pillar_21j_1_architecture": {
+      "status": "PREFLIGHT_MOCK",
+      "model_name": "UNET_RZSM_Mindanao_A0_Lead_1",
+      "actual_count_params": null,
+      "expected_count_params": 1630307,
+      "note": "Host lacks TensorFlow; real-model instantiation deferred to GPU runtime."
+    },
+    "pillar_21j_2_multi_lead_forward": {
+      "leads": {
+        "lead_1": {
+          "input_channels": 11,
+          "expected_output_shape": [
+            11,
+            32,
+            48,
+            1
+          ],
+          "status": "PREFLIGHT_MOCK"
+        },
+        "lead_2": {
+          "input_channels": 12,
+          "expected_output_shape": [
+            11,
+            32,
+            48,
+            1
+          ],
+          "status": "PREFLIGHT_MOCK"
+        },
+        "lead_3": {
+          "input_channels": 5,
+          "expected_output_shape": [
+            11,
+            32,
+            48,
+            1
+          ],
+          "status": "PREFLIGHT_MOCK"
+        },
+        "lead_4": {
+          "input_channels": 6,
+          "expected_output_shape": [
+            11,
+            32,
+            48,
+            1
+          ],
+          "status": "PREFLIGHT_MOCK"
+        }
+      },
+      "status": "PREFLIGHT_MOCK"
+    },
+    "pillar_21j_3_backward_pass": {
+      "status": "PREFLIGHT_MOCK",
+      "note": "Host lacks TensorFlow; backpropagation verified via analytical test suite."
+    },
+    "pillar_21j_4_recursive_cascade": {
+      "status": "PREFLIGHT_MOCK",
+      "channels_verified": [
+        11,
+        12,
+        5,
+        6
+      ],
+      "pilot_case_available": true,
+      "note": "Host lacks TensorFlow; cascade verified on synthetic shapes."
+    },
+    "pillar_21j_5_vram_ladder": {
+      "status": "PREFLIGHT_MOCK",
+      "batch_profiles": [
+        {
+          "batch_size": 11,
+          "num_cases": 1,
+          "measured_on_gpu": false,
+          "forward_time_ms": 0.0,
+          "backward_time_ms": 0.0,
+          "optimizer_time_ms": 0.0,
+          "step_time_ms": 0.0,
+          "samples_per_second": 0.0,
+          "vram_allocated_mb": 44.5,
+          "peak_vram_mb": 66.75,
+          "oom_fault": false,
+          "finite_gradients": false,
+          "nonzero_updates": false,
+          "status": "ESTIMATED_THEORETICAL_ONLY"
+        },
+        {
+          "batch_size": 22,
+          "num_cases": 2,
+          "measured_on_gpu": false,
+          "forward_time_ms": 0.0,
+          "backward_time_ms": 0.0,
+          "optimizer_time_ms": 0.0,
+          "step_time_ms": 0.0,
+          "samples_per_second": 0.0,
+          "vram_allocated_mb": 82.5,
+          "peak_vram_mb": 123.75,
+          "oom_fault": false,
+          "finite_gradients": false,
+          "nonzero_updates": false,
+          "status": "ESTIMATED_THEORETICAL_ONLY"
+        },
+        {
+          "batch_size": 33,
+          "num_cases": 3,
+          "measured_on_gpu": false,
+          "forward_time_ms": 0.0,
+          "backward_time_ms": 0.0,
+          "optimizer_time_ms": 0.0,
+          "step_time_ms": 0.0,
+          "samples_per_second": 0.0,
+          "vram_allocated_mb": 120.5,
+          "peak_vram_mb": 180.75,
+          "oom_fault": false,
+          "finite_gradients": false,
+          "nonzero_updates": false,
+          "status": "ESTIMATED_THEORETICAL_ONLY"
+        },
+        {
+          "batch_size": 44,
+          "num_cases": 4,
+          "measured_on_gpu": false,
+          "forward_time_ms": 0.0,
+          "backward_time_ms": 0.0,
+          "optimizer_time_ms": 0.0,
+          "step_time_ms": 0.0,
+          "samples_per_second": 0.0,
+          "vram_allocated_mb": 158.5,
+          "peak_vram_mb": 237.75,
+          "oom_fault": false,
+          "finite_gradients": false,
+          "nonzero_updates": false,
+          "status": "ESTIMATED_THEORETICAL_ONLY"
+        },
+        {
+          "batch_size": 66,
+          "num_cases": 6,
+          "measured_on_gpu": false,
+          "forward_time_ms": 0.0,
+          "backward_time_ms": 0.0,
+          "optimizer_time_ms": 0.0,
+          "step_time_ms": 0.0,
+          "samples_per_second": 0.0,
+          "vram_allocated_mb": 234.5,
+          "peak_vram_mb": 351.75,
+          "oom_fault": false,
+          "finite_gradients": false,
+          "nonzero_updates": false,
+          "status": "ESTIMATED_THEORETICAL_ONLY"
+        }
+      ],
+      "loss_objective_note": "21J.5 measures hardware feasibility and peak activation memory using a representative training-step memory workload (not production-loss certification)."
+    },
+    "pillar_21j_6_contract_freeze": {
+      "production_hyperparameters": {
+        "optimizer": "Adam",
+        "learning_rate": 0.0001,
+        "beta_1": 0.9,
+        "beta_2": 0.999,
+        "epsilon": 1e-07,
+        "batch_size_recommended": 11,
+        "loss_function": "Multi-Head Deep Supervision CRPS (factor=0.08)",
+        "parent_spread_gradient_status": "DETACHED_IN_PARENT_NUMPY (A0 preserves parent baseline; differentiable CRPS reserved for A1)",
+        "random_seeds": [
+          42,
+          123,
+          456
+        ],
+        "training_split": "2015-2021",
+        "validation_split": "2022-2023",
+        "sealed_test_split": "2024-2025"
+      },
+      "checkpoint_restored_parity": 0.0,
+      "checkpoint_parity_scope": "Model-weight serialization/restoration parity verified. Optimizer state, dynamic dropout, and training-resumption parity deferred to Phase 21K.",
+      "status": "PASS"
+    }
+  },
+  "certification_verdict": "PREFLIGHT_INFRASTRUCTURE_VERIFIED_ONLY",
+  "certification_note": "Benchmark executed in CPU preflight mock mode (no GPU detected). Formal Sub-Phase 21J certification requires execution on a physical GPU (e.g., Google Colab T4) with genuine TensorFlow measurements."
+}

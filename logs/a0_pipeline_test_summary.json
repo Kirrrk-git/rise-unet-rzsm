@@ -1,0 +1,30 @@
+{
+  "status": "PASS",
+  "sub_phase": "21H",
+  "epochs": 5,
+  "batch_size": 11,
+  "pilot_cases_evaluated": 8,
+  "history": [
+    {
+      "epoch": 1,
+      "loss": 49.96747591415421
+    },
+    {
+      "epoch": 2,
+      "loss": 49.96636154570151
+    },
+    {
+      "epoch": 3,
+      "loss": 49.965427898559724
+    },
+    {
+      "epoch": 4,
+      "loss": 49.96466686645057
+    },
+    {
+      "epoch": 5,
+      "loss": 49.9640283815004
+    }
+  ],
+  "checkpoint_dir": "C:\\Users\\Jensville\\Downloads\\Rise-UNet\\dl_dm_rzsm_subseasonal_forecast\\checkpoints\\a0_pipeline_test"
+}

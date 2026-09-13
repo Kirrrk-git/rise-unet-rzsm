@@ -101,7 +101,14 @@ class TestCaseBuilderSynthetic(unittest.TestCase):
         y_hat_w3 = np.full((11, 32, 48, 1), 0.30, dtype=np.float32)
         x_w4_full = simulate_recursive_cascade_step(case.x_w4_base, [y_hat_w1, y_hat_w2, y_hat_w3])
         self.assertEqual(x_w4_full.shape, (11, 32, 48, 6))
-        self.assertEqual(case.y_w4.shape, (1, 32, 48, 1))
+        # Target dates check (Parent EX29 L = (lead * 7) - 1: +6d, +13d, +20d, +27d)
+        expected_targets = {
+            1: "2015-01-22",
+            2: "2015-01-29",
+            3: "2015-02-05",
+            4: "2015-02-12",
+        }
+        self.assertEqual(case.target_dates, expected_targets)
 
     def test_ocean_zero_filling(self):
         """All non-evaluation cells must be strictly 0.0 across all channels and targets."""
@@ -181,6 +188,15 @@ class TestCaseBuilderRealData(unittest.TestCase):
 
         # Assert hdate preservation
         self.assertEqual(case.hdate, "2015-01-15")
+
+        # Assert parent EX29 target dates: +6d, +13d, +20d, +27d
+        expected_targets = {
+            1: "2015-01-21",
+            2: "2015-01-28",
+            3: "2015-02-04",
+            4: "2015-02-11",
+        }
+        self.assertEqual(case.target_dates, expected_targets)
 
 
 if __name__ == "__main__":
