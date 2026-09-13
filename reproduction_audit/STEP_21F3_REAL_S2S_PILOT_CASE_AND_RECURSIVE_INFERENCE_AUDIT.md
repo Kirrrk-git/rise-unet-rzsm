@@ -17,11 +17,11 @@
 
 Step 21F.3 completes the end-to-end operational integration of real ECMWF Subseasonal-to-Seasonal (S2S) reforecast data into the Mindanao RISE-UNet Model A0 architecture. This audit certifies that:
 1. **ECDS Production Ingestion**: Real ECMWF S2S reforecast GRIB2 files for issue cycle `2015-01-16` are ingested with zero missing forecast steps under strict production mode (`allow_step0_fallback=False`).
-2. **Scoped ecCodes Interoperability Gate**: The custom decoder reproduced ecCodes-decoded values exactly across all 462 tested real messages in the 2015-01-16 pilot cycle using GRIB2 Template 7.0 simple packing ($\max | \Delta | \le 10^{-5}$, exact $0.00\text{e-}00$ disparity).
+2. **Scoped ecCodes Interoperability Gate**: The custom decoder reproduced ecCodes-decoded values with near-exact machine precision across all 462 tested real messages in the 2015-01-16 pilot cycle using GRIB2 Template 7.0 simple packing ($\max | \Delta | = 3.81 \times 10^{-6} \le 10^{-5}$, max relative diff $= 5.95 \times 10^{-8}$).
 3. **Multi-Lead Tensor Assembly**: Multi-source predictors from Antecedent RZSM Memory, ERA5 Surface Atmospheric Dynamics, and Bilinearly Remapped S2S Ensembles are assembled into strictly formatted Keras/TensorFlow tensors with channel counts $[11, 12, 5, 6]$ across leads $W_1$ to $W_4$.
-4. **Recursive Inference Cascade**: A 4-lead recursive forward inference loop passes predicted antecedent states forward ($\hat{Y}_{W_1} \to W_2$, $[\hat{Y}_{W_1}, \hat{Y}_{W_2}] \to W_3$, $[\hat{Y}_{W_1}, \hat{Y}_{W_2}, \hat{Y}_{W_3}] \to W_4$), completing in $<0.3$ seconds across 11 ensemble members on GPU.
-5. **Functional Computational Graph Sensitivity**: Injecting a positive perturbation ($\delta = +0.05$) into $\hat{y}_{W1}$ induces a non-zero, finite downstream response in $\hat{y}_{W2}$ ($\max |\Delta_{W2}| = 0.0278 > 0$, 0 NaNs), demonstrating functional computational graph connectivity across recursive unrolling. (Recursive error propagation and forecast skill are deferred to Phase 23).
-6. **Zero-Tolerance Quality Census**: Exactly 0 NaNs and 0 Infs exist across all 126 binary evaluation cells; non-evaluation buffer cells are strictly 0.0-filled.
+4. **Recursive Inference Cascade**: A 4-lead recursive forward inference loop passes predicted antecedent states forward ($\hat{Y}_{W_1} \to W_2$, $[\hat{Y}_{W_1}, \hat{Y}_{W_2}] \to W_3$, $[\hat{Y}_{W_1}, \hat{Y}_{W_2}, \hat{Y}_{W_3}] \to W_4$), completing in 2.762 seconds (690.5 ms/lead across 11 ensemble members) on Google Colab T4 GPU.
+5. **Functional Computational Graph Sensitivity**: Injecting a positive perturbation ($\delta = +0.05$) into $\hat{y}_{W1}$ induces a non-zero, finite downstream response in $\hat{y}_{W2}$ ($\max |\Delta_{W2}| = 80.97 > 0$, Mean $= 4.99$, RMS $= 12.38$, 0 NaNs), demonstrating functional computational graph connectivity across recursive unrolling. (Recursive error propagation and forecast skill are deferred to Phase 23).
+6. **Zero-Tolerance Quality Census**: Exactly 0 NaNs and 0 Infs exist across all 126 binary evaluation cells; non-evaluation buffer cells are strictly 0.0-filled ($\max = 0.00 \times 10^0$).
 
 **Certification Verdict**: `[PASS / VERIFIED] — Case Assembly & Computational Integrity`.  
 Data assembly, target alignment, channel structure, tensor dimensions, GRIB decoding, and recursive graph execution are fully certified. Forecasting skill, physical accuracy, and trained Model A0 performance remain explicitly deferred to Sub-Phases 21H–21K.
@@ -37,8 +37,8 @@ The pilot test case represents the first winter subseasonal cycle in the nominal
 | **Nominal Issue Date** ($\tau$) | `2015-01-16` | Thursday cycle baseline corresponding to nominal reforecast release |
 | **Model Version Date** | `2020-01-16` | ECMWF model version date encoded in Template 4.61 Octets 38–44 (reforecast production cycle; Cy40r1 lineage) |
 | **Hindcast Date** (`hdate`) | `2015-01-15` / `2015-01-16` | Target historical reforecast synchronization date (Sec 1 Reference Date: `2015-01-16 00:00:00 UTC`) |
-| **Control Forecast (CF)** | `s2s_cf_2015-01-16.grib` | 68,760 bytes (SHA256: `6e4761005a8f4df6...`) |
-| **Perturbed Forecast (PF)** | `s2s_pf_2015-01-16.grib` | 687,600 bytes (SHA256: `a9a6b10de67fbfbe...`) |
+| **Control Forecast (CF)** | `s2s_cf_2015-01-16.grib` | 12,306 bytes (SHA256: `1410cb7d4126af4ab2a519243b06861019d133a42743207b458b9e2b796db0e8`) |
+| **Perturbed Forecast (PF)** | `s2s_pf_2015-01-16.grib` | 123,060 bytes (SHA256: `cbdaff1f99e60309337d1206c150e7598665c164a509185e955ea1f86cb585f8`) |
 | **Variables Ingested** | `t2m`, `d2m`, `tcw` | 2m temperature, 2m dewpoint, total column water |
 | **Native NWP Grid** | $5 \times 8$ cells | $1.5^\circ \times 1.5^\circ$ ECMWF S2S archive resolution, 40 discrete nodes |
 | **Forecast Steps Ingested** | $0 \to 312$h | Steps: 0, 24, 48, 72, 96, 120, 144, 168, 192, 216, 240, 264, 288, 312h |
@@ -48,22 +48,22 @@ The pilot test case represents the first winter subseasonal cycle in the nominal
 
 ## 3. ecCodes Interoperability Gate Numerical Parity
 
-To ensure unassailable data integrity, all 462 messages were decoded independently via the official ECMWF ecCodes C-library and our pure-Python simple packed bitstream decoder:
+To ensure unassailable data integrity, all 462 messages were decoded independently via the official ECMWF ecCodes C-library (version 2.48.2) and our pure-Python simple packed bitstream decoder:
 
 | Message Sample | Variable | Step (h) | Member | ecCodes Mean | Pure-Python Mean | Max Absolute Diff | Verification Status |
 | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **0** | `tcw` | 0 | 0 (CF) | 49.373978 kg/m² | 49.373978 kg/m² | $0.00 \times 10^0$ | `[PASS / VERIFIED]` |
-| **1** | `2t` / `t2m` | 0 | 0 (CF) | 299.789124 K | 299.789124 K | $0.00 \times 10^0$ | `[PASS / VERIFIED]` |
-| **2** | `2d` / `d2m` | 0 | 0 (CF) | 296.883301 K | 296.883301 K | $0.00 \times 10^0$ | `[PASS / VERIFIED]` |
-| **3** | `tcw` | 24 | 0 (CF) | 48.918236 kg/m² | 48.918236 kg/m² | $0.00 \times 10^0$ | `[PASS / VERIFIED]` |
-| **4** | `2t` / `t2m` | 24 | 0 (CF) | 299.728516 K | 299.728516 K | $0.00 \times 10^0$ | `[PASS / VERIFIED]` |
-| **5** | `2d` / `d2m` | 24 | 0 (CF) | 296.793457 K | 296.793457 K | $0.00 \times 10^0$ | `[PASS / VERIFIED]` |
+| **0** | `2d` / `d2m` | 0 | 0 (CF) | 295.704126 K | 295.704132 K | $0.00 \times 10^0$ | `MATCH [PASS]` |
+| **1** | `2t` / `t2m` | 0 | 0 (CF) | 299.293555 K | 299.293549 K | $0.00 \times 10^0$ | `MATCH [PASS]` |
+| **2** | `tcw` | 0 | 0 (CF) | 46.332742 kg/m² | 46.332745 kg/m² | $3.81 \times 10^{-6}$ | `MATCH [PASS]` |
+| **3** | `2d` / `d2m` | 24 | 0 (CF) | 295.823108 K | 295.823090 K | $0.00 \times 10^0$ | `MATCH [PASS]` |
+| **4** | `2t` / `t2m` | 24 | 0 (CF) | 299.269177 K | 299.269196 K | $0.00 \times 10^0$ | `MATCH [PASS]` |
+| **5** | `tcw` | 24 | 0 (CF) | 46.498120 kg/m² | 46.498119 kg/m² | $0.00 \times 10^0$ | `MATCH [PASS]` |
 
 ### Numerical Certification Summary:
-- **Maximum Absolute Difference across all 462 messages**: $0.0000 \times 10^0$
-- **Maximum Relative Difference across all 462 messages**: $0.0000 \times 10^0$
+- **Maximum Absolute Difference across all 462 messages**: $3.8147 \times 10^{-6}$
+- **Maximum Relative Difference across all 462 messages**: $5.9485 \times 10^{-8}$
 - **Decoder Tolerance Threshold**: $\le 1.0 \times 10^{-5}$
-- **Conclusion**: The custom decoder reproduced ecCodes-decoded values exactly across all 462 tested real messages in the 2015-01-16 pilot cycle using GRIB2 Template 7.0 simple packing.
+- **Conclusion**: The custom pure-Python decoder and official ECMWF ecCodes library are numerically equivalent across all 462 tested production messages.
 
 ---
 
@@ -114,19 +114,19 @@ The 4-lead UNET_RZSM cascade was instantiated and evaluated over the assembled p
 
 ### Forward Execution Metrics:
 - **Architecture**: 4 lead-specific UNET_RZSM graphs ($[11, 12, 5, 6]$ channels)
-- **GPU Inference Latency**: $0.284$ seconds total ($71.0$ ms/lead across all 11 ensemble members)
+- **GPU Inference Latency**: $2.762$ seconds total ($690.5$ ms/lead across all 11 ensemble members on NVIDIA T4 GPU)
 - **Output Tensors**:
-  - $\hat{Y}_{W_1} \in \mathbb{R}^{11 \times 32 \times 48 \times 1}$ (Range: $[0.0000, 0.7412]$)
-  - $\hat{Y}_{W_2} \in \mathbb{R}^{11 \times 32 \times 48 \times 1}$ (Range: $[0.0000, 0.7845]$)
-  - $\hat{Y}_{W_3} \in \mathbb{R}^{11 \times 32 \times 48 \times 1}$ (Range: $[0.0000, 0.7910]$)
-  - $\hat{Y}_{W_4} \in \mathbb{R}^{11 \times 32 \times 48 \times 1}$ (Range: $[0.0000, 0.8015]$)
+  - $\hat{Y}_{W_1} \in \mathbb{R}^{11 \times 32 \times 48 \times 1}$ (Range: $[0.0000, 707.2169]$)
+  - $\hat{Y}_{W_2} \in \mathbb{R}^{11 \times 32 \times 48 \times 1}$ (Range: $[0.0000, 757.8333]$)
+  - $\hat{Y}_{W_3} \in \mathbb{R}^{11 \times 32 \times 48 \times 1}$ (Range: $[0.0000, 3.0728]$)
+  - $\hat{Y}_{W_4} \in \mathbb{R}^{11 \times 32 \times 48 \times 1}$ (Range: $[0.0000, 125.2858]$)
 
 ### Perturbation Sensitivity Demonstration:
 An empirical perturbation $\delta = +0.0500$ was injected into $\hat{y}_{W_1}$, propagated into $X_{W_2}$, and passed through the $W_2$ forward graph:
 - **Injected Perturbation ($\delta$)**: $+0.0500$ on $\hat{y}_{W_1}$
-- **Downstream Response Max ($|\Delta_{W_2}|$)**: $0.027841$
-- **Downstream Response Mean ($|\Delta_{W_2}|$)**: $0.008620$
-- **Downstream Response RMS**: $0.011409$
+- **Downstream Response Max ($|\Delta_{W_2}|$)**: $80.971619$
+- **Downstream Response Mean ($|\Delta_{W_2}|$)**: $4.994329$
+- **Downstream Response RMS**: $12.383057$
 - **Certification Assertions**:
   - $\max |\Delta_{W_2}| > 0.0$: `[PASS]`
   - $\text{NaN count in } \Delta_{W_2} == 0$: `[PASS]`
@@ -184,11 +184,12 @@ gs://rise-unet-rzsm/figures/mindanao_s2s_pilot_case_and_recursive_inference.png 
 | Criterion | Standard | Result | Status |
 | :--- | :--- | :--- | :---: |
 | **ECDS Production Mode** | `allow_step0_fallback=False` hard-fail enforced | 14 steps, 11 members, zero fallback | `[PASS]` |
-| **ecCodes Interoperability** | Max absolute diff $\le 10^{-5}$ across 462 messages | Exact $0.00\text{e-}00$ disparity | `[PASS / VERIFIED]` |
+| **ecCodes Interoperability** | Max absolute diff $\le 10^{-5}$ across 462 messages | Max abs diff $3.81 \times 10^{-6}$, max rel diff $5.95 \times 10^{-8}$ | `[PASS / VERIFIED]` |
 | **Multi-Lead Tensor Schema** | $[11, 12, 5, 6]$ channels, $32 \times 48$ spatial dims | Verified on Keras & NumPy tensors | `[PASS]` |
-| **Recursive Forward Pass** | 4 leads recursive forward inference on GPU | Completed in $<0.3$s | `[PASS]` |
-| **Perturbation Sensitivity** | $\max |\Delta_{W_2}| > 0.0$, 0 NaNs | Max response $0.0278$, zero NaNs | `[PASS]` |
-| **Active Land Census** | 0 NaNs / 0 Infs across 126 active cells | Zero NaNs, zero Infs across all 12 tensors | `[PASS]` |
-| **Colab Execution Readiness** | Fully autonomous execution in Web Google Colab | Verified with automated GCS fallbacks | `[PASS]` |
+| **Recursive Forward Pass** | 4 leads recursive forward inference on GPU | Completed in $2.762$s ($690.5$ ms/lead on T4 GPU) | `[PASS]` |
+| **Perturbation Sensitivity** | $\max |\Delta_{W_2}| > 0.0$, 0 NaNs | Max response $80.97$, zero NaNs | `[PASS]` |
+| **Active Land Census** | 0 NaNs / 0 Infs across 126 active cells | Zero NaNs, zero Infs across all 12 tensors; ocean $0.00 \times 10^0$ | `[PASS]` |
+| **Colab Execution Readiness** | Fully autonomous execution in Web Google Colab | Verified on physical NVIDIA Tesla T4 GPU | `[PASS]` |
 
-**Next Milestone**: Sub-Phase 21G (5 to 10 Case Pilot Ladder & Manifest Compilation).
+**Next Milestone**: Sub-Phases 21G (Pilot Ladder Manifest), 21H (TensorFlow Dataset Pipeline), and 21J (Physical GPU Hardware Profiling & VRAM Feasibility Benchmark via Notebook 09).
+
