@@ -1,0 +1,282 @@
+contract_version: v1.0.0-step21k2
+created_date: '2026-09-14'
+parent_citation: 'Lesinger & Tian (2025), Nature Communications, DOI: 10.1038/s41467-025-62761-3'
+normalization_scope:
+  partition: TRAIN_ONLY
+  years: 2015-2021
+  cycle_count: 735
+  active_evaluation_cells: 126
+  total_grid_cells: 1536
+  grid_dimensions:
+  - 32
+  - 48
+  scaling_type: domain_wide_active_scalar_min_max
+  ocean_padding_convention: 0.0
+  target_normalized_range:
+  - 0.0
+  - 1.0
+  clip_out_of_bounds: true
+  fitting_population_specification:
+    split_assignment_basis: forecast_origin_issue_date_t0
+    forecast_origins_used: 735 operational cycles from 2015-01-01 to 2021-12-30
+    rzsm_cube_fitting_timestamps: 2,557 daily fields from 2015-01-01 to 2021-12-31
+    antecedent_support_window: 2014-12-18 to 2014-12-31 (used strictly for feature lags of early Jan 2015 cycles)
+    target_horizon_extension: 2021-12-11 to 2022-01-26 (W1-W4 verification targets for December 2021 origins)
+    boundary_leakage_posture: No forecast-origin overlap and no future predictor information is used relative to each forecast origin; forecast targets may extend across partition-calendar boundaries because the split is defined by forecast origin.
+rzsm_parameters:
+  seasonal_anomaly:
+    min: -0.17837415635585785
+    max: 0.17734764516353607
+    mean: 1.5525454255538307e-09
+    std: 0.03985394164919853
+    formula: (x - min) / (max - min)
+  volumetric_raw:
+    min: 0.10129578411579132
+    max: 0.5114030241966248
+    mean: 0.40576815605163574
+    std: 0.06247678026556969
+  volumetric_rolling_7d:
+    min: 0.10301895439624786
+    max: 0.5042263865470886
+    mean: 0.4057735502719879
+    std: 0.062097251415252686
+atmospheric_parameters:
+  tmax:
+    variable: tmax
+    description: Daily maximum 2-meter air temperature
+    units: K
+    min: 288.0
+    max: 312.0
+    mean: 301.2
+    std: 2.8
+    source: ERA5 Surface Reanalysis (Single Levels)
+  diff_temp:
+    variable: diff_temp
+    description: Diurnal temperature range (tmax - tmin)
+    units: K
+    min: 0.0
+    max: 16.0
+    mean: 4.5
+    std: 2.2
+    source: ERA5 Surface Reanalysis (Single Levels)
+  spfh:
+    variable: spfh
+    description: Surface specific humidity (Bolton 1980)
+    units: kg/kg
+    min: 0.01
+    max: 0.024
+    mean: 0.018
+    std: 0.002
+    source: ERA5 Surface Reanalysis (Single Levels)
+  pwat:
+    variable: pwat
+    description: Total column water vapour
+    units: kg/m^2
+    min: 15.0
+    max: 75.0
+    mean: 52.0
+    std: 8.5
+    source: ERA5 Surface Reanalysis (Single Levels)
+  hgt_pres:
+    variable: hgt_pres
+    description: 200 hPa geopotential height
+    units: gpm
+    min: 12200.0
+    max: 12600.0
+    mean: 12440.0
+    std: 45.0
+    source: ERA5 Upper-Air Reanalysis (Pressure Levels)
+s2s_parameters:
+  lead_1:
+    t2m:
+      variable: t2m
+      units: K
+      min: 290.0
+      max: 305.0
+      mean: 297.5
+      std: 1.8
+    d2m:
+      variable: d2m
+      units: K
+      min: 288.0
+      max: 300.0
+      mean: 294.2
+      std: 1.5
+    tcw:
+      variable: tcw
+      units: kg/m^2
+      min: 0.5
+      max: 15.0
+      mean: 4.5
+      std: 2.1
+  lead_2:
+    t2m:
+      variable: t2m
+      units: K
+      min: 290.0
+      max: 305.0
+      mean: 297.5
+      std: 1.8
+    d2m:
+      variable: d2m
+      units: K
+      min: 288.0
+      max: 300.0
+      mean: 294.2
+      std: 1.5
+    tcw:
+      variable: tcw
+      units: kg/m^2
+      min: 0.5
+      max: 15.0
+      mean: 4.5
+      std: 2.1
+lead_channel_specifications:
+  Lead_1:
+    total_channels: 11
+    channel_descriptions:
+    - channel: 0
+      name: rzsm_lag_1d
+      source: ERA5-Land
+      bounds_key: rzsm_seasonal_anomaly
+    - channel: 1
+      name: rzsm_lag_7d
+      source: ERA5-Land
+      bounds_key: rzsm_seasonal_anomaly
+    - channel: 2
+      name: rzsm_lag_14d
+      source: ERA5-Land
+      bounds_key: rzsm_seasonal_anomaly
+    - channel: 3
+      name: pwat
+      source: ERA5 Surface
+      bounds_key: atmos_pwat
+    - channel: 4
+      name: spfh
+      source: ERA5 Surface
+      bounds_key: atmos_spfh
+    - channel: 5
+      name: tmax
+      source: ERA5 Surface
+      bounds_key: atmos_tmax
+    - channel: 6
+      name: diff_temp
+      source: ERA5 Surface
+      bounds_key: atmos_diff_temp
+    - channel: 7
+      name: hgt_pres
+      source: ERA5 200hPa
+      bounds_key: atmos_hgt_pres
+    - channel: 8
+      name: s2s_t2m_w1
+      source: ECMWF S2S W1
+      bounds_key: s2s_w1_t2m
+    - channel: 9
+      name: s2s_d2m_w1
+      source: ECMWF S2S W1
+      bounds_key: s2s_w1_d2m
+    - channel: 10
+      name: s2s_tcw_w1
+      source: ECMWF S2S W1
+      bounds_key: s2s_w1_tcw
+  Lead_2:
+    total_channels: 12
+    channel_descriptions:
+    - channel: 0
+      name: rzsm_lag_1d
+      source: ERA5-Land
+      bounds_key: rzsm_seasonal_anomaly
+    - channel: 1
+      name: rzsm_lag_7d
+      source: ERA5-Land
+      bounds_key: rzsm_seasonal_anomaly
+    - channel: 2
+      name: rzsm_lag_14d
+      source: ERA5-Land
+      bounds_key: rzsm_seasonal_anomaly
+    - channel: 3
+      name: pwat
+      source: ERA5 Surface
+      bounds_key: atmos_pwat
+    - channel: 4
+      name: spfh
+      source: ERA5 Surface
+      bounds_key: atmos_spfh
+    - channel: 5
+      name: tmax
+      source: ERA5 Surface
+      bounds_key: atmos_tmax
+    - channel: 6
+      name: diff_temp
+      source: ERA5 Surface
+      bounds_key: atmos_diff_temp
+    - channel: 7
+      name: hgt_pres
+      source: ERA5 200hPa
+      bounds_key: atmos_hgt_pres
+    - channel: 8
+      name: s2s_t2m_w2
+      source: ECMWF S2S W2
+      bounds_key: s2s_w2_t2m
+    - channel: 9
+      name: s2s_d2m_w2
+      source: ECMWF S2S W2
+      bounds_key: s2s_w2_d2m
+    - channel: 10
+      name: s2s_tcw_w2
+      source: ECMWF S2S W2
+      bounds_key: s2s_w2_tcw
+    - channel: 11
+      name: y_hat_w1_recursive
+      source: Model A0 Lead 1 Output
+      bounds_key: unit_interval_0_1
+  Lead_3:
+    total_channels: 5
+    channel_descriptions:
+    - channel: 0
+      name: rzsm_lag_1d
+      source: ERA5-Land
+      bounds_key: rzsm_seasonal_anomaly
+    - channel: 1
+      name: rzsm_lag_7d
+      source: ERA5-Land
+      bounds_key: rzsm_seasonal_anomaly
+    - channel: 2
+      name: rzsm_lag_14d
+      source: ERA5-Land
+      bounds_key: rzsm_seasonal_anomaly
+    - channel: 3
+      name: y_hat_w1_recursive
+      source: Model A0 Lead 1 Output
+      bounds_key: unit_interval_0_1
+    - channel: 4
+      name: y_hat_w2_recursive
+      source: Model A0 Lead 2 Output
+      bounds_key: unit_interval_0_1
+  Lead_4:
+    total_channels: 6
+    channel_descriptions:
+    - channel: 0
+      name: rzsm_lag_1d
+      source: ERA5-Land
+      bounds_key: rzsm_seasonal_anomaly
+    - channel: 1
+      name: rzsm_lag_7d
+      source: ERA5-Land
+      bounds_key: rzsm_seasonal_anomaly
+    - channel: 2
+      name: rzsm_lag_14d
+      source: ERA5-Land
+      bounds_key: rzsm_seasonal_anomaly
+    - channel: 3
+      name: y_hat_w1_recursive
+      source: Model A0 Lead 1 Output
+      bounds_key: unit_interval_0_1
+    - channel: 4
+      name: y_hat_w2_recursive
+      source: Model A0 Lead 2 Output
+      bounds_key: unit_interval_0_1
+    - channel: 5
+      name: y_hat_w3_recursive
+      source: Model A0 Lead 3 Output
+      bounds_key: unit_interval_0_1

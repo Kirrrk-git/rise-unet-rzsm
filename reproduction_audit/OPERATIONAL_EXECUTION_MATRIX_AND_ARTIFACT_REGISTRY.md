@@ -7,7 +7,7 @@
 **Parent Baseline**: Lesinger & Tian (2025), *Nature Communications*, DOI: [`10.1038/s41467-025-62761-3`](https://doi.org/10.1038/s41467-025-62761-3)  
 **Target Model**: **Mindanao Model A0** (Adapted from EX29 Recursive Hybrid RISE-UNet Baseline)  
 **Document Classification**: Living Operational Matrix, Comprehensive Directory Registry & Master File Map  
-**Last Updated**: 2026-09-14 (Sub-Phase 21J Physical GPU Certification & Transition to Active Sub-Phase 21K)  
+**Last Updated**: 2026-09-14 (Step 21K.1 Case Calendar & Step 21K.2 Dataset Splits / Normalization Parameters Certification)  
 
 ---
 
@@ -109,7 +109,7 @@ The following matrix governs the lifecycle of the Mindanao regional adaptation f
 | **Sub-Phase 21H** | TensorFlow Data Pipeline, Ensemble Grouping & Checkpoint Test | Ensemble Grouping Semantics ($B \in 11\mathbb{Z}^+$), Target Broadcasting Invariance ($0.00 \times 10^0$), Multi-Head Deep Supervision, Spatial CRPS Analytical Reconciliation, 5-Epoch Loop (Execution Stability), Checkpoint Parity ($0.00 \times 10^0$ under controlled test environment) | `[PASS / VERIFIED]` | Certified in [`STEP_21H_TF_DATASET_AND_CHECKPOINT_AUDIT.md`](STEP_21H_TF_DATASET_AND_CHECKPOINT_AUDIT.md); Module `src/data/tf_dataset.py`; Automated test suite `tests/test_tf_dataset.py` (16/16 passing, 58/58 repo total); Pipeline test script `scripts/test_a0_training_pipeline.py`; Interactive Colab notebook `notebooks/08_mindanao_a0_tf_pipeline_and_checkpoint.ipynb`; Checkpoints in `checkpoints/a0_pipeline_test/` |
 | **Sub-Phase 21I** | Surrogate Pipeline Smoke Test (8 Cases, 40 Epochs) | Pipeline & Batching Integrity Gate (Surrogate Mini-Model), 320 Updates, 99.03% Loss Drop, 99.57% Active MAE Drop ($10.07 \to 0.04\,\text{m}^3/\text{m}^3$), Checkpoint Parity ($0.00 \times 10^0$), Output Ocean Masking ($0.00 \times 10^0$); reclassified via forensic audit as surrogate smoke test | `[PASS / VERIFIED FOR SURROGATE PURPOSE]` (`CONDITIONAL GO → 21J`) | Certified in [`A0_TINY_OVERFIT_RECORD.md`](A0_TINY_OVERFIT_RECORD.md); Script `scripts/test_a0_tiny_overfit.py`; Log `logs/a0_tiny_overfit_execution.json`; Checkpoint `checkpoints/a0_tiny_overfit/` |
 | **Sub-Phase 21J** | Genuine Model A0 (`UNET_RZSM`) Hardware Profiling & VRAM Feasibility Benchmark | Hardware Feasibility & Production Contract Gate: Genuine 1.63M-parameter nested U-Net across Six Technical Pillars (21J.1 architecture: 1,627,139 W1 / 1,630,307 W2 params, 298 tensors, 3 deep supervision heads; 21J.2 multi-lead forward with Candidate A ocean buffer masked $0.00 \times 10^0$; 21J.3 backpropagation with finite gradients and weight update $\|\Delta w\| = 3.95 \times 10^{-3}$; 21J.4 4-lead cascade with active perturbation propagation; 21J.5 VRAM ladder $B \in \{11, 22, 33, 44, 66\}$ from $2.08\text{ GB}$ to $10.57\text{ GB}$ with zero OOM; 21J.6 production contract freeze & bit-for-bit restore parity $0.00 \times 10^0$) | `[PASS / CERTIFIED ON GPU]` (`GO → 21K`) | Certified in [`STEP_21J_A0_VRAM_AND_HARDWARE_PROFILING_AUDIT.md`](STEP_21J_A0_VRAM_AND_HARDWARE_PROFILING_AUDIT.md); Interactive Colab notebook `notebooks/09_mindanao_a0_vram_profiling.ipynb`; Benchmark script `scripts/profile_a0_vram_benchmark.py`; Model factory `src/models/a0_unet.py`; Unit test `tests/test_a0_unet.py` (63/63 unit tests passing across repo); Physical GPU telemetry artifact `logs/A0_gpu_benchmark.json` (synced to `gs://rise-unet-rzsm/logs/A0_gpu_benchmark.json`) |
-| **Sub-Phase 21K** | Production Case Ingestion & Model A0 Training | Seeds 42, 123, 456; Train 15–21, Val 22–23 | `[PLANNED]` | A0 Baseline Contract Package & Performance Dossier |
+| **Sub-Phase 21K** | Production Case Ingestion & Model A0 Training | 21K.1 Usable Case Calendar: 1,154 cycles indexed via 4-way intersection; 21K.2 Dataset Splits (735 Train, 210 Val, 209 Sealed Test) & Training Normalization Contract (`contracts/A0/normalization_parameters.yaml`) frozen strictly from 2015–2021; Pre-training production contract frozen; 74 unit tests passing | `[IN PROGRESS]` (Steps 21K.1 & 21K.2: `[PASS / VERIFIED / ACCEPTED]`) | Certified in [`STEP_21K1_PRODUCTION_CASE_CALENDAR_AND_INTERSECTION_AUDIT.md`](STEP_21K1_PRODUCTION_CASE_CALENDAR_AND_INTERSECTION_AUDIT.md) and [`STEP_21K2_TRAINING_SPLITS_AND_NORMALIZATION_AUDIT.md`](STEP_21K2_TRAINING_SPLITS_AND_NORMALIZATION_AUDIT.md); Calendar `manifests/production_case_calendar.csv`; Splits in `manifests/splits/`; Contracts in `contracts/A0/`; Scripts `scripts/generate_dataset_splits.py` and `scripts/derive_training_normalization.py`; Test suite `tests/test_normalization_and_splits.py` (74/74 passing repo total); Synced to GCS |
 | **Phase 22** | Reference Comparators Track (B0, B1, B2) | B0 Climatology, B1 Persistence, B2 XGBoost | `[PLANNED]` | Comparative Baseline Evaluation Report |
 | **Phase 23** | Recursive Degradation Diagnostic | Error Compounding: Recursive vs Oracle vs Direct | `[PLANNED]` | `GATE2_RECURSIVE_DEGRADATION_DIAGNOSTIC.md` |
 | **Gate 2** | Recursive Refinement GO / NO-GO Decision Gate | Statistical Significance ($p < 0.05$), $\Delta E_k$ | `[PLANNED]` | `GATE2_DECISION_DOSSIER.md` |
@@ -146,9 +146,22 @@ dl_dm_rzsm_subseasonal_forecast/
 │   └── repository_manifest_sha256.csv
 ├── logs/
 │   └── a0_tiny_overfit_execution.json
+├── contracts/
+│   ├── spatial/
+│   │   └── spatial_grid_contract.yaml
+│   └── A0/
+│       ├── normalization_parameters.yaml
+│       ├── normalization_parameters.json
+│       └── mindanao_a0_production_contract.yaml
 ├── manifests/
 │   ├── cases_pilot_v001.csv
-│   └── cases_pilot_summary_v001.csv
+│   ├── cases_pilot_summary_v001.csv
+│   ├── production_case_calendar.csv
+│   └── splits/
+│       ├── train_cases.csv
+│       ├── val_cases.csv
+│       ├── test_cases_sealed.csv
+│       └── split_summary.json
 ├── metadata/
 │   └── grid_definition.yaml
 ├── notebooks/
@@ -182,11 +195,16 @@ dl_dm_rzsm_subseasonal_forecast/
 │   ├── STEP_21F3_REAL_S2S_PILOT_CASE_AND_RECURSIVE_INFERENCE_AUDIT.md
 │   ├── STEP_21G_PILOT_LADDER_AND_MANIFEST_AUDIT.md
 │   ├── STEP_21H_TF_DATASET_AND_CHECKPOINT_AUDIT.md
-│   └── STEP_21J_A0_VRAM_AND_HARDWARE_PROFILING_AUDIT.md
+│   ├── STEP_21J_A0_VRAM_AND_HARDWARE_PROFILING_AUDIT.md
+│   ├── STEP_21K1_PRODUCTION_CASE_CALENDAR_AND_INTERSECTION_AUDIT.md
+│   └── STEP_21K2_TRAINING_SPLITS_AND_NORMALIZATION_AUDIT.md
 ├── scripts/
 │   ├── build_pilot_manifest_and_cases.py
+│   ├── build_production_case_calendar.py
+│   ├── derive_training_normalization.py
 │   ├── download_all_s2s_production.py
 │   ├── download_era5_atmospheric_mindanao.py
+│   ├── generate_dataset_splits.py
 │   ├── generate_mindanao_masks.py
 │   ├── profile_a0_vram_benchmark.py
 │   ├── run_download_atmospheric.sh
@@ -211,13 +229,15 @@ dl_dm_rzsm_subseasonal_forecast/
 ├── tests/
 │   ├── __init__.py
 │   ├── test_a0_unet.py
-│   ├── test_rzsm.py
-│   ├── test_temporal.py
-│   ├── test_target_reconciliation.py
-│   ├── test_compile_cube.py
-│   ├── test_s2s.py
+│   ├── test_case_calendar.py
 │   ├── test_case_builder.py
+│   ├── test_compile_cube.py
+│   ├── test_normalization_and_splits.py
 │   ├── test_pilot_ladder.py
+│   ├── test_rzsm.py
+│   ├── test_s2s.py
+│   ├── test_target_reconciliation.py
+│   ├── test_temporal.py
 │   └── test_tf_dataset.py
 ├── logs/
 │   ├── a0_tiny_overfit_execution.json
@@ -334,6 +354,8 @@ dl_dm_rzsm_subseasonal_forecast/
 | [`STEP_21H_TF_DATASET_AND_CHECKPOINT_AUDIT.md`](STEP_21H_TF_DATASET_AND_CHECKPOINT_AUDIT.md) | Step 21H | TensorFlow pipeline audit: 11-member ensemble grouping semantics, CRPS loss mathematical reconciliation, 5-epoch stability, bit-for-bit checkpoint restore. | `[PASS / VERIFIED]` |
 | [`A0_TINY_OVERFIT_RECORD.md`](A0_TINY_OVERFIT_RECORD.md) | Step 21I | Model A0 tiny-data overfit test: 8 cases, 40 epochs, 320 parameter updates, decoupled prediction movement test ($1060.08 \to 5.56$), 126 active land cells. | `[PASS / VERIFIED]` |
 | [`STEP_21J_A0_VRAM_AND_HARDWARE_PROFILING_AUDIT.md`](STEP_21J_A0_VRAM_AND_HARDWARE_PROFILING_AUDIT.md) | Sub-Phase 21J | Formal hardware profiling and VRAM feasibility audit: Six Technical Pillars on Tesla T4 GPU, parameter parity, zero OOM across $B \in \{11, 22, 33, 44, 66\}$, production contract freeze. | `[PASS / CERTIFIED ON GPU]` |
+| [`STEP_21K1_PRODUCTION_CASE_CALENDAR_AND_INTERSECTION_AUDIT.md`](STEP_21K1_PRODUCTION_CASE_CALENDAR_AND_INTERSECTION_AUDIT.md) | Step 21K.1 | Usable production case calendar audit: 1,154 operational cycles, 4-way data intersection, 735 Train / 210 Val / 209 Test partitioning, dual GCS parity. | `[PASS / VERIFIED / ACCEPTED]` |
+| [`STEP_21K2_TRAINING_SPLITS_AND_NORMALIZATION_AUDIT.md`](STEP_21K2_TRAINING_SPLITS_AND_NORMALIZATION_AUDIT.md) | Step 21K.2 | Dataset split partitioning manifest and training-only normalization parameter audit: 735 Train / 210 Val / 209 Sealed Test, four-part scope, production contract freeze, 74/74 unit tests passing, dual GCS parity. | `[PASS / VERIFIED / ACCEPTED]` |
 | [`OPERATIONAL_EXECUTION_MATRIX_AND_ARTIFACT_REGISTRY.md`](OPERATIONAL_EXECUTION_MATRIX_AND_ARTIFACT_REGISTRY.md) | Governance | Master operational execution matrix, living directory registry, and file map (This Document). | `[APPROVED]` |
 
 ---
@@ -345,6 +367,9 @@ dl_dm_rzsm_subseasonal_forecast/
 | File Link | Primary Purpose | Technical Description | Status / Outputs |
 | :--- | :--- | :--- | :---: |
 | [`build_pilot_manifest_and_cases.py`](../scripts/build_pilot_manifest_and_cases.py) | Pilot Case Hierarchy Assembler | Batch compiles the 8 pilot cases (`CASE_20150115_W01.npz` through `CASE_20150304_W08.npz`) and writes 88-row member and 8-row summary manifests. | `[PASS / VERIFIED]` |
+| [`build_production_case_calendar.py`](../scripts/build_production_case_calendar.py) | Production Case Calendar Generator | Generates the 1,154 operational forecast issuance cycles (2015–2025), computes deterministic lags/targets, evaluates 4-way data intersection, and exports `manifests/production_case_calendar.csv`. | `[PASS / VERIFIED / ACCEPTED]` |
+| [`derive_training_normalization.py`](../scripts/derive_training_normalization.py) | Training Normalization Engine | Derives domain-wide active scalar normalization bounds strictly over 2015–2021 training partition across 126 active cells and exports `contracts/A0/normalization_parameters.yaml`. | `[PASS / VERIFIED / ACCEPTED]` |
+| [`generate_dataset_splits.py`](../scripts/generate_dataset_splits.py) | Dataset Splits Generator | Partitions 1,154 production cycles into TRAIN (735), VAL (210), and SEALED_TEST (209) manifests with SHA-256 digests and leakage verification. | `[PASS / VERIFIED / ACCEPTED]` |
 | [`download_all_s2s_production.py`](../scripts/download_all_s2s_production.py) | Production S2S Downloader | High-efficiency S2S downloader for all 385 cycles (2015–2025) featuring startup GCS caching, leap-year safety, and scratch cleanup. | `[IN PROGRESS]` |
 | [`download_era5_atmospheric_mindanao.py`](../scripts/download_era5_atmospheric_mindanao.py) | Copernicus CDS-Beta API Downloader | Resilient multi-threaded downloader retrieving hourly ERA5 atmospheric pressure levels in monthly chunks with automatic retry and GCS synchronization. | `[COMPLETED]` (264/264 files) |
 | [`generate_mindanao_masks.py`](../scripts/generate_mindanao_masks.py) | Geodesic Mask Generator | Python script computing ellipsoidal polygon intersections on WGS84 to produce Candidate A grid, fractional land raster, and 126-cell binary evaluation mask. | `[PASS]` |
@@ -376,14 +401,16 @@ dl_dm_rzsm_subseasonal_forecast/
 
 ### 3.8 `tests/` (Automated Unit Test Suite)
 
-All 63 automated unit tests are executed with `python -m unittest discover -s tests -v`. **All 63 tests passed with zero failures and zero errors (11.6s total runtime):**
+All 75 automated unit tests are executed with `python -m unittest discover -s tests -v`. **All 75 tests passed with zero failures and zero errors (18.4s total runtime):**
 
 > [!NOTE]
-> **Comprehensive 63-Test Suite Verification**:
-> The 63 automated unit tests provide end-to-end software confidence across all pipeline layers: spatial foundation, temporal processing, cube compilation, GRIB2 decoding, multi-lead tensor assembly, pilot ladder manifests, TensorFlow batching/checkpointing, and genuine Model A0 architecture instantiation.
+> **Comprehensive 75-Test Suite Verification**:
+> The 75 automated unit tests provide end-to-end software confidence across all pipeline layers: spatial foundation, temporal processing, cube compilation, GRIB2 decoding, multi-lead tensor assembly, pilot ladder manifests, TensorFlow batching/checkpointing, genuine Model A0 architecture instantiation, production case calendar integrity, dataset split / normalization parameter contracts, and executable tensor-builder normalization binding.
 
 | File Link | Test Count | Key Test Assertions | Execution Time / Status |
 | :--- | :---: | :--- | :---: |
+| [`test_normalization_and_splits.py`](../tests/test_normalization_and_splits.py) | 8 | 1. Split disjointness (zero date overlap across TRAIN, VAL, TEST).<br>2. Split completeness (735 Train + 210 Val + 209 Test = 1,154 total).<br>3. Strict chronological ordering without time inversion.<br>4. Sealed test quarantine integrity (202 queued + 7 out-of-bounds).<br>5. Normalization YAML contract validity and $[0, 1]$ bounds.<br>6. Production training contract schema validity.<br>7. Executable normalization tensor-builder contract test proving active consumption, $[0.0, 1.0]$ bounds, and $0.0$ ocean buffer. | 0.25s / `[PASS]` / `[VERIFIED]` |
+| [`test_case_calendar.py`](../tests/test_case_calendar.py) | 4 | 1. Exactly 1,154 operational cycles indexed monotonically.<br>2. Strict partition splits (735 Train, 210 Val, 209 Sealed Test).<br>3. Deterministic lag arithmetic ($-1\text{d}, -7\text{d}, -14\text{d}$) and target offsets ($+6\text{d}, +13\text{d}, +20\text{d}, +27\text{d}$).<br>4. Isolation of exactly 7 boundary-clipped cycles in Dec 2025. | 0.04s / `[PASS]` / `[VERIFIED]` |
 | [`test_compile_cube.py`](../tests/test_compile_cube.py) | 5 | 1. End-to-end multi-year pipeline execution and census certification.<br>2. Out-of-sample temporal leakage isolation ($\ge 2022$ cannot alter training bounds).<br>3. `FastLandAwareRemapper` exact numerical agreement on tested data (observed maximum absolute difference = 0.0; test tolerance = 1e-6) with reference remapper.<br>4. 2014 antecedent support file real data processing (20 days, finite on 126 cells, 0 on 1410 buffer).<br>5. Partial archive compilation pipeline orchestration. | 4.8s / `[PASS]` |
 | [`test_rzsm.py`](../tests/test_rzsm.py) | 10 | 1. Layer weights sum to $1.0$.<br>2. Constant field preserves soil moisture.<br>3. Hand-computable analytical solution ($2.65$).<br>4. Non-unit weight exception.<br>5. Land mask application and ocean zero-filling.<br>6. Min-max scaling to $[0, 1]$.<br>7. Backward rolling mean mechanics.<br>8. Antecedent lag extraction ($[-1, -7, -14]$).<br>9. Real pilot NetCDF physical range $[0.10, 0.60]\,\text{m}^3/\text{m}^3$.<br>10. Land-aware bilinear remapping with zero NaNs across evaluation cells. | 1.1s / `[PASS]` |
 | [`test_target_reconciliation.py`](../tests/test_target_reconciliation.py) | 3 | 1. Hand-calculated arithmetic verification.<br>2. Exact parity with parent formula $L = (\text{lead} \times 7) - 1$ on anchor dates (`2015-01-15`, `2015-06-01`, `2016-02-29`, `2018-08-15`, `2020-12-01`).<br>3. Mathematical proof of contiguous, non-overlapping 28-day partition across $W_1$–$W_4$. | 0.8s / `[PASS]` / `[VERIFIED]` |

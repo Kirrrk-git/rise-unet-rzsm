@@ -1,0 +1,69 @@
+{
+  "calendar_source": "production_case_calendar.csv",
+  "calendar_sha256": "1cfa0ae99f8fa5ba680c9e3b006932b7f0e904c28263609b91184e891d08763b",
+  "total_cycles": 1154,
+  "splits": {
+    "TRAIN": {
+      "manifest_file": "train_cases.csv",
+      "sha256": "d0aea5558ca6eb24712f2acad83c849002c0ffbc97206966b8bb5456d16e8a59",
+      "cycle_count": 735,
+      "percentage": 63.69,
+      "start_issue_date": "2015-01-01",
+      "end_issue_date": "2021-12-30",
+      "operational_years": [
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021
+      ],
+      "purpose": "Model A0 weight optimization and gradient updates",
+      "normalization_authority": "Sole source of all scaling parameters",
+      "usable_ready_count": 527,
+      "queued_s2s_count": 208
+    },
+    "VAL": {
+      "manifest_file": "val_cases.csv",
+      "sha256": "0ab5fbd430d20812f32c7ddce29450e8548d4958254518654f8e651ca5a586b0",
+      "cycle_count": 210,
+      "percentage": 18.2,
+      "start_issue_date": "2022-01-01",
+      "end_issue_date": "2023-12-30",
+      "operational_years": [
+        2022,
+        2023
+      ],
+      "purpose": "Hyperparameter tuning, early stopping, and checkpoint minimum-CRPS selection",
+      "usable_ready_count": 0,
+      "queued_s2s_count": 210
+    },
+    "SEALED_TEST": {
+      "manifest_file": "test_cases_sealed.csv",
+      "sha256": "443d5af42bd41a5229b98d94811c0a92ca1a1108702fb61a11c173085d808f88",
+      "cycle_count": 209,
+      "percentage": 18.11,
+      "start_issue_date": "2024-01-01",
+      "end_issue_date": "2025-12-29",
+      "operational_years": [
+        2024,
+        2025
+      ],
+      "purpose": "Final thesis evaluation; strictly locked and sealed until Phase 26",
+      "queued_s2s_count": 202,
+      "target_out_of_bounds_count": 7,
+      "quarantine_policy": "STRICT_SEALED_NO_PEEKING"
+    }
+  },
+  "non_leakage_guarantees": {
+    "train_val_overlap_count": 0,
+    "train_test_overlap_count": 0,
+    "val_test_overlap_count": 0,
+    "chronological_ordering_verified": true,
+    "temporal_gap_days": {
+      "train_end_to_val_start": 2,
+      "val_end_to_test_start": 2
+    }
+  }
+}

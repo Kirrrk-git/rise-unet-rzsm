@@ -17,10 +17,54 @@ Ensemble Dimension:
 """
 
 from dataclasses import dataclass
-from typing import Dict, Optional, Tuple, Union
+from pathlib import Path
+from typing import Dict, Optional, Tuple, Union, Any
 import numpy as np
 import pandas as pd
 import xarray as xr
+import yaml
+
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+DEFAULT_NORM_CONTRACT_PATH = REPO_ROOT / "contracts" / "A0" / "normalization_parameters.yaml"
+
+
+def load_frozen_normalization_contract(
+    contract_path: Optional[Union[str, Path]] = None
+) -> Dict[str, Any]:
+    """Loads frozen machine-readable normalization parameters contract."""
+    p = Path(contract_path) if contract_path is not None else DEFAULT_NORM_CONTRACT_PATH
+    if not p.is_file():
+        raise FileNotFoundError(f"Normalization parameters contract not found: {p}")
+    with open(p, "r", encoding="utf-8") as f:
+        return yaml.safe_load(f)
+
+
+def scale_channel(
+    arr: np.ndarray,
+    min_val: float,
+    max_val: float,
+    clip: bool = True
+) -> np.ndarray:
+    """Scales array to unit interval [0, 1] using training scalar bounds."""
+    denom = max_val - min_val
+    if np.isclose(denom, 0.0):
+        raise ValueError(f"Degenerate bounds: max ({max_val}) equals min ({min_val})")
+    scaled = (arr - min_val) / denom
+    if clip:
+        scaled = np.clip(scaled, 0.0, 1.0)
+    return scaled.astype(np.float32)
+
+
+def denormalize_predictions(
+    y_norm: np.ndarray,
+    norm_params: Optional[Dict[str, Any]] = None,
+    target_key: str = "seasonal_anomaly"
+) -> np.ndarray:
+    """De-normalizes model predictions back to physical units using frozen contract."""
+    if norm_params is None:
+        norm_params = load_frozen_normalization_contract()
+    p = norm_params["rzsm_parameters"][target_key]
+    return (y_norm * (p["max"] - p["min"]) + p["min"]).astype(np.float32)
 
 
 @dataclass(frozen=True)
@@ -43,6 +87,8 @@ class CaseTensorHierarchy:
     channel_schedule: Dict[int, int]
     num_members: int = 11
     target_dates: Optional[Dict[int, str]] = None
+    is_normalized: bool = False
+    normalization_contract_used: Optional[str] = None
 
 
 def assemble_single_a0_case(
@@ -52,6 +98,8 @@ def assemble_single_a0_case(
     s2s_ds: xr.Dataset,
     target_var_name: str = "rzsm_rolling_7d",
     eval_mask: Optional[np.ndarray] = None,
+    normalize: bool = False,
+    norm_params: Optional[Dict[str, Any]] = None,
 ) -> CaseTensorHierarchy:
     """
     Assembles real multi-lead input-target tensors for a single forecast issuance date.
@@ -63,6 +111,8 @@ def assemble_single_a0_case(
         s2s_ds: Harmonized ECMWF S2S reforecast dataset covering leads 1 and 2 across 11 members.
         target_var_name: Target RZSM variable (default: 'rzsm_rolling_7d' or 'rzsm_anom').
         eval_mask: Optional binary evaluation mask (32, 48) for zero-filling ocean cells.
+        normalize: Whether to scale all channels into [0, 1] using frozen training contract.
+        norm_params: Optional explicit normalization dictionary; loads from contracts/A0 if None.
 
     Returns:
         CaseTensorHierarchy with verified shapes and channel alignments.
@@ -133,23 +183,7 @@ def assemble_single_a0_case(
     s2s_w2_m11 = np.stack(s2s_w2_slices, axis=-1).astype(np.float32)
 
     # -------------------------------------------------------------------------
-    # 4. Construct Lead Input Tensors
-    # -------------------------------------------------------------------------
-    # Lead 1: 3 RZSM lags + 5 ERA5 obs + 3 S2S W1 preds = 11 channels
-    x_w1 = np.concatenate([rzsm_lags_m11, atm_m11, s2s_w1_m11], axis=-1)  # (11, 32, 48, 11)
-
-    # Lead 2 base: 3 RZSM lags + 5 ERA5 obs + 3 S2S W2 preds = 11 channels
-    # (recursive y_hat_w1 is appended during cascade execution to form 12 channels)
-    x_w2_base = np.concatenate([rzsm_lags_m11, atm_m11, s2s_w2_m11], axis=-1)  # (11, 32, 48, 11)
-
-    # Lead 3 base: 3 RZSM lags (y_hat_w1, y_hat_w2 appended to form 5 channels)
-    x_w3_base = rzsm_lags_m11.copy()  # (11, 32, 48, 3)
-
-    # Lead 4 base: 3 RZSM lags (y_hat_w1, y_hat_w2, y_hat_w3 appended to form 6 channels)
-    x_w4_base = rzsm_lags_m11.copy()  # (11, 32, 48, 3)
-
-    # -------------------------------------------------------------------------
-    # 5. Extract Ground Truth Targets for Leads W1 to W4
+    # 4. Extract Ground Truth Targets for Leads W1 to W4
     #    Verified parent EX29 target endpoint contract: L = (lead * 7) - 1
     #    Target W1: day t_0 + 6d  (captures trailing 7d mean over days t_0 .. t_0 + 6d)
     #    Target W2: day t_0 + 13d (captures trailing 7d mean over days t_0 + 7d .. t_0 + 13d)
@@ -170,6 +204,67 @@ def assemble_single_a0_case(
         target_dates_dict[lead_idx] = target_date
 
     y_w1, y_w2, y_w3, y_w4 = targets
+
+    # -------------------------------------------------------------------------
+    # 5. Normalization Scaling (Active Domain Min-Max into [0, 1])
+    # -------------------------------------------------------------------------
+    contract_source = None
+    if normalize:
+        if norm_params is None:
+            norm_params = load_frozen_normalization_contract()
+            contract_source = str(DEFAULT_NORM_CONTRACT_PATH)
+        else:
+            contract_source = "provided_parameters"
+
+        # RZSM bounds selection
+        if "anom" in target_var_name:
+            rzsm_key = "seasonal_anomaly"
+        elif "rolling_7d" in target_var_name:
+            rzsm_key = "volumetric_rolling_7d"
+        else:
+            rzsm_key = "volumetric_raw" if "volumetric_raw" in norm_params.get("rzsm_parameters", {}) else "seasonal_anomaly"
+        rzsm_p = norm_params["rzsm_parameters"][rzsm_key]
+        rzsm_min, rzsm_max = float(rzsm_p["min"]), float(rzsm_p["max"])
+
+        # Scale antecedent RZSM lags (all 3 lag channels)
+        rzsm_lags_m11 = scale_channel(rzsm_lags_m11, rzsm_min, rzsm_max)
+
+        # Scale atmospheric channels (5 channels: pwat, spfh, tmax, diff_temp, hgt_pres)
+        for i, var in enumerate(atm_vars):
+            p = norm_params["atmospheric_parameters"][var]
+            atm_m11[..., i] = scale_channel(atm_m11[..., i], float(p["min"]), float(p["max"]))
+
+        # Scale S2S Lead 1 channels (3 channels: t2m, d2m, tcw)
+        for i, var in enumerate(s2s_vars):
+            p = norm_params["s2s_parameters"]["lead_1"][var]
+            s2s_w1_m11[..., i] = scale_channel(s2s_w1_m11[..., i], float(p["min"]), float(p["max"]))
+
+        # Scale S2S Lead 2 channels (3 channels: t2m, d2m, tcw)
+        for i, var in enumerate(s2s_vars):
+            p = norm_params["s2s_parameters"]["lead_2"][var]
+            s2s_w2_m11[..., i] = scale_channel(s2s_w2_m11[..., i], float(p["min"]), float(p["max"]))
+
+        # Scale ground truth targets
+        y_w1 = scale_channel(y_w1, rzsm_min, rzsm_max)
+        y_w2 = scale_channel(y_w2, rzsm_min, rzsm_max)
+        y_w3 = scale_channel(y_w3, rzsm_min, rzsm_max)
+        y_w4 = scale_channel(y_w4, rzsm_min, rzsm_max)
+
+    # -------------------------------------------------------------------------
+    # 6. Construct Lead Input Tensors
+    # -------------------------------------------------------------------------
+    # Lead 1: 3 RZSM lags + 5 ERA5 obs + 3 S2S W1 preds = 11 channels
+    x_w1 = np.concatenate([rzsm_lags_m11, atm_m11, s2s_w1_m11], axis=-1)  # (11, 32, 48, 11)
+
+    # Lead 2 base: 3 RZSM lags + 5 ERA5 obs + 3 S2S W2 preds = 11 channels
+    # (recursive y_hat_w1 is appended during cascade execution to form 12 channels)
+    x_w2_base = np.concatenate([rzsm_lags_m11, atm_m11, s2s_w2_m11], axis=-1)  # (11, 32, 48, 11)
+
+    # Lead 3 base: 3 RZSM lags (y_hat_w1, y_hat_w2 appended to form 5 channels)
+    x_w3_base = rzsm_lags_m11.copy()  # (11, 32, 48, 3)
+
+    # Lead 4 base: 3 RZSM lags (y_hat_w1, y_hat_w2, y_hat_w3 appended to form 6 channels)
+    x_w4_base = rzsm_lags_m11.copy()  # (11, 32, 48, 3)
 
     # Apply evaluation mask if provided (zero-fill ocean/buffer)
     if eval_mask is not None:
@@ -203,6 +298,8 @@ def assemble_single_a0_case(
         channel_schedule={1: 11, 2: 12, 3: 5, 4: 6},
         num_members=num_members,
         target_dates=target_dates_dict,
+        is_normalized=normalize,
+        normalization_contract_used=contract_source,
     )
 
 

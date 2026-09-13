@@ -1,0 +1,112 @@
+# <!-- markdownlint-disable -->
+contract_version: "v1.0.0-step21k"
+contract_title: "Mindanao RISE-UNet Baseline Model A0 Production Training Contract"
+created_date: "2026-09-14"
+thesis_track: "Track B (Mindanao Regional Adaptation & Proposed Enhancements)"
+parent_citation: "Lesinger & Tian (2025), Nature Communications, DOI: 10.1038/s41467-025-62761-3"
+
+governance:
+  certification_status: "PRE_TRAINING_FREEZE"
+  authority_tier: "contracts/ (Machine-Readable Scientific & Technical Truth)"
+  change_policy: "IMMUTABLE_ONCE_TRAINING_COMMENCES"
+
+domain_and_geometry:
+  region: "Mindanao, Philippines"
+  bounding_box:
+    lat_max_north: 11.75
+    lon_min_west: 116.0
+    lat_min_south: 4.0
+    lon_max_east: 127.75
+  grid_resolution_deg: 0.25
+  grid_shape: [32, 48]
+  total_cells: 1536
+  active_evaluation_cells: 126
+  evaluation_mask_artifact: "processed/grid/mindanao_eval_mask_025.nc"
+  ocean_buffer_convention: 0.0
+
+dataset_and_splits:
+  calendar_manifest: "manifests/production_case_calendar.csv"
+  calendar_sha256: "68412fa281b37df38178128ee539fd4a77e5c9f5ae888a7c210d7ef320a7b458"
+  total_forecast_cycles: 1154
+  partitions:
+    train:
+      manifest: "manifests/splits/train_cases.csv"
+      sha256: "d0aea5558ca6eb24712f2acad83c849002c0ffbc97206966b8bb5456d16e8a59"
+      cycle_count: 735
+      years: [2015, 2016, 2017, 2018, 2019, 2020, 2021]
+      start_date: "2015-01-01"
+      end_date: "2021-12-30"
+      purpose: "Parameter estimation and backpropagation updates"
+    validation:
+      manifest: "manifests/splits/val_cases.csv"
+      sha256: "0ab5fbd430d20812f32c7ddce29450e8548d4958254518654f8e651ca5a586b0"
+      cycle_count: 210
+      years: [2022, 2023]
+      start_date: "2022-01-03"
+      end_date: "2023-12-28"
+      purpose: "Hyperparameter evaluation, early stopping, and checkpoint minimum-CRPS selection"
+    sealed_test:
+      manifest: "manifests/splits/test_cases_sealed.csv"
+      sha256: "443d5af42bd41a5229b98d94811c0a92ca1a1108702fb61a11c173085d808f88"
+      cycle_count: 209
+      usable_sealed_count: 202
+      target_out_of_bounds_count: 7
+      years: [2024, 2025]
+      start_date: "2024-01-01"
+      end_date: "2025-12-29"
+      purpose: "Final generalization benchmark; strictly sealed and untouched until Phase 26"
+      quarantine_rule: "STRICT_SEALED_NO_PEEKING"
+
+channel_topology:
+  ensemble_members: 11
+  lead_channels:
+    lead_1: 11  # 3 RZSM lags + 5 ERA5 surface + 3 ECMWF S2S W1
+    lead_2: 12  # 3 RZSM lags + 5 ERA5 surface + 3 ECMWF S2S W2 + 1 recursive y_hat_W1
+    lead_3: 5   # 3 RZSM lags + 2 recursive (y_hat_W1, y_hat_W2)
+    lead_4: 6   # 3 RZSM lags + 3 recursive (y_hat_W1, y_hat_W2, y_hat_W3)
+  target_shape_per_case: [1, 32, 48, 1]
+  target_shape_loss_broadcast: [11, 32, 48, 1]
+
+normalization_contract:
+  contract_artifact: "contracts/A0/normalization_parameters.yaml"
+  scope: "training_cases_only_eval_cells_only_domain_wide_active_scalar"
+  rzsm_bounds:
+    seasonal_anomaly_min: -0.17837415635585785
+    seasonal_anomaly_max: 0.17734764516353607
+    scaling_formula: "(x - min) / (max - min)"
+    target_scale: "[0.0, 1.0]"
+  ocean_fill: 0.0
+
+architecture_and_optimization:
+  model_class: "UNET_RZSM"
+  total_parameters_lead_1: 1627139
+  total_parameters_lead_2: 1630307
+  output_heads: ["RZSM_output_1", "RZSM_output_2", "RZSM_output_3"]
+  deep_supervision_loss_weights: [0.2, 0.3, 0.5]
+  loss_function: "spatial_crps_loss"
+  loss_formula: "MAE_eval - 0.08 * spatial_spread"
+  optimizer:
+    name: "Adam"
+    learning_rate: 0.0001
+    beta_1: 0.9
+    beta_2: 0.999
+    epsilon: 1.0e-7
+  batch_size_evaluation_schedule:
+    provisional_pilot_sizes: [11, 22, 33, 44, 66]
+    parent_ex29_reference: 66  # 6 cases x 11 members
+    hardware_target: "NVIDIA Tesla T4 (15,360 MB VRAM)"
+    vram_headroom_t4_gb: 4.79  # at B=66, peak VRAM is 10.57 GB
+  training_schedule:
+    max_epochs: 40
+    early_stopping_patience: 8
+    primary_checkpoint_metric: "val_crps"
+    checkpoint_mode: "min"
+    seeds: [42, 123, 456]
+  reporting_metrics:
+    - "ACC (Anomaly Correlation Coefficient)"
+    - "MAE (Mean Absolute Error)"
+    - "RMSE (Root Mean Square Error)"
+    - "CRPS (Continuous Ranked Probability Score)"
+    - "Brier Score (Moderate Drought < -1.0 sigma)"
+    - "Brier Score (Severe Drought < -1.5 sigma)"
+    - "Brier Score (Extreme Drought < -2.0 sigma)"
