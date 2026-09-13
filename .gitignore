@@ -33,6 +33,8 @@ scratch/
 # Local Pipeline Data & Raw Downloads
 pilot_raw/
 Data/raw_downloads/**/*.nc
+Data/raw_downloads/**/*.grib
+*.grib
 !Data/raw_downloads/**/README.md
 
 # NetCDF Data Policy: Cloud Lake with Local Reference Sample
