@@ -57,6 +57,14 @@ from src.data.tf_dataset import (
     OUTPUT_HEADS,
 )
 
+from src.data.calendar import (
+    generate_operational_cycles,
+    generate_production_calendar,
+    export_case_calendar,
+    load_case_calendar,
+    get_available_s2s_cycles,
+)
+
 __all__ = [
     "compute_depth_weighted_rzsm",
     "compute_backward_rolling_mean",
@@ -101,6 +109,11 @@ __all__ = [
     "ENSEMBLE_MEMBERS",
     "LEAD_CHANNELS",
     "OUTPUT_HEADS",
+    "generate_operational_cycles",
+    "generate_production_calendar",
+    "export_case_calendar",
+    "load_case_calendar",
+    "get_available_s2s_cycles",
 ]
 
 

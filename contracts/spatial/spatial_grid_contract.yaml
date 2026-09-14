@@ -126,7 +126,7 @@ authoritative_artifacts:
     path: "processed/grid/mindanao_0.25_grid.grd"
     sha256: "b8fabe5c21a6b5beda2df8b9ef4438d8b63d74427e86223137a55c3afff40049"
   mask_generator_script:
-    path: "scripts/generate_mindanao_masks.py"
+    path: "scripts/01_generate_mindanao_masks.py"
     sha256: "b8565a5cb33a7e583c27e0256860d5b4d707b227e85c2c77f0a6d23467610660"
   spatial_grid_audit_dossier:
     path: "reproduction_audit/MINDANAO_SPATIAL_GRID_FREEZE_REPORT.md"

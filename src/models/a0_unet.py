@@ -66,10 +66,10 @@ def build_a0_unet(
         import tensorflow as tf
         Input = tf.keras.layers.Input
         Model = tf.keras.models.Model
-        from function import modelRzsmRelu as UNETRzsm
+        from parent_study_ex29.function import modelRzsmRelu as UNETRzsm
     except (ImportError, AttributeError) as e:
         raise ImportError(
-            f"TensorFlow / Keras / function.modelRzsmRelu required to instantiate genuine UNET_RZSM: {e}"
+            f"TensorFlow / Keras / parent_study_ex29.function.modelRzsmRelu required to instantiate genuine UNET_RZSM: {e}"
         ) from e
 
     inputs = Input(shape=(height, width, num_channels), name=f"input_lead_{lead}")

@@ -1,14 +1,18 @@
+# =============================================================================
+# Tropical RISE-UNet Adaptation: .gitignore
+# =============================================================================
+
 # Snapshots & Large Archives
 snapshot_staging/
 *.tar.gz
 *.zip
 
-# Checkpoints & Model Weights (Archived in GCS)
+# Checkpoints & Model Weights (Archived in GCS: gs://rise-unet-rzsm/checkpoints/)
 checkpoints/
 *.weights.h5
 *.weights.npz
 
-# Python & Jupyter
+# Python & Jupyter Caches
 __pycache__/
 *.py[cod]
 *$py.class
@@ -23,24 +27,35 @@ build/
 *.pem
 service_account*.json
 
-# OS & IDE
+# OS & IDE Temporary Files
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
 scratch/
 
-# Local Pipeline Data & Raw Downloads
+# Raw Downloads & Large Remote Geodatabases (Archived in GCS: gs://rise-unet-rzsm/raw/)
 pilot_raw/
+data_cache/
+*.grib
 Data/raw_downloads/**/*.nc
 Data/raw_downloads/**/*.grib
-*.grib
-!Data/raw_downloads/**/README.md
+parent_study_ex29/Data/raw_downloads/**/*.nc
+parent_study_ex29/Data/raw_downloads/**/*.grib
+processed/boundary/*.gpkg
+processed/cases/production/
 
-# NetCDF Data Policy: Cloud Lake with Local Reference Sample
+# Preserve Readmes & Download metadata documentation
+!Data/raw_downloads/**/README.md
+!parent_study_ex29/Data/raw_downloads/**/README.md
+
+# Processed Data Policy:
+# 1. Full production data & heavy reforecasts stream on-demand from GCS (gs://rise-unet-rzsm/)
+# 2. Essential reference grids, certified pilot datasets, and the RZSM ground-truth cube
+#    are committed to the repo for instant out-of-the-box cloning and test execution.
 processed/**/*.nc
 !processed/grid/*.nc
 !processed/rzsm/pilot/*.nc
+!processed/rzsm/production/*.nc
 !processed/atmospheric/pilot/*.nc
-processed/rzsm/production/
-processed/atmospheric/production/
+!processed/s2s/pilot/*.nc

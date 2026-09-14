@@ -4,7 +4,7 @@
 # run_download_atmospheric.sh
 # -----------------------------------------------------------------------------
 # Thin convenience wrapper around the authoritative Python downloader:
-# scripts/download_era5_atmospheric_mindanao.py
+# scripts/02_download_era5_atmospheric.py
 #
 # Usage:
 #   bash scripts/run_download_atmospheric.sh --pilot
@@ -16,4 +16,4 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-python3 "${REPO_ROOT}/scripts/download_era5_atmospheric_mindanao.py" "$@"
+python3 "${REPO_ROOT}/scripts/02_download_era5_atmospheric.py" "$@"

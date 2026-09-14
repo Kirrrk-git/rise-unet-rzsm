@@ -5,7 +5,7 @@ Production compilation engine for the 11-year Mindanao Root-Zone Soil Moisture (
 spatio-temporal data cube (late-2014 antecedent support + 2015–2025 nominal production).
 
 Authoritative Foundation:
-  - Sub-Phase 21D Step 21D.4 (Full Production RZSM Cube)
+  - Mindanao Adaptation Master Plan (11-Year Production RZSM Cube Compilation)
   - Lesinger & Tian (2025), Nature Communications, DOI: 10.1038/s41467-025-62761-3
   - Verified Parent & Adaptation Contracts:
       1. Depth-weighted RZSM: 0.07 * SM1 + 0.21 * SM2 + 0.72 * SM3

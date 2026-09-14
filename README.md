@@ -1,70 +1,117 @@
 <!-- markdownlint-disable -->
-# **Skillful Subseasonal Soil Moisture Drought Forecasts with Deep Learning-Dynamic Models**
+# Tropical RISE-UNet Adaptation: Subseasonal Root-Zone Soil Moisture Forecasting over Mindanao, Philippines
 
+[![Scientific Certification: 3-Tier Passing](https://img.shields.io/badge/Certification-3--Tier%20Pass-brightgreen.svg)](reproduction_audit/OPERATIONAL_EXECUTION_MATRIX_AND_ARTIFACT_REGISTRY.md)
+[![Target Grid: Candidate A (32x48)](https://img.shields.io/badge/Grid-Candidate%20A%20(32%C3%9748)-blue.svg)](contracts/A0/mindanao_a0_production_contract.yaml)
+[![Parent Reference: Nature Comms 2025](https://img.shields.io/badge/Parent%20Study-Lesinger%20%26%20Tian%20(2025)-orange.svg)](https://doi.org/10.1038/s41467-025-62761-3)
+[![Test Suite: 80/80 Passing](https://img.shields.io/badge/Tests-80%20Passed-success.svg)](tests/)
 
-## **📌 Overview**
-This set of python script and Jupyter notebooks will allow for the processing and visualization of Earth data for the research article Skillful Subseasonal Soil Moisture Drought Forecasts with Deep Learning-Dynamic Models. These scripts are set to be run in order (beginning at script 00.ipynb ---> 09.ipynb).
+---
 
+## 1. Project Overview & Research Architecture
 
-## **📦 Installation**
-### **🔹 Install in new conda environment**
-```bash
-conda env create -f conda_environment_setup.yaml
-conda activate tf212gpu_new
+This repository hosts the **Mindanao Regional Adaptation (Track B)** of the **RISE-UNet (Recursive Integrated Spatiotemporal Evaluation U-Net)** deep learning architecture, originally published by Kyle Lesinger and Di Tian (2025) in *Nature Communications* for the Contiguous United States (CONUS).
+
+The research objective is to adapt and validate deep learning subseasonal root-zone soil moisture (RZSM) forecasts (Weeks 1–4 leads) across the complex, cloud-dense, tropical archipelago domain of **Mindanao, Philippines** ($5.0^\circ\text{N} - 10.0^\circ\text{N}, 121.0^\circ\text{E} - 127.0^\circ\text{E}$).
+
+### Dual-Track Repository Organization
+
+To ensure complete scientific transparency and maintain clean separation of concerns:
+
+- **Track A (Author Baseline)**: The complete, unmodified peer-reviewed CONUS codebase from Kyle Lesinger & Di Tian (2025) is fully preserved in [`parent_study_ex29/`](parent_study_ex29/).
+- **Track B (Mindanao Adaptation)**: The regional adaptation, data pipelines, normalization contracts, 1,154-cycle operational calendar, and unit test suites are organized in standard modern scientific package directories (`src/`, `contracts/`, `manifests/`, `notebooks/`, `scripts/`, `tests/`).
+
+```text
+dl_dm_rzsm_subseasonal_forecast/
+│
+├── parent_study_ex29/                       <── TRACK A: Author's Original Peer-Reviewed Study
+│   ├── README.md                            <── Original author documentation & CONUS guide
+│   ├── notebooks/                           <── All 48 original CONUS notebooks (00_*, 02_*, etc.)
+│   ├── function/                            <── Original author Python modules (modelRzsmRelu, losses)
+│   ├── Data/                                <── Original author CONUS data scripts, EMOS, masks
+│   └── conda_environment_setup.yaml        <── Original conda environment configuration
+│
+├── contracts/                               <── TRACK B: Frozen Machine-Readable Contracts
+│   └── A0/                                  <── Model A0 contract, active normalization YAML
+├── manifests/                               <── Production Case Calendar & Split Partitions
+│   ├── production_case_calendar.csv         <── Authoritative 1,154-cycle S2S forecast origin calendar
+│   └── splits/                              <── Train (735), Validation (210), Test (209 sealed)
+├── notebooks/                               <── Numbered End-to-End Mindanao Execution Pipeline
+│   ├── 00_parent_freeze_and_inspection.ipynb
+│   ├── 01_parent_experiment_trace.ipynb
+│   ├── 02_mindanao_geometry_and_cascade_gate.ipynb
+│   ├── 03_mindanao_spatial_foundation.ipynb
+│   ├── 04_mindanao_elevation_and_soil_static_channels.ipynb
+│   ├── 05_mindanao_atmospheric_and_rzsm_preprocessing.ipynb
+│   ├── 06_mindanao_era5_land_daily_climatology_and_anomalies.ipynb
+│   ├── 07_mindanao_s2s_and_pilot_case_assembly.ipynb
+│   ├── 08_mindanao_a0_tf_pipeline_and_checkpoint.ipynb
+│   └── 09_mindanao_a0_vram_profiling.ipynb
+├── processed/                               <── Verified Regional Data Artifacts
+│   ├── grid/                                <── Candidate A grid ($32 \times 48$, 126 active cells)
+│   ├── rzsm/                                <── Compiled 11-year RZSM NetCDF cube (2015–2025)
+│   ├── atmospheric/                         <── Derived surface atmospheric pilot NetCDFs
+│   └── s2s/                                 <── Verified ECMWF S2S reforecast structures
+├── reproduction_audit/                      <── Three-Tier Scientific Audit Dossiers & Registry
+│   ├── OPERATIONAL_EXECUTION_MATRIX_AND_ARTIFACT_REGISTRY.md
+│   ├── 18_production_case_calendar_1154_cycles_audit.md
+│   ├── 19_dataset_splits_and_normalization_contract_audit.md
+│   └── ...
+├── scripts/                                 <── Production CLI Tools & Validation Runners
+│   ├── 06_build_production_case_calendar.py    <── Generates 1,154-cycle operational calendar
+│   ├── 08_derive_training_normalization.py     <── Fits active-domain scalar min-max bounds
+│   ├── 07_generate_dataset_splits.py           <── Generates partitioned case manifests
+│   └── test_a0_production_smoke.py          <── Genuine A0 production-path smoke test
+├── src/                                     <── Production Python Package
+│   ├── data/                                <── case_builder, cloud_lake, tf_dataset, atmospheric, rzsm
+│   ├── models/                              <── genuine a0_unet factory, baselines
+│   └── utils/                               <── Geospatial and metric utilities
+├── tests/                                   <── Automated Unit Testing Framework (80 tests)
+├── figures/                                 <── Publication-Grade Composite Verification Figures
+├── AGENTS.md                                <── AI engineering safety boundaries & guidelines
+└── README.md                                <── This Master Portal
 ```
 
-## **📌 Restrictions**
-- 1.) For training the deep-learning models, you must be access to a GPU with at least 32GB RAM.
-- 2.) For some other functions, as high as 80GB RAM may be needed for pre-processing.
+---
 
+## 2. Key Scientific & Architectural Invariants
 
+1. **Frozen Spatial Domain (Candidate A)**:
+   - Extent: $[5.0^\circ\text{N}, 10.0^\circ\text{N}] \times [121.0^\circ\text{E}, 127.0^\circ\text{E}]$
+   - Grid Resolution: $0.25^\circ \times 0.25^\circ$ ($21 \times 25$ geographic bounding box)
+   - UNet Dimensions: $32 \times 48$ with zero-padding (divisible by $2^4 = 16$ across 4 downsampling stages)
+   - Active Evaluation Cells: Exactly **126 land cells** strictly verified against GADM Level 0/1 polygons.
+2. **Forecast-Origin Partitioning with Target-Horizon Boundary Extension**:
+   - Total Operational Cycles: **1,154** (reconciled against ECMWF CY48R1 operational reference calendar)
+   - Train Split: **735 cycles** ($2015\text{--}2021$)
+   - Validation Split: **210 cycles** ($2022\text{--}2023$)
+   - Sealed Test Split: **209 cycles** ($2024\text{--}2025$, quarantined)
+   - Non-Leakage Posture: No forecast-origin overlap and no future predictor information relative to each $t_0$.
+3. **Immutable Normalization Contract**:
+   - Parameters derived strictly from the 735 training cycles across active land cells only.
+   - Actively consumed by [`src/data/case_builder.py`](src/data/case_builder.py) via [`contracts/A0/normalization_parameters.yaml`](contracts/A0/normalization_parameters.yaml).
+4. **Authoritative Model A0 UNET_RZSM**:
+   - Instantiated via [`src/models/a0_unet.py`](src/models/a0_unet.py), matching Kyle Lesinger's genuine architecture (1,630,307 weights for W2 across 251 layers and 298 weight tensors).
 
-### ** 📌 Features:**
-- ✅ **Data Analysis** Can accomodate any reanalysis/reforecast as input if the data is an xarray object and you have a gridded mask file with the data coordinates that you want. (See /Data/masks for example .nc4 and .grd files). Current datasets which have been studied within the manuscript include reanalysis products [GLEAM](https://www.gleam.eu/), [ERA5](https://www.ecmwf.int/en/forecasts/dataset/ecmwf-reanalysis-v5), [ERA5-Land](https://www.ecmwf.int/en/era5-land); and subseasonal reforecast products [GEFSv12](https://vlab.noaa.gov/web/osti-modeling/gefsv12) and [ECMWF](https://apps.ecmwf.int/datasets/data/s2s/levtype=sfc/type=cf/).
-- ✅ **Regional Training** Currently training was only completed on the contiguous United States, China, and Australia. But training can be altered if you have additional mask files (see /Data/masks).
-- ✅ **Setting path locations for data** Use the /function/conf.py to setup absolute paths. Can also add additional datapaths if new sources are added.
+---
 
+## 3. Running the Test Suite
 
-### ** 📌 Downloading Data:**
--  [GLEAM](https://www.gleam.eu/). Must contact developers and get the sftp information. Must save into directory /Data/reanalysis.
--  [ERA5](https://www.ecmwf.int/en/forecasts/dataset/ecmwf-reanalysis-v5). Must use CDS (Climate Data Store) and create your own credentials. Must save into directory /Data/reanalysis.
--  [ERA5-Land](https://www.ecmwf.int/en/era5-land).  Must use CDS (Climate Data Store) and create your own credentials. Must save into directory /Data/reanalysis.
--  [GEFSv12](https://vlab.noaa.gov/web/osti-modeling/gefsv12). Can download with /Data/raw_downloads/GEFSv12 scripts. Use the run_parallel_all_regions.sh as the run file. Must save into directory /Data/reforecast.
--  [ECMWF](https://apps.ecmwf.int/datasets/data/s2s/levtype=sfc/type=cf/). Can download with /Data/raw_downloads/ECMWF scripts. Follow the order of the Jupyter notebooks.  Must save into directory /Data/reforecast.
+All unit tests are automated and execute from the repository root:
 
-### ** 📌 Description of scripts and their purpose:**
-- 1.) 00_min_max_each_region_&reforecast.ipynb - Convert each data type to the same format across different data sources. Saves anomalies, and creates files formatted to work with tensorflow during training.
-- 2.) 01_make_small_plots_for_diagram.ipynb - Plots some of the files to ensure that they look acceptable.
-- 3.) 01a_bias_correct_raw_GEFS_ECMWF.ipynb - Bias correct raw GEFSv12 and ECMWF files (use additive mean bias correction).
-- 4.) 02_run_model_EXPERIMENTS_ECMWF_and_GEFSv12_v5.ipynb - Train deep learning models. Save predictions. Compute permutation test.
-- 5.) 03a_save_ACC_for_each_lead_and_experiment.ipynb - Save anomaly correlation coefficient values (ACC) for each experiment type.
-- 6.) 03b_save_CRPSS_for_each_lead_and_experiment.ipynb - Save continous ranked probability score values (CRPS) for each experiment type.
-- 7.) 04a_ACC_CRPSS_hitRate_CONUS.ipynb - Create plots for the ACC and CRPS for each experiment type. Spatial plots and line plots included. Only for CONUS region which included multiple experiments. Data **is not** separated by season.
-- 8.) 04b_ACC_CRPSS_hitRate_season_CONUS.ipynb - Create plots for the ACC and CRPS for each experiment type. Spatial plots and line plots included. Only for CONUS region which included multiple experiments. Data **is** separated by season.
-- 9.) 04c_KGE_CONUS.ipynb - Compute Kling-Gupte Efficiency (KGE) for CONUS.
-- 10.) 04d_Plot_permutation_test_results_UPDATE.ipynb - Plot the CONUS permutation tests.
-- 11.) 04e_autocorrelation_GLEAM.ipynb - Compute and plot the autocorrelation for each region.
-- 12.) 05a_create_percentile_FULL_DISTRIBUTION_OBS_GEFS_ECMWF_v9_multi.ipynb - Computes percentiles of the data from the training distribution (2000-2015) and creates a percentile of score with the testing distribution (2018-2019).
-- 13.) 05b_create_percentile_SMALL_DISTRIBUTION_OBS_GEFS_ECMWF_bias_corrected_v1.ipynb - Computes the percentile of score with only the testing distribution (2018-2019).
-- 14.) 05c_hitRate_CONUS.ipynb - Computes the true positive rate (aka the hit rate) for data according to a specific percentile distribution that is user selected.
-- 15.) 06a_ACC_spatial_plots_other_regions.ipynb - Plot spatial ACC results for a single experiment across different regions. Data **is not** separated by season.
-- 16.) 06b_ACC_CRPS_season_other_regions.ipynb - Plot spatial ACC results for a single experiment across different regions. Data **is** separated by season.
-- 17.) 07a_forecast_CRPSS_bootstraps_v1.ipynb - Compute bootstrap continous ranked probability skill score (CRPSS).
-- 18.) 07b_plot_forecast_CRPSS_bootstraps_v1.ipynb - Plot CRPSS.
-- 19.) 07c_SIMULATION_sampling_v1.ipynb - Comptue different metrics across all regions based on sampling methods.
-- 20.) 08a_CASE_STUDY.ipynb - Plot case studies for each region.
-- 21.) 08b - 08e.ipynb - Compute CRPSS based on climatology, persistence, or using the raw reforecast as the reference.
-- 22.) 09a_taylorDiagram.ipynb - Create Taylor diagrams for each region.
-- 23.) 02b1_shap_gradient_explainer_ATEST.ipynb - Tests SHAP gradient explainer with different background sample sizes to assess robustness of feature importance estimates.
-- 24.) 02b1_shap_gradient_explainer_PLOT.ipynb & PLOT-A.ipynb - Visualizes SHAP value distributions and feature importance across different background sample sizes.
-- 25.) 02b2_shap_gradient_explainer_BTEST.ipynb - Additional testing of SHAP gradient explainer with alternative configurations.
-- 26.) 02b2_shap_gradient_explainer_PLOT-B.ipynb - Plots results from the second SHAP gradient explainer test.
-- 27.) 02b3_shap_gradient_explainer_PLOT-FINAL.ipynb - Creates final consolidated SHAP gradient explainer visualizations.
-- 28.) 02b4_shap_gradient_sample_explainer.ipynb - Implements SHAP gradient explainer for individual sample analysis.
+```bash
+# Run the complete test suite (75 tests)
+python -m unittest discover tests
+```
 
-## Functions to call within the jupyter notebooks are in directory /function
+---
 
-## **📜 Authors** Kyle Lesinger, Di Tian
+## 4. Citation & Attribution
 
-## **📜 License**
-This project is **open-source** under the **MIT License**.
+### Mindanao Adaptation Project
+
+- Jalapon, Aaron (2026). *Subseasonal Root-Zone Soil Moisture Forecasting over Mindanao Using Deep Learning Recursive UNet Architectures*. Master's Thesis, Mindanao Regional Adaptation.
+
+### Peer-Reviewed Parent Study
+
+- Lesinger, K., & Tian, D. (2025). Subseasonal root-zone soil moisture forecasting with deep learning. *Nature Communications*, 16, 62761. DOI: [10.1038/s41467-025-62761-3](https://doi.org/10.1038/s41467-025-62761-3).

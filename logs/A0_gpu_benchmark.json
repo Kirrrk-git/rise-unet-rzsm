@@ -1,5 +1,4 @@
 {
-  "milestone": "Sub-Phase 21J (Hardware Profiling & VRAM Feasibility Benchmark)",
   "status": "PASS",
   "timestamp": "2026-09-13T20:49:30Z",
   "gpu_environment": {
@@ -17,7 +16,7 @@
     "xla_enabled": false
   },
   "pillars": {
-    "pillar_21j_1_architecture": {
+    "component_1_architecture": {
       "status": "PASS",
       "model_name": "UNET_RZSM_Mindanao_A0_Lead_1",
       "input_shape": [
@@ -52,7 +51,7 @@
       "parameter_count_match": true,
       "trainable_weights_match": true
     },
-    "pillar_21j_2_multi_lead_forward": {
+    "component_2_multi_lead_forward": {
       "leads": {
         "lead_1": {
           "input_channels": 11,
@@ -165,7 +164,7 @@
       },
       "status": "PASS"
     },
-    "pillar_21j_3_backward_pass": {
+    "component_3_backward_pass": {
       "status": "PASS",
       "loss_value": 2.8895766735076904,
       "global_gradient_norm": 2.8383238315582275,
@@ -173,7 +172,7 @@
       "weights_updated": true,
       "weight_delta_sample": 0.003952140919864178
     },
-    "pillar_21j_4_recursive_cascade": {
+    "component_4_recursive_cascade": {
       "status": "PASS",
       "tensor_source": "assembled_pilot_case_CASE_20150115_W01",
       "total_cascade_latency_ms": 1519.51,
@@ -216,7 +215,7 @@
         "perturbation_propagated": true
       }
     },
-    "pillar_21j_5_vram_ladder": {
+    "component_5_vram_ladder": {
       "status": "PASS",
       "batch_profiles": [
         {
@@ -302,7 +301,7 @@
       ],
       "loss_objective_note": "21J.5 measures hardware feasibility and peak activation memory using a representative training-step memory workload (not production-loss certification)."
     },
-    "pillar_21j_6_contract_freeze": {
+    "component_6_contract_freeze": {
       "production_hyperparameters": {
         "optimizer": "Adam",
         "learning_rate": 0.0001,
@@ -327,5 +326,316 @@
     }
   },
   "certification_verdict": "CERTIFIED_ON_GPU",
-  "certification_note": "Sub-Phase 21J fully certified on physical target GPU hardware."
+  "certification_note": "Model A0 hardware profiling fully certified on physical target GPU hardware (Tesla T4).",
+  "objective": "Model A0 Hardware Profiling & VRAM Feasibility Benchmark",
+  "evaluation_components": {
+    "component_1_architecture": {
+      "status": "PASS",
+      "model_name": "UNET_RZSM_Mindanao_A0_Lead_1",
+      "input_shape": [
+        null,
+        32,
+        48,
+        11
+      ],
+      "actual_count_params": 1627139,
+      "expected_count_params": 1627139,
+      "trainable_weights_count": 298,
+      "expected_trainable_weights": 298,
+      "layer_count": 251,
+      "layer_classes": [
+        "Activation",
+        "Add",
+        "BatchNormalization",
+        "CompatibleDepthwiseConv2D",
+        "Concatenate",
+        "Conv2D",
+        "Conv2DTranspose",
+        "InputLayer",
+        "MaxPooling2D",
+        "SpatialDropout2D",
+        "SqueezeAndExcite2D"
+      ],
+      "output_heads": [
+        "keras_tensor_603",
+        "keras_tensor_604",
+        "keras_tensor_605"
+      ],
+      "parameter_count_match": true,
+      "trainable_weights_match": true
+    },
+    "component_2_multi_lead_forward": {
+      "leads": {
+        "lead_1": {
+          "input_channels": 11,
+          "output_shapes": [
+            [
+              11,
+              32,
+              48,
+              1
+            ],
+            [
+              11,
+              32,
+              48,
+              1
+            ],
+            [
+              11,
+              32,
+              48,
+              1
+            ]
+          ],
+          "all_finite": true,
+          "ocean_max_masked": 0.0,
+          "forward_latency_ms": 279.05,
+          "status": "PASS"
+        },
+        "lead_2": {
+          "input_channels": 12,
+          "output_shapes": [
+            [
+              11,
+              32,
+              48,
+              1
+            ],
+            [
+              11,
+              32,
+              48,
+              1
+            ],
+            [
+              11,
+              32,
+              48,
+              1
+            ]
+          ],
+          "all_finite": true,
+          "ocean_max_masked": 0.0,
+          "forward_latency_ms": 318.91,
+          "status": "PASS"
+        },
+        "lead_3": {
+          "input_channels": 5,
+          "output_shapes": [
+            [
+              11,
+              32,
+              48,
+              1
+            ],
+            [
+              11,
+              32,
+              48,
+              1
+            ],
+            [
+              11,
+              32,
+              48,
+              1
+            ]
+          ],
+          "all_finite": true,
+          "ocean_max_masked": 0.0,
+          "forward_latency_ms": 291.58,
+          "status": "PASS"
+        },
+        "lead_4": {
+          "input_channels": 6,
+          "output_shapes": [
+            [
+              11,
+              32,
+              48,
+              1
+            ],
+            [
+              11,
+              32,
+              48,
+              1
+            ],
+            [
+              11,
+              32,
+              48,
+              1
+            ]
+          ],
+          "all_finite": true,
+          "ocean_max_masked": 0.0,
+          "forward_latency_ms": 417.36,
+          "status": "PASS"
+        }
+      },
+      "status": "PASS"
+    },
+    "component_3_backward_pass": {
+      "status": "PASS",
+      "loss_value": 2.8895766735076904,
+      "global_gradient_norm": 2.8383238315582275,
+      "gradients_all_present": true,
+      "weights_updated": true,
+      "weight_delta_sample": 0.003952140919864178
+    },
+    "component_4_recursive_cascade": {
+      "status": "PASS",
+      "tensor_source": "assembled_pilot_case_CASE_20150115_W01",
+      "total_cascade_latency_ms": 1519.51,
+      "latency_per_lead_ms": 379.88,
+      "w1_shape": [
+        11,
+        32,
+        48,
+        1
+      ],
+      "w2_shape": [
+        11,
+        32,
+        48,
+        1
+      ],
+      "w3_shape": [
+        11,
+        32,
+        48,
+        1
+      ],
+      "w4_shape": [
+        11,
+        32,
+        48,
+        1
+      ],
+      "channels_verified": [
+        11,
+        12,
+        5,
+        6
+      ],
+      "perturbation_sensitivity": {
+        "delta_injected": 0.1,
+        "delta_w2_mean_abs": 0.00851984228938818,
+        "delta_w3_mean_abs": 0.0038270796649158,
+        "delta_w4_mean_abs": 5.142947338754311e-05,
+        "perturbation_propagated": true
+      }
+    },
+    "component_5_vram_ladder": {
+      "status": "PASS",
+      "batch_profiles": [
+        {
+          "batch_size": 11,
+          "num_cases": 1,
+          "measured_on_gpu": true,
+          "forward_time_ms": 724.12,
+          "backward_time_ms": 649.61,
+          "optimizer_time_ms": 1577.9,
+          "step_time_ms": 2951.63,
+          "samples_per_second": 3.73,
+          "vram_allocated_mb": 237.07,
+          "peak_vram_mb": 2076.19,
+          "oom_fault": false,
+          "finite_gradients": true,
+          "nonzero_updates": true,
+          "status": "PASS"
+        },
+        {
+          "batch_size": 22,
+          "num_cases": 2,
+          "measured_on_gpu": true,
+          "forward_time_ms": 747.72,
+          "backward_time_ms": 672.73,
+          "optimizer_time_ms": 1610.7,
+          "step_time_ms": 3031.15,
+          "samples_per_second": 7.26,
+          "vram_allocated_mb": 246.4,
+          "peak_vram_mb": 3792.43,
+          "oom_fault": false,
+          "finite_gradients": true,
+          "nonzero_updates": true,
+          "status": "PASS"
+        },
+        {
+          "batch_size": 33,
+          "num_cases": 3,
+          "measured_on_gpu": true,
+          "forward_time_ms": 712.43,
+          "backward_time_ms": 652.79,
+          "optimizer_time_ms": 1463.26,
+          "step_time_ms": 2828.48,
+          "samples_per_second": 11.67,
+          "vram_allocated_mb": 246.73,
+          "peak_vram_mb": 5517.83,
+          "oom_fault": false,
+          "finite_gradients": true,
+          "nonzero_updates": true,
+          "status": "PASS"
+        },
+        {
+          "batch_size": 44,
+          "num_cases": 4,
+          "measured_on_gpu": true,
+          "forward_time_ms": 767.36,
+          "backward_time_ms": 747.15,
+          "optimizer_time_ms": 1575.5,
+          "step_time_ms": 3090.01,
+          "samples_per_second": 14.24,
+          "vram_allocated_mb": 248.41,
+          "peak_vram_mb": 7098.83,
+          "oom_fault": false,
+          "finite_gradients": true,
+          "nonzero_updates": true,
+          "status": "PASS"
+        },
+        {
+          "batch_size": 66,
+          "num_cases": 6,
+          "measured_on_gpu": true,
+          "forward_time_ms": 830.85,
+          "backward_time_ms": 755.2,
+          "optimizer_time_ms": 1608.93,
+          "step_time_ms": 3194.98,
+          "samples_per_second": 20.66,
+          "vram_allocated_mb": 250.96,
+          "peak_vram_mb": 10565.33,
+          "oom_fault": false,
+          "finite_gradients": true,
+          "nonzero_updates": true,
+          "status": "PASS"
+        }
+      ],
+      "loss_objective_note": "21J.5 measures hardware feasibility and peak activation memory using a representative training-step memory workload (not production-loss certification)."
+    },
+    "component_6_contract_freeze": {
+      "production_hyperparameters": {
+        "optimizer": "Adam",
+        "learning_rate": 0.0001,
+        "beta_1": 0.9,
+        "beta_2": 0.999,
+        "epsilon": 1e-07,
+        "batch_size_recommended": 11,
+        "loss_function": "Multi-Head Deep Supervision CRPS (factor=0.08)",
+        "parent_spread_gradient_status": "DETACHED_IN_PARENT_NUMPY (A0 preserves parent baseline; differentiable CRPS reserved for A1)",
+        "random_seeds": [
+          42,
+          123,
+          456
+        ],
+        "training_split": "2015-2021",
+        "validation_split": "2022-2023",
+        "sealed_test_split": "2024-2025"
+      },
+      "checkpoint_restored_parity": 0.0,
+      "checkpoint_parity_scope": "Model-weight serialization/restoration parity verified. Optimizer state, dynamic dropout, and training-resumption parity deferred to Phase 21K.",
+      "status": "PASS"
+    }
+  }
 }
