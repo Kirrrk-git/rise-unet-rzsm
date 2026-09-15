@@ -614,7 +614,7 @@ The artifact registry is an inventory and status index; it must never contradict
   * **Stage D (Checkpoint Parity Scoping & Next-Step Trajectory Roundtrip)**: Verify model-weight parity ($\max |\hat{Y} - \hat{Y}_{\text{restored}}| < 10^{-7}$) and full training-state restoration (optimizer slots, step counter, epoch, learning rate) with verified next-step optimization trajectory parity.
   * **Stage E (Fail-Closed Certification Gate)**: Hard rejection on missing evaluation mask, contract mismatch, NaNs/Infs, shape errors, channel permutation errors, or recursive re-normalization. Standalone CLI exits with code 1 if certified hardware/libraries are absent.
 - [ ] **Step 21K.3**: Train Model A0 across minimum three predeclared seeds (seeds 42, 123, 456). [NOT_YET_AUTHORIZED]
-  * **Prerequisites Before Authorization**: (1) Current-code 21J GPU revalidation, (2) 21K.3-pre physical Colab T4 GPU execution, and (3) 2022–2023 atmospheric mirroring completion for validation evaluation.
+  * **Prerequisites Before Authorization**: (1) Complete 2022–2023 atmospheric mirroring (48 monthly files) and daily derivation certified via `scripts/15_verify_validation_atmospheric_pipeline.py`, (2) Current-code 21J GPU revalidation (rerun Notebook 09 on physical Colab T4), and (3) 21K.3-pre physical Colab T4 GPU execution (`scripts/14_run_a0_production_smoke_test.py --mode certify`).
   * Checkpoint Selection Rule: Primary checkpoint per seed = minimum validation CRPS, subject to all integrity checks.
   * Performance Reporting: Report A0 reference performance per-seed, mean across seeds, and standard deviation across seeds.
   * Storage: `gs://rise-unet-rzsm/checkpoints/A0/`.
