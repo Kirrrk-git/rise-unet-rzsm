@@ -4,7 +4,7 @@
 [![Scientific Certification: 3-Tier Passing](https://img.shields.io/badge/Certification-3--Tier%20Pass-brightgreen.svg)](reproduction_audit/OPERATIONAL_EXECUTION_MATRIX_AND_ARTIFACT_REGISTRY.md)
 [![Target Grid: Candidate A (32x48)](https://img.shields.io/badge/Grid-Candidate%20A%20(32%C3%9748)-blue.svg)](contracts/A0/mindanao_a0_production_contract.yaml)
 [![Parent Reference: Nature Comms 2025](https://img.shields.io/badge/Parent%20Study-Lesinger%20%26%20Tian%20(2025)-orange.svg)](https://doi.org/10.1038/s41467-025-62761-3)
-[![Test Suite: 80/80 Passing](https://img.shields.io/badge/Tests-80%20Passed-success.svg)](tests/)
+[![Test Suite: 93 Tests (90 Passed, 3 Skipped)](https://img.shields.io/badge/Tests-90%20Passed%20%7C%203%20Skipped-success.svg)](tests/)
 
 ---
 
@@ -32,10 +32,10 @@ dl_dm_rzsm_subseasonal_forecast/
 │   └── conda_environment_setup.yaml        <── Original conda environment configuration
 │
 ├── contracts/                               <── TRACK B: Frozen Machine-Readable Contracts
-│   └── A0/                                  <── Model A0 contract, active normalization YAML
+│   └── A0/                                  <── Model A0 contract, active normalization YAML, VERIFICATION_STATUS
 ├── manifests/                               <── Production Case Calendar & Split Partitions
 │   ├── production_case_calendar.csv         <── Authoritative 1,154-cycle S2S forecast origin calendar
-│   └── splits/                              <── Train (735), Validation (210), Test (209 sealed)
+│   └── splits/                              <── Train (735), Validation (210), Sealed Test (209 scheduled census)
 ├── notebooks/                               <── Numbered End-to-End Mindanao Execution Pipeline
 │   ├── 00_parent_freeze_and_inspection.ipynb
 │   ├── 01_parent_experiment_trace.ipynb
@@ -57,16 +57,18 @@ dl_dm_rzsm_subseasonal_forecast/
 │   ├── 18_production_case_calendar_1154_cycles_audit.md
 │   ├── 19_dataset_splits_and_normalization_contract_audit.md
 │   └── ...
-├── scripts/                                 <── Production CLI Tools & Validation Runners
+├── scripts/                                 <── Production CLI Tools & Preflight Engines
 │   ├── 06_build_production_case_calendar.py    <── Generates 1,154-cycle operational calendar
-│   ├── 08_derive_training_normalization.py     <── Fits active-domain scalar min-max bounds
 │   ├── 07_generate_dataset_splits.py           <── Generates partitioned case manifests
-│   └── test_a0_production_smoke.py          <── Genuine A0 production-path smoke test
+│   ├── 08_derive_training_normalization.py     <── Fits active-domain scalar min-max bounds
+│   ├── 11_profile_a0_vram_benchmark.py         <── Six-pillar fail-closed hardware benchmark
+│   ├── 14_run_a0_production_smoke_test.py      <── Genuine 4-lead production preflight
+│   └── 15_verify_validation_atmospheric_pipeline.py <── Validation atmospheric pipeline verification
 ├── src/                                     <── Production Python Package
 │   ├── data/                                <── case_builder, cloud_lake, tf_dataset, atmospheric, rzsm
-│   ├── models/                              <── genuine a0_unet factory, baselines
+│   ├── models/                              <── genuine a0_unet factory, parameter counts
 │   └── utils/                               <── Geospatial and metric utilities
-├── tests/                                   <── Automated Unit Testing Framework (80 tests)
+├── tests/                                   <── Automated Unit Testing Framework (93 tests)
 ├── figures/                                 <── Publication-Grade Composite Verification Figures
 ├── AGENTS.md                                <── AI engineering safety boundaries & guidelines
 └── README.md                                <── This Master Portal
@@ -84,14 +86,19 @@ dl_dm_rzsm_subseasonal_forecast/
 2. **Forecast-Origin Partitioning with Target-Horizon Boundary Extension**:
    - Total Operational Cycles: **1,154** (reconciled against ECMWF CY48R1 operational reference calendar)
    - Train Split: **735 cycles** ($2015\text{--}2021$)
-   - Validation Split: **210 cycles** ($2022\text{--}2023$)
-   - Sealed Test Split: **209 cycles** ($2024\text{--}2025$, quarantined)
+   - Validation Split: **210 cycles** ($2022\text{--}2023$; Val-A: 105, Val-B: 105)
+   - Sealed Test Split: **209 scheduled cycles** cohort census ($2024\text{--}2025$; **202 usable sealed-test cases** forming evaluation denominator, **7 quarantined cases** in late Dec 2025 whose $W_4$ target extends into Jan 2026).
    - Non-Leakage Posture: No forecast-origin overlap and no future predictor information relative to each $t_0$.
 3. **Immutable Normalization Contract**:
    - Parameters derived strictly from the 735 training cycles across active land cells only.
    - Actively consumed by [`src/data/case_builder.py`](src/data/case_builder.py) via [`contracts/A0/normalization_parameters.yaml`](contracts/A0/normalization_parameters.yaml).
 4. **Authoritative Model A0 UNET_RZSM**:
-   - Instantiated via [`src/models/a0_unet.py`](src/models/a0_unet.py), matching Kyle Lesinger's genuine architecture (1,630,307 weights for W2 across 251 layers and 298 weight tensors).
+   - Instantiated via [`src/models/a0_unet.py`](src/models/a0_unet.py), matching Kyle Lesinger's genuine architecture with verified per-lead trainable parameter counts:
+     - Lead 1 ($W_1$): 1,627,139 parameters ($C_{in} = 11$)
+     - Lead 2 ($W_2$): 1,630,307 parameters ($C_{in} = 12$)
+     - Lead 3 ($W_3$): 1,608,131 parameters ($C_{in} = 5$)
+     - Lead 4 ($W_4$): 1,611,299 parameters ($C_{in} = 6$)
+     across 251 layers, 298 weight tensors, and 3 deep supervision output heads.
 
 ---
 
@@ -100,18 +107,15 @@ dl_dm_rzsm_subseasonal_forecast/
 All unit tests are automated and execute from the repository root:
 
 ```bash
-# Run the complete test suite (75 tests)
-python -m unittest discover tests
+# Run the complete test suite (93 tests: 90 passed, 3 skipped)
+python -m unittest discover -s tests -p "test_*.py"
 ```
 
 ---
 
 ## 4. Citation & Attribution
 
-### Mindanao Adaptation Project
-
-- Jalapon, Aaron (2026). *Subseasonal Root-Zone Soil Moisture Forecasting over Mindanao Using Deep Learning Recursive UNet Architectures*. Master's Thesis, Mindanao Regional Adaptation.
-
 ### Peer-Reviewed Parent Study
 
 - Lesinger, K., & Tian, D. (2025). Subseasonal root-zone soil moisture forecasting with deep learning. *Nature Communications*, 16, 62761. DOI: [10.1038/s41467-025-62761-3](https://doi.org/10.1038/s41467-025-62761-3).
+

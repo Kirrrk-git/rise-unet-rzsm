@@ -37,7 +37,7 @@ raw ERA5-Land archive ───────────────────�
 production RZSM cube + splits ───────────────> 08_derive_training_normalization.py
 grid + RZSM + atmospheric + S2S + contract ─> 09_build_pilot_manifest_and_cases.py
                                                    └> 10_verify_pilot_ladder_provenance_and_census.py
-optional GPU diagnostics ────────────────────> 11_profile, 12_tiny_overfit, 13_pipeline
+optional GPU diagnostics & preflights ───────> 11_profile, 12_tiny_overfit, 13_pipeline, 14_smoke_preflight, 15_verify_val
 ```
 > [!NOTE]
 > **Pre-Packaged Repository State**:
@@ -62,11 +62,11 @@ optional GPU diagnostics ──────────────────�
 
 ### Stage 2: Raw Reanalysis & S2S Forecast Acquisition
 - **[`02_download_era5_atmospheric.py`](02_download_era5_atmospheric.py)** / **[`run_download_atmospheric.sh`](run_download_atmospheric.sh)**
-  - **Purpose**: Operational downloader for 11 years (2015–2025) of monthly ERA5 surface and pressure-level reanalysis files from Copernicus Climate Data Store (CDS).
+  - **Purpose**: Operational downloader for 11 years (2015–2025) of monthly ERA5 surface and pressure-level reanalysis files from Copernicus CDS API or Google Cloud ARCO-ERA5.
   - **Outputs**: Raw monthly NetCDF files under `raw/era5_atmospheric/` and cloud lake synchronization.
   - **Command**:
     ```bash
-    python scripts/02_download_era5_atmospheric.py --start-year 2015 --end-year 2025
+    python scripts/02_download_era5_atmospheric.py --access arco-gcp --start-year 2022 --end-year 2023 --upload-gcs
     ```
 
 - **[`04_download_all_s2s_production.py`](04_download_all_s2s_production.py)**
@@ -107,8 +107,8 @@ optional GPU diagnostics ──────────────────�
     ```
 
 - **[`07_generate_dataset_splits.py`](07_generate_dataset_splits.py)**
-  - **Purpose**: Partitions the 1,154 cycles into Train (735 cycles, 2015–2021), Validation (210 cycles, 2022–2023), and Sealed Test (209 cycles, 2024–2025) with strict boundary isolation.
-  - **Outputs**: `manifests/dataset_splits.json`
+  - **Purpose**: Partitions the 1,154 cycles into Train (735 cycles, 2015–2021), Validation (210 cycles, 2022–2023), and Sealed Test (209 scheduled census: 202 usable denominator, 7 quarantined) with strict boundary isolation.
+  - **Outputs**: `manifests/splits/train_cases.csv`, `manifests/splits/val_cases.csv`, `manifests/splits/test_cases_sealed.csv`
   - **Command**:
     ```bash
     python scripts/07_generate_dataset_splits.py
@@ -145,26 +145,40 @@ optional GPU diagnostics ──────────────────�
 
 ---
 
-### Stage 7: Hardware Profiling, Overfitting & Training Loop Verification
+### Stage 7: Hardware Profiling, Surrogate Smoke Tests & Genuine Production Preflight
 - **[`11_profile_a0_vram_benchmark.py`](11_profile_a0_vram_benchmark.py)**
-  - **Purpose**: Profiles GPU peak VRAM and step latency across batch sizes $B \in \{11, 22, 33, 44, 55, 66\}$ on Model A0 to determine optimal hardware allocation.
+  - **Purpose**: Profiles genuine Model A0 (`UNET_RZSM`) across Six Technical Pillars: parameter counts ($W_1: 1.627\text{M}, W_2: 1.630\text{M}, W_3: 1.608\text{M}, W_4: 1.611\text{M}$), multi-lead forward pass with decoupled mask, real backward pass, recursive perturbation cascade, VRAM ladder ($B \in \{11, 22, 33, 44, 66\}$), and real model-weight checkpoint roundtrip. Upgraded with fail-closed logic (`--mode certify`).
   - **Command**:
     ```bash
-    python scripts/11_profile_a0_vram_benchmark.py --device cuda:0
+    python scripts/11_profile_a0_vram_benchmark.py --mode certify
     ```
 
 - **[`12_train_a0_tiny_overfit.py`](12_train_a0_tiny_overfit.py)**
-  - **Purpose**: Validates backpropagation, multi-head loss computation, and optimizer convergence by confirming that Model A0 overfits a single batch to near-zero CRPS loss over 40 epochs.
+  - **Purpose**: Surrogate optimization smoke test validating data feeding and loss logging on 2-layer Conv2D surrogate (reclassified universally as surrogate-only).
   - **Command**:
     ```bash
     python scripts/12_train_a0_tiny_overfit.py --epochs 40
     ```
 
 - **[`13_train_a0_pipeline_checkpoint.py`](13_train_a0_pipeline_checkpoint.py)**
-  - **Purpose**: Verifies multi-epoch training mechanics, dynamic recursive prediction caching, and exact bit-for-bit checkpoint save/restore parity.
+  - **Purpose**: Surrogate data pipeline smoke test validating 11-member batch invariant, target broadcasting, and checkpoint serialization for 2-layer surrogate.
   - **Command**:
     ```bash
     python scripts/13_train_a0_pipeline_checkpoint.py --epochs 5 --batch-size 11
+    ```
+
+- **[`14_run_a0_production_smoke_test.py`](14_run_a0_production_smoke_test.py)**
+  - **Purpose**: **Step 21K.3-pre Genuine Model A0 Production Preflight**. Executes 5-stage certification across all 4 leads: genuine backward updates ($\Delta w > 0$), recursive channel semantics and permutation tamper detection, downstream 126-cell masked loss, and full training-state step-2 optimization trajectory roundtrip. Strict fail-closed behavior exits code 1 without GPU/TF.
+  - **Command**:
+    ```bash
+    python scripts/14_run_a0_production_smoke_test.py --mode certify --batch-size 11
+    ```
+
+- **[`15_verify_validation_atmospheric_pipeline.py`](15_verify_validation_atmospheric_pipeline.py)**
+  - **Purpose**: **Validation Preprocessing Preflight Engine**. Verifies that newly mirrored 2022–2023 atmospheric data flows through the exact production preprocessing path across all 210 validation cycles, checking 5 channels, 126 cells, Candidate A shape, and frozen normalization alignment.
+  - **Command**:
+    ```bash
+    python scripts/15_verify_validation_atmospheric_pipeline.py --mode live --data-dir processed/atmospheric/
     ```
 
 ---
@@ -173,14 +187,18 @@ optional GPU diagnostics ──────────────────�
 
 | ID | Script | Run when | Prerequisite |
 | :--: | :--- | :--- | :--- |
-| 01 | [`01_generate_mindanao_masks.py`](01_generate_mindanao_masks.py) | Rebuilding the spatial foundation | Authoritative boundary GeoPackage |
+| 01 | [`01_generate_mindanao_masks.py`](01_generate_mindanao_masks.py) | Rebuilding spatial foundation | GADM boundary GeoPackage |
 | 02 | [`02_download_era5_atmospheric.py`](02_download_era5_atmospheric.py) | Acquiring atmospheric inputs | CDS or ARCO access |
-| 03 | [`03_derive_era5_atmospheric_daily.py`](03_derive_era5_atmospheric_daily.py) | Deriving daily atmospheric predictors | Raw atmospheric files |
-| 04 | [`04_download_all_s2s_production.py`](04_download_all_s2s_production.py) | Acquiring S2S inputs | `06` case calendar and CDS access |
-| 05 | [`05_verify_production_cube_preflight.py`](05_verify_production_cube_preflight.py) | Before replacing the RZSM production cube | ERA5-Land archive and spatial contract |
-| 06 | [`06_build_production_case_calendar.py`](06_build_production_case_calendar.py) | Creating/verifying the case calendar | None |
+| 03 | [`03_derive_era5_atmospheric_daily.py`](03_derive_era5_atmospheric_daily.py) | Deriving daily atmospheric predictors | Raw atmospheric NetCDFs |
+| 04 | [`04_download_all_s2s_production.py`](04_download_all_s2s_production.py) | Acquiring S2S reforecasts | `06` case calendar and CDS access |
+| 05 | [`05_verify_production_cube_preflight.py`](05_verify_production_cube_preflight.py) | Preflight before RZSM cube compilation | ERA5-Land archive and spatial contract |
+| 06 | [`06_build_production_case_calendar.py`](06_build_production_case_calendar.py) | Generating operational case calendar | None |
 | 07 | [`07_generate_dataset_splits.py`](07_generate_dataset_splits.py) | Rebuilding data partitions | `06` case calendar |
 | 08 | [`08_derive_training_normalization.py`](08_derive_training_normalization.py) | Rebuilding normalization bounds | `07` splits and RZSM cube |
 | 09 | [`09_build_pilot_manifest_and_cases.py`](09_build_pilot_manifest_and_cases.py) | Assembling pilot tensors | Grid, RZSM, atmospheric, S2S, normalization |
 | 10 | [`10_verify_pilot_ladder_provenance_and_census.py`](10_verify_pilot_ladder_provenance_and_census.py) | Certifying pilot outputs | `09` pilot cases |
-| 11–13 | GPU diagnostic scripts | Diagnosing prepared model pipelines | GPU-capable TensorFlow and prepared cases |
+| 11 | [`11_profile_a0_vram_benchmark.py`](11_profile_a0_vram_benchmark.py) | Model A0 hardware & VRAM benchmark | GPU-capable TensorFlow, Tesla T4 |
+| 12 | [`12_train_a0_tiny_overfit.py`](12_train_a0_tiny_overfit.py) | Surrogate optimization smoke test | Surrogate pipeline |
+| 13 | [`13_train_a0_pipeline_checkpoint.py`](13_train_a0_pipeline_checkpoint.py) | Surrogate data pipeline smoke test | Surrogate pipeline |
+| 14 | [`14_run_a0_production_smoke_test.py`](14_run_a0_production_smoke_test.py) | **Step 21K.3-pre Production Preflight** | GPU-capable TensorFlow, Model A0 |
+| 15 | [`15_verify_validation_atmospheric_pipeline.py`](15_verify_validation_atmospheric_pipeline.py) | **Validation Atmospheric Preflight** | Mirrored 2022–2023 atmospheric NetCDFs |
