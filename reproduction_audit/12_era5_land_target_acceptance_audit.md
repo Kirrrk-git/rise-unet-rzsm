@@ -53,7 +53,7 @@ In the parent study, Lesinger & Tian (2025) used daily GLEAM v3.8a RZSM (0–100
 
 ## 3. Audit of the Existing GCS ERA5-Land Archive
 
-An audit of the cloud archive at `gs://mindanao-drought-aaron-jalapon-drought-data/raw/era5-land/` was performed:
+An audit of the cloud archive at `gs://rise-unet-rzsm/raw/era5_land/production/` was performed:
 
 ### 3.1 Object Accounting & File Patterns
 * **Total Objects**: 264 NetCDF files (3,936,075,396 bytes, ~3.67 GiB).

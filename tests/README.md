@@ -3,7 +3,7 @@
 
 This directory contains the automated test suite for the **Mindanao Tropical RISE-UNet Adaptation (Track B)**.
 
-All unit tests are self-contained, execute without requiring external network access or cloud credentials, and validate the physical, mathematical, and algorithmic integrity of the pipeline across 93 tests (90 passed, 3 skipped).
+All unit tests are self-contained, execute without requiring external network access or cloud credentials, and validate the physical, mathematical, and algorithmic integrity of the pipeline across 94 tests (91 passed, 3 skipped).
 
 To provide clear operational order and verification hierarchy, the test suite is structured into a **4-Tier Verification Ladder**, advancing from low-level coordinate invariants to full deep learning architectures.
 
@@ -11,7 +11,7 @@ To provide clear operational order and verification hierarchy, the test suite is
 
 ## 1. Quick Start: Running Tests
 
-To run the complete test suite (93 tests across 14 test modules):
+To run the complete test suite (94 tests across 14 test modules):
 
 ```bash
 # From repository root (dl_dm_rzsm_subseasonal_forecast/)
@@ -57,7 +57,7 @@ python -m unittest tests.test_11_tf_dataset tests.test_12_a0_unet tests.test_13_
   └── test_06_target_reconciliation.py          <── Exact mathematical parity of 7-day rolling targets against parent EX29
         ▲
   Tier 1: Spatial & Infrastructure Foundation
-  ├── test_01_masks.py                          <── Candidate A grid (32x48), 126 active cells, GADM geodetic area conservation
+  ├── test_01_cloud_lake.py                     <── Cloud lake artifact resolver (local fallback, GCS URI construction)
   ├── test_02_rzsm.py                           <── Depth-weighted RZSM (0-100 cm), land-aware remapping, active scaling
   └── test_03_temporal.py                       <── Rolling 7-day window formulas & antecedent lags (t0-1d, 7d, 14d)
 ```
@@ -68,7 +68,7 @@ python -m unittest tests.test_11_tf_dataset tests.test_12_a0_unet tests.test_13_
 
 | Tier | Module | Scope / Component Tested | Key Invariants & Assertions Verified |
 | :---: | :--- | :--- | :--- |
-| **Tier 1** | **[`test_01_masks.py`](test_01_masks.py)** | Spatial Grid & Domain Mask | • Bounding box coordinates ($4.00^\circ\text{N} - 11.75^\circ\text{N}, 116.00^\circ\text{E} - 127.75^\circ\text{E}$).<br>• Grid dimension $(32 \times 48)$ with exactly 126 active land cells ($f \ge 0.50$).<br>• Geodetic area conservation ($99,948.76\text{ km}^2$, 86.46% PSA boundary). |
+| **Tier 1** | **[`test_01_cloud_lake.py`](test_01_cloud_lake.py)** | Cloud Lake Integration & Resolution | • Zero-network instant resolution for local codebase artifacts.<br>• Formatted GCS URI construction targeting authoritative lake `gs://rise-unet-rzsm/`.<br>• Clear diagnostic handling when cloud artifacts are unavailable. |
 | **Tier 1** | **[`test_02_rzsm.py`](test_02_rzsm.py)** | Soil Moisture Layering & Remapping | • Root-zone depth-weighted integration of Layers 1, 2, 3 ($0\text{--}100\,\text{cm}$).<br>• Bilinear remapping with nearest-boundary coastal fallback.<br>• Min-max active scaling to $[0, 1]$ and ocean zero-padding. |
 | **Tier 1** | **[`test_03_temporal.py`](test_03_temporal.py)** | Temporal Aggregation & Lags | • Rolling 7-day target aggregation for Leads 1, 2, 3, 4.<br>• Antecedent lag retrieval ($t_0-1\text{d}, t_0-7\text{d}, t_0-14\text{d}$) with zero forward leakage. |
 | **Tier 2** | **[`test_04_s2s.py`](test_04_s2s.py)** | ECMWF S2S Reforecast Decoder | • GRIB2 Section 7 decoding without external binary dependencies.<br>• Ensemble dimension $(M=11)$, bilinear spatial remapping ($1.5^\circ \to 0.25^\circ$).<br>• Strict hard-fail default when forecast lead steps are missing. |
@@ -81,8 +81,7 @@ python -m unittest tests.test_11_tf_dataset tests.test_12_a0_unet tests.test_13_
 | **Tier 4** | **[`test_11_tf_dataset.py`](test_11_tf_dataset.py)** | TensorFlow Data Pipeline | • Ensemble grouping constraint ($B \pmod{11} == 0$).<br>• Target broadcasting: $Y_{Wk} (1, 32, 48, 1) \to (11, 32, 48, 1)$.<br>• Multi-head CRPS loss calculation and checkpoint save/restore parity. |
 | **Tier 4** | **[`test_12_a0_unet.py`](test_12_a0_unet.py)** | Model A0 UNET_RZSM Architecture | • Instantiation across Leads 1, 2, 3, 4 with Candidate A geometry guard ($H, W \pmod{16} == 0$).<br>• Per-lead parameter counts ($W_1$: 1,627,139; $W_2$: 1,630,307; $W_3$: 1,608,131; $W_4$: 1,611,299).<br>• Output shapes `(B, 32, 48, 1)` across 3 deep supervision heads. |
 | **Tier 4** | **[`test_13_production_smoke_preflight.py`](test_13_production_smoke_preflight.py)** | Production Smoke Preflight | • Step 21K.3-pre contracts: 4-lead genuine backward updates ($\Delta w > 0$).<br>• Recursive channel semantics ($W_2$ ch 11, $W_3$ ch 3–4, $W_4$ ch 3–5).<br>• Downstream 126-cell masked loss vs unmasked loss.<br>• Full training-state trajectory roundtrip (optimizer slots, step, epoch, lr). |
-| **Tier 4** | **[`test_14_validation_atmospheric_pipeline.py`](test_14_validation_atmospheric_pipeline.py)** | Validation Atmospheric Preflight | • Complete census of 210 validation cycles (105 in 2022, 105 in 2023).<br>• End-to-end flow through production preprocessing path with 5 channels.<br>• Detection of missing dates, missing channels, and active domain NaNs.<br>• Safe min-max normalization scaling into $[0, 1]$. |
-| **Tier 1** | **[`test_09_cloud_gcs_lake_client.py`](test_09_cloud_gcs_lake_client.py)** | Cloud Lake Integration | • GCS cloud lake bucket connectivity and artifact resolution (gracefully skips offline). |
+| **Tier 4** | **[`test_14_validation_atmospheric_pipeline.py`](test_14_validation_atmospheric_pipeline.py)** | Validation Atmospheric Preflight | • Complete census of 210 validation cycles (105 in 2022, 105 in 2023).<br>• End-to-end flow through production preprocessing path with 5 channels.<br>• Detection of missing dates, missing channels, and active domain NaNs.<br>• Three-way normalization diagnostics (finite math, unclipped range & excursions, and contracted post-clipping). |
 
 ---
 

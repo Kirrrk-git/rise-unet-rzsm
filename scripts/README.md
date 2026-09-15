@@ -3,7 +3,7 @@
 
 This directory contains the production command-line scripts for the **Mindanao Tropical RISE-UNet Adaptation (Track B)**.
 
-The numeric prefix is a stable **catalog identifier**, matching the repository's numbered notebooks and audits. It is not a promise that scripts `01` through `13` can always be run as one uninterrupted sequence: some scripts are optional, some inputs are pre-packaged, and the ERA5 and S2S acquisition branches can run independently. Follow the dependency workflows below rather than guessing from a historical phase or step identifier.
+The numeric prefix is a stable **catalog identifier**, matching the repository's numbered notebooks and audits. It is not a promise that scripts `01` through `15` can always be run as one uninterrupted sequence: some scripts are optional, some inputs are pre-packaged, and the ERA5 and S2S acquisition branches can run independently. Follow the dependency workflows below rather than guessing from a historical phase or step identifier.
 
 ---
 
@@ -21,7 +21,7 @@ The numbered test modules are arranged as a verification ladder, but are intenti
 
 ### Use the committed/pre-packaged artifacts
 
-The repository already contains the artifacts needed for the certification and smoke-test workflows. Start with the test suite above, then use only the diagnostic or training script that matches the question being investigated. Scripts `11`–`13` require GPU-capable TensorFlow and are not normal setup steps.
+The repository already contains the artifacts needed for the certification and smoke-test workflows. Start with the test suite above, then use only the diagnostic or training script that matches the question being investigated. Diagnostic and preflight scripts `11`–`15` require GPU-capable TensorFlow or specific data partitions and are not normal setup steps.
 
 ### Rebuild data artifacts from raw inputs
 

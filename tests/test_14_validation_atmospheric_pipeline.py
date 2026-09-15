@@ -100,6 +100,22 @@ class TestValidationAtmosphericPipeline(unittest.TestCase):
         self.assertEqual(res["status"], "FAIL")
         self.assertEqual(len(res["missing_dates"]), 105)
 
+    def test_normalization_diagnostics_unclipped_excursions(self):
+        """Verifies three-way normalization audit when validation values exceed training range."""
+        excursion_ds = self.mock_ds.copy(deep=True)
+        # Inject tropical heatwave value exceeding training max (tmax max = 312.0 K)
+        r, c = np.where(self.eval_mask)
+        excursion_ds["tmax"].values[0, r[0], c[0]] = 318.0  # > 312.0 K
+        res = verify_atmospheric_pipeline(
+            excursion_ds, self.val_df, self.norm_contract, self.eval_mask, verbose=False
+        )
+        self.assertEqual(res["status"], "PASS")
+        self.assertTrue(res["norm_denominators_valid"])
+        self.assertTrue(res["unclipped_finite"])
+        self.assertGreater(res["unclipped_excursions_count"], 0)
+        self.assertGreater(res["unclipped_global_max"], 1.0)
+        self.assertTrue(res["contract_clipped_in_unit_range"])
+
 
 if __name__ == "__main__":
     unittest.main()

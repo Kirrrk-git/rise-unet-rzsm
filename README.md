@@ -4,7 +4,7 @@
 [![Scientific Certification: 3-Tier Passing](https://img.shields.io/badge/Certification-3--Tier%20Pass-brightgreen.svg)](reproduction_audit/OPERATIONAL_EXECUTION_MATRIX_AND_ARTIFACT_REGISTRY.md)
 [![Target Grid: Candidate A (32x48)](https://img.shields.io/badge/Grid-Candidate%20A%20(32%C3%9748)-blue.svg)](contracts/A0/mindanao_a0_production_contract.yaml)
 [![Parent Reference: Nature Comms 2025](https://img.shields.io/badge/Parent%20Study-Lesinger%20%26%20Tian%20(2025)-orange.svg)](https://doi.org/10.1038/s41467-025-62761-3)
-[![Test Suite: 93 Tests (90 Passed, 3 Skipped)](https://img.shields.io/badge/Tests-90%20Passed%20%7C%203%20Skipped-success.svg)](tests/)
+[![Test Suite: 94 Tests (91 Passed, 3 Skipped)](https://img.shields.io/badge/Tests-91%20Passed%20%7C%203%20Skipped-success.svg)](tests/)
 
 ---
 
@@ -107,7 +107,7 @@ dl_dm_rzsm_subseasonal_forecast/
 All unit tests are automated and execute from the repository root:
 
 ```bash
-# Run the complete test suite (93 tests: 90 passed, 3 skipped)
+# Run the complete test suite (94 tests: 91 passed, 3 skipped)
 python -m unittest discover -s tests -p "test_*.py"
 ```
 

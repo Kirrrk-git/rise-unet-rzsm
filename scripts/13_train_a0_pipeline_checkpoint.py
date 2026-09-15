@@ -275,7 +275,7 @@ def run_pipeline_test(
     if sync_gcs:
         try:
             from google.cloud import storage
-            client = storage.Client(project="mindanao-drought-aaron-jalapon")
+            client = storage.Client()
             bucket = client.bucket(gcs_bucket_name)
 
             for ckpt_file in checkpoint_dir.glob("a0_test_*"):

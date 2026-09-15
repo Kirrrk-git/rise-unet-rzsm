@@ -83,7 +83,7 @@ With the 2015–2025 archive verified:
   * Retrieved `era5-land-2014-12-antecedent.nc` (6,185,331 bytes; SHA-256 `29292cf600a398ac61eabe111150e1aa3acf0f17356fb2da6a02c1dc92cd64fc`).
   * Time Coverage: Exactly 480 hourly timesteps (12 Dec 2014 00:00 to 31 Dec 2014 23:00 UTC).
   * Variable Coverage: All 3 volumetric soil water layers (`swvl1`, `swvl2`, `swvl3`) present on the $0.10^\circ$ grid ($[116.5^\circ, 4.0^\circ] \to [127.5^\circ, 11.0^\circ]$).
-  * Storage: Uploaded to `gs://rise-unet-rzsm/raw/era5_land/production/era5-land-2014-12-antecedent.nc` and `gs://mindanao-drought-aaron-jalapon-drought-data/raw/era5-land/`.
+  * Storage: Uploaded to authoritative production bucket `gs://rise-unet-rzsm/raw/era5_land/production/era5-land-2014-12-antecedent.nc`.
   * Archive Closure: Full 2015–2025 archive synchronized via cloud-to-cloud rsync (511.2 MiB/s). The production bucket now holds **265 synchronized ERA5-Land NetCDF files covering the 12 Dec 2014–31 Dec 2025 support window** (3.68 GiB), achieving 100% gapless coverage from 12 December 2014 to 31 December 2025.
 
 ---

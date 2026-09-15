@@ -257,7 +257,7 @@ The artifact registry is an inventory and status index; it must never contradict
 - [x] **Step 21B.2**: Ingest, verify, and synchronize missing 2014 antecedent window.
   * Antecedent Scope: Strictly 12 December 2014 00:00 to 31 December 2014 23:00 UTC (20 calendar days, 480 hourly timesteps), resolving the EX29 trailing rolling window requirement for unclipped 1 January 2015 initiation (provisional on final case calendar). Full-year 2014 data excluded. [PASSED: 2026-09-11]
   * Retrieval & Ingestion: Retrieved `era5-land-2014-12-antecedent.nc` (6,185,331 bytes, SHA-256 `29292cf600a398ac61eabe111150e1aa3acf0f17356fb2da6a02c1dc92cd64fc`) covering all 3 volumetric soil moisture layers (`swvl1`, `swvl2`, `swvl3`) on the exact $0.10^\circ$ coordinate grid ($4.0^\circ\text{--}11.0^\circ\text{N} \times 116.5^\circ\text{--}127.5^\circ\text{E}$).
-  * Production GCS Synchronization: Uploaded to primary thesis bucket `gs://rise-unet-rzsm/raw/era5_land/production/era5-land-2014-12-antecedent.nc` and backup data bucket `gs://mindanao-drought-aaron-jalapon-drought-data/raw/era5-land/`. Synchronized the full 2015–2025 archive (264 NetCDF files, 3.67 GiB at 511.2 MiB/s) to establish a 100% complete, self-contained archive of **265 synchronized ERA5-Land NetCDF files covering the 12 Dec 2014–31 Dec 2025 support window** in `gs://rise-unet-rzsm/raw/era5_land/production/`.
+  * Production GCS Synchronization: Uploaded to primary thesis bucket `gs://rise-unet-rzsm/raw/era5_land/production/era5-land-2014-12-antecedent.nc`. Synchronized the full 2015–2025 archive (264 NetCDF files, 3.67 GiB at 511.2 MiB/s) to establish a 100% complete, self-contained archive of **265 synchronized ERA5-Land NetCDF files covering the 12 Dec 2014–31 Dec 2025 support window** in `gs://rise-unet-rzsm/raw/era5_land/production/`.
   * Pass Criterion: Certified PASS on antecedent window ingestion, variable completeness, and GCS synchronization.
 - [x] **Step 21B.3**: Execute pilot RZSM depth-weighted integration and 0.25° land-aware linear spatial remapping.
   * Formulation: Calculate $\text{RZSM}_{0-100} = 0.07\,\text{swvl}_1 + 0.21\,\text{swvl}_2 + 0.72\,\text{swvl}_3$. [PASSED: 2026-09-11]
@@ -846,6 +846,6 @@ from google.colab import auth
 auth.authenticate_user()
 from google.cloud import storage
 
-client = storage.Client(project="mindanao-drought-aaron-jalapon")
+client = storage.Client()
 bucket = client.bucket("rise-unet-rzsm")
 ```

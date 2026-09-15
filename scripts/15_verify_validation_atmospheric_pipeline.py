@@ -120,7 +120,12 @@ def verify_atmospheric_pipeline(
         "missing_dates": [],
         "missing_vars": [],
         "nan_inf_count": 0,
-        "out_of_bounds_clipped": 0,
+        "norm_denominators_valid": True,
+        "unclipped_finite": True,
+        "unclipped_global_min": float("inf"),
+        "unclipped_global_max": float("-inf"),
+        "unclipped_excursions_count": 0,
+        "contract_clipped_in_unit_range": True,
         "shape_conforming": True,
         "channel_ordering_correct": True,
         "status": "FAIL",
@@ -171,14 +176,37 @@ def verify_atmospheric_pipeline(
             if not np.all(np.isfinite(active_vals)):
                 results["nan_inf_count"] += int((~np.isfinite(active_vals)).sum())
 
-            # Normalization scaling check
+            # Normalization scaling audit
             p = atm_params[v]
             min_val, max_val = float(p["min"]), float(p["max"])
-            scaled = scale_channel(arr, min_val, max_val, clip=True)
+            denom = max_val - min_val
+            if denom <= 0:
+                results["norm_denominators_valid"] = False
+                if verbose:
+                    print(f"[FAIL] Degenerate normalization denominator for {v}: max ({max_val}) <= min ({min_val})")
+                return results
 
-            # Check for clipping occurrences
-            if np.any(arr[eval_mask] < min_val) or np.any(arr[eval_mask] > max_val):
-                results["out_of_bounds_clipped"] += 1
+            # Check A: Unclipped scaling and non-zero division
+            unclipped = (active_vals - min_val) / denom
+            if not np.all(np.isfinite(unclipped)):
+                results["unclipped_finite"] = False
+
+            # Check B: Empirical unclipped range & out-of-training-bounds excursions
+            u_min = float(np.min(unclipped))
+            u_max = float(np.max(unclipped))
+            if u_min < results["unclipped_global_min"]:
+                results["unclipped_global_min"] = u_min
+            if u_max > results["unclipped_global_max"]:
+                results["unclipped_global_max"] = u_max
+
+            excursions = int(np.sum((unclipped < 0.0) | (unclipped > 1.0)))
+            results["unclipped_excursions_count"] += excursions
+
+            # Check C: Contracted clipping per normalization_parameters.yaml
+            scaled = scale_channel(arr, min_val, max_val, clip=True)
+            active_scaled = scaled[eval_mask]
+            if np.any(active_scaled < 0.0) or np.any(active_scaled > 1.0):
+                results["contract_clipped_in_unit_range"] = False
 
             slices.append(scaled)
 
@@ -191,6 +219,11 @@ def verify_atmospheric_pipeline(
     if results["nan_inf_count"] > 0:
         if verbose:
             print(f"[FAIL] Detected {results['nan_inf_count']} NaN/Inf values across evaluation cells.")
+        return results
+
+    if not results["norm_denominators_valid"] or not results["unclipped_finite"]:
+        if verbose:
+            print("[FAIL] Normalization failed mathematical finiteness checks.")
         return results
 
     results["status"] = "PASS"
@@ -254,7 +287,11 @@ def main():
     print(f"  NaN / Inf Occurrences:       {res['nan_inf_count']}")
     print(f"  Spatial Grid Conformity:     {'PASS' if res['shape_conforming'] else 'FAIL'}")
     print(f"  Channel Ordering Invariant:  {'PASS' if res['channel_ordering_correct'] else 'FAIL'}")
-    print(f"  Out-of-Bounds Clipped Cases: {res['out_of_bounds_clipped']}")
+    print("  Normalization Diagnostics (Three-Way Audit):")
+    print(f"    [Check A] Training Parameters & Finite Math:  {'PASS' if res['norm_denominators_valid'] and res['unclipped_finite'] else 'FAIL'}")
+    print(f"    [Check B] Unclipped Validation Range:         [{res['unclipped_global_min']:.4f}, {res['unclipped_global_max']:.4f}]")
+    print(f"              Unclipped Bounds Excursions:        {res['unclipped_excursions_count']} cell-observations")
+    print(f"    [Check C] Contracted Post-Clipping [0, 1]:    {'PASS' if res['contract_clipped_in_unit_range'] else 'FAIL'}")
     print("--------------------------------------------------------------------------------")
 
     if res["status"] == "PASS":

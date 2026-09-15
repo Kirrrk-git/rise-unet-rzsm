@@ -7,7 +7,7 @@
 **Parent Baseline**: Lesinger & Tian (2025), *Nature Communications*, DOI: [`10.1038/s41467-025-62761-3`](https://doi.org/10.1038/s41467-025-62761-3)  
 **Target Model**: **Mindanao Model A0** (Adapted from EX29 Recursive Hybrid RISE-UNet Baseline)  
 **Document Classification**: Living Operational Matrix, Comprehensive Directory Registry & Master File Map  
-**Last Updated**: 2026-09-14 (Step 21K.1 Case Calendar & Step 21K.2 Dataset Splits / Normalization Parameters Certification)  
+**Last Updated**: 2026-09-16 (Step 21K.3-pre Preflight, Atmospheric Pipeline Verification & Consolidated GCS Lake)  
 
 ---
 
@@ -109,7 +109,7 @@ The following matrix governs the lifecycle of the Mindanao regional adaptation f
 | **Sub-Phase 21H** | Surrogate TensorFlow Data Pipeline, Ensemble Grouping & Checkpoint Smoke Test | SURROGATE SMOKE TEST ONLY. Validated data feeding, 11-member batching, target broadcasting, and checkpoint saving on 2-layer Conv2D surrogate (did NOT instantiate genuine UNET_RZSM) | `[SURROGATE_ONLY]` | Certified in [`20_tf_dataset_pipeline_and_checkpoint_audit.md`](20_tf_dataset_pipeline_and_checkpoint_audit.md); Module `src/data/tf_dataset.py`; Automated test suite `tests/test_11_tf_dataset.py` (16/16 passing); Pipeline test script `scripts/13_train_a0_pipeline_checkpoint.py`; Interactive Colab notebook `notebooks/08_mindanao_a0_tf_pipeline_and_checkpoint.ipynb`; Checkpoints in `checkpoints/a0_pipeline_test/` |
 | **Sub-Phase 21I** | Surrogate Tiny-Data Optimization Smoke Test (8 Cases, 40 Epochs) | SURROGATE SMOKE TEST ONLY. 2-layer Conv2D surrogate on unnormalized inputs; 99% loss drop was an unnormalized scale artifact, NOT proof of genuine RISE-UNet capacity or overfit; reclassified universally as surrogate smoke test | `[SURROGATE_ONLY]` | Certified in [`22_a0_tiny_overfit_gradient_audit.md`](22_a0_tiny_overfit_gradient_audit.md); Script `scripts/12_train_a0_tiny_overfit.py`; Log `logs/a0_tiny_overfit_execution.json`; Checkpoint `checkpoints/a0_tiny_overfit/` |
 | **Sub-Phase 21J** | Genuine Model A0 (`UNET_RZSM`) Hardware Profiling & VRAM Feasibility Benchmark | Hardware Feasibility & Production Contract Gate: Genuine 1.63M-parameter nested U-Net across Six Technical Pillars (21J.1 architecture: 1,627,139 W1 / 1,630,307 W2 params, 298 tensors, 3 deep supervision heads; 21J.2 multi-lead forward with evaluation-domain postprocessing mask $0.00 \times 10^0$; 21J.3 backpropagation with finite gradients under representative MAE workload; 21J.4 4-lead cascade with active perturbation propagation; 21J.5 VRAM ladder $B \in \{11, 22, 33, 44, 66\}$ from $2.08\text{ GB}$ to $10.57\text{ GB}$; 21J.6 production contract freeze & real weight roundtrip parity). Fail-closed gate enforced in benchmark code | `[HISTORICAL_GPU_VERIFIED_CURRENT_CODE_REVALIDATION_PENDING]` | Certified in [`21_vram_and_hardware_profiling_audit.md`](21_vram_and_hardware_profiling_audit.md); Interactive Colab notebook `notebooks/09_mindanao_a0_vram_profiling.ipynb`; Benchmark script `scripts/11_profile_a0_vram_benchmark.py`; Model factory `src/models/a0_unet.py`; Unit test `tests/test_12_a0_unet.py`; Physical GPU telemetry artifact `logs/A0_gpu_benchmark.json` |
-| **Sub-Phase 21K** | Production Case Ingestion, Splits, Normalization & Baseline Training | 21K.1 Usable Case Calendar: 1,154 cycles indexed via ECMWF CY48R1 schedule-referenced forecast origin calendar; 21K.2 Dataset Splits (735 Train, 210 Val, 209 Scheduled Test Census: 202 Usable Sealed Test Denominator, 7 Quarantined) & Training Normalization Contract (`contracts/A0/normalization_parameters.yaml`) frozen strictly from 2015–2021; Dynamic tensor normalization actively bound in `case_builder.py`; 93 unit tests passing (90 passed, 3 skipped) | `[IN PROGRESS]` (Steps 21K.1 & 21K.2: `[PASS / VERIFIED / ACCEPTED]`; 21K.3: `[NOT_YET_AUTHORIZED]`) | Certified in [`18_production_case_calendar_1154_cycles_audit.md`](18_production_case_calendar_1154_cycles_audit.md) and [`19_dataset_splits_and_normalization_contract_audit.md`](19_dataset_splits_and_normalization_contract_audit.md); Calendar in `manifests/`; Splits in `manifests/splits/`; Contracts in `contracts/A0/`; Verification Status in `contracts/A0/VERIFICATION_STATUS.yaml` |
+| **Sub-Phase 21K** | Production Case Ingestion, Splits, Normalization & Baseline Training | 21K.1 Usable Case Calendar: 1,154 cycles indexed via ECMWF CY48R1 schedule-referenced forecast origin calendar; 21K.2 Dataset Splits (735 Train, 210 Val, 209 Scheduled Test Census: 202 Usable Sealed Test Denominator, 7 Quarantined) & Training Normalization Contract (`contracts/A0/normalization_parameters.yaml`) frozen strictly from 2015–2021; Dynamic tensor normalization actively bound in `case_builder.py`; 94 unit tests passing (91 passed, 3 skipped) | `[IN PROGRESS]` (Steps 21K.1 & 21K.2: `[PASS / VERIFIED / ACCEPTED]`; 21K.3: `[NOT_YET_AUTHORIZED]`) | Certified in [`18_production_case_calendar_1154_cycles_audit.md`](18_production_case_calendar_1154_cycles_audit.md) and [`19_dataset_splits_and_normalization_contract_audit.md`](19_dataset_splits_and_normalization_contract_audit.md); Calendar in `manifests/`; Splits in `manifests/splits/`; Contracts in `contracts/A0/`; Verification Status in `contracts/A0/VERIFICATION_STATUS.yaml` |
 | **Step 21K.3-pre** | Genuine Production-Path Model A0 Training Smoke Test across all 4 Leads | 5-Stage Preflight: 4-lead genuine backward updates (Cin in [11, 12, 5, 6]), downstream 126-cell masked loss, recursive channel ordering & tamper detection, and full training-state step-2 trajectory roundtrip | `[IMPLEMENTED / LOCAL CONTRACT TESTS PASS / GPU EXECUTION PENDING]` | Standalone preflight script `scripts/14_run_a0_production_smoke_test.py`; Contract test `tests/test_13_production_smoke_preflight.py`; Production contract in `contracts/A0/mindanao_a0_production_contract.yaml` |
 | **Phase 22** | Reference Comparators Track (B0, B1, B2) | B0 Climatology, B1 Persistence, B2 XGBoost | `[PLANNED]` | Comparative Baseline Evaluation Report |
 | **Phase 23** | Recursive Degradation Diagnostic | Error Compounding: Recursive vs Oracle vs Direct | `[PLANNED]` | `GATE2_RECURSIVE_DEGRADATION_DIAGNOSTIC.md` |
@@ -207,20 +207,22 @@ dl_dm_rzsm_subseasonal_forecast/
 │   ├── 21_vram_and_hardware_profiling_audit.md
 │   └── 22_a0_tiny_overfit_gradient_audit.md
 ├── scripts/
-│   ├── 09_build_pilot_manifest_and_cases.py
-│   ├── 06_build_production_case_calendar.py
-│   ├── 08_derive_training_normalization.py
-│   ├── 04_download_all_s2s_production.py
-│   ├── 02_download_era5_atmospheric.py
-│   ├── 07_generate_dataset_splits.py
 │   ├── 01_generate_mindanao_masks.py
+│   ├── 02_download_era5_atmospheric.py
+│   ├── 03_derive_era5_atmospheric_daily.py
+│   ├── 04_download_all_s2s_production.py
+│   ├── 05_verify_production_cube_preflight.py
+│   ├── 06_build_production_case_calendar.py
+│   ├── 07_generate_dataset_splits.py
+│   ├── 08_derive_training_normalization.py
+│   ├── 09_build_pilot_manifest_and_cases.py
+│   ├── 10_verify_pilot_ladder_provenance_and_census.py
 │   ├── 11_profile_a0_vram_benchmark.py
-│   ├── run_download_atmospheric.sh
 │   ├── 12_train_a0_tiny_overfit.py
 │   ├── 13_train_a0_pipeline_checkpoint.py
-│   ├── 03_derive_era5_atmospheric_daily.py
-│   ├── 10_verify_pilot_ladder_provenance_and_census.py
-│   └── 05_verify_production_cube_preflight.py
+│   ├── 14_run_a0_production_smoke_test.py
+│   ├── 15_verify_validation_atmospheric_pipeline.py
+│   └── run_download_atmospheric.sh
 ├── src/
 │   ├── __init__.py
 │   ├── data/
@@ -237,18 +239,20 @@ dl_dm_rzsm_subseasonal_forecast/
 │       └── a0_unet.py
 ├── tests/
 │   ├── __init__.py
-│   ├── test_12_a0_unet.py
-│   ├── test_07_case_calendar.py
-│   ├── test_10_case_builder.py
 │   ├── test_01_cloud_lake.py
+│   ├── test_02_rzsm.py
+│   ├── test_03_temporal.py
+│   ├── test_04_s2s.py
 │   ├── test_05_compile_cube.py
+│   ├── test_06_target_reconciliation.py
+│   ├── test_07_case_calendar.py
 │   ├── test_08_normalization_and_splits.py
 │   ├── test_09_pilot_ladder.py
-│   ├── test_02_rzsm.py
-│   ├── test_04_s2s.py
-│   ├── test_06_target_reconciliation.py
-│   ├── test_03_temporal.py
-│   └── test_11_tf_dataset.py
+│   ├── test_10_case_builder.py
+│   ├── test_11_tf_dataset.py
+│   ├── test_12_a0_unet.py
+│   ├── test_13_production_smoke_preflight.py
+│   └── test_14_validation_atmospheric_pipeline.py
 ├── logs/
 │   ├── a0_tiny_overfit_execution.json
 │   └── A0_gpu_benchmark.json
@@ -416,14 +420,14 @@ dl_dm_rzsm_subseasonal_forecast/
 
 ### 3.8 `tests/` (Automated Unit Test Suite)
 
-All 93 automated unit tests are executed with `python -m unittest discover -s tests -p "test_*.py"`. **All 90 applicable tests passed (3 skipped: 1 offline GCS network, 2 TF-gated graph preflight tests) with zero failures and zero errors (29.2s total runtime):**
+All 94 automated unit tests are executed with `python -m unittest discover -s tests -p "test_*.py"`. **All 91 applicable tests passed (3 skipped: 1 offline GCS network, 2 TF-gated graph preflight tests) with zero failures and zero errors (14.3s total runtime):**
 
 > [!NOTE]
 > All unit tests conform to the strict zero-failure baseline. Skipped tests represent deliberate runtime environment constraints (offline GCS lake connectivity, missing physical GPU for TensorFlow graph operations), preserving fail-closed test architecture.
 
 | File Link | Test Count | Key Test Assertions | Execution Time / Status |
 | :--- | :---: | :--- | :---: |
-| [`test_01_grid_and_masks.py`](../tests/test_01_grid_and_masks.py) | 5 | 1. Candidate A grid dimensions ($32 \times 48$) and 0.25° spacing.<br>2. Geodetic area conservation ($99,948.76\text{ km}^2$, $0.0000\%$ error).<br>3. Exact 126-cell binary evaluation mask count.<br>4. Fractional boundary coverage consistency ($f \in [0.0, 1.0]$).<br>5. 16-pooling divisibility compatibility ($32 \pmod{16} = 0, 48 \pmod{16} = 0$). | 0.8s / `[PASS]` |
+| [`test_01_cloud_lake.py`](../tests/test_01_cloud_lake.py) | 1 | 1. Local codebase artifact resolution with zero network dependency.<br>2. Formatted GCS URI construction targeting authoritative lake `gs://rise-unet-rzsm/`.<br>3. Informative error handling when cloud artifacts are unavailable. | 0.01s / `[PASS]` |
 | [`test_08_normalization_and_splits.py`](../tests/test_08_normalization_and_splits.py) | 8 | 1. Split disjointness (zero date overlap across TRAIN, VAL, TEST).<br>2. Split completeness (735 Train + 210 Val + 209 Test = 1,154 total).<br>3. Strict chronological ordering without time inversion.<br>4. Sealed test quarantine integrity (202 queued + 7 out-of-bounds).<br>5. Normalization YAML contract validity and $[0, 1]$ bounds.<br>6. Production training contract schema validity.<br>7. Executable normalization tensor-builder contract test proving active consumption, $[0.0, 1.0]$ bounds, and $0.0$ ocean buffer. | 0.25s / `[PASS]` / `[VERIFIED]` |
 | [`test_07_case_calendar.py`](../tests/test_07_case_calendar.py) | 4 | 1. Exactly 1,154 operational cycles indexed monotonically.<br>2. Strict partition splits (735 Train, 210 Val, 209 Sealed Test).<br>3. Deterministic lag arithmetic ($-1\text{d}, -7\text{d}, -14\text{d}$) and target offsets ($+6\text{d}, +13\text{d}, +20\text{d}, +27\text{d}$).<br>4. Isolation of exactly 7 boundary-clipped cycles in Dec 2025. | 0.04s / `[PASS]` / `[VERIFIED]` |
 | [`test_05_compile_cube.py`](../tests/test_05_compile_cube.py) | 5 | 1. End-to-end multi-year pipeline execution and census certification.<br>2. Out-of-sample temporal leakage isolation ($\ge 2022$ cannot alter training bounds).<br>3. `FastLandAwareRemapper` exact numerical agreement on tested data (observed maximum absolute difference = 0.0; test tolerance = 1e-6) with reference remapper.<br>4. 2014 antecedent support file real data processing (20 days, finite on 126 cells, 0 on 1410 buffer).<br>5. Partial archive compilation pipeline orchestration. | 4.8s / `[PASS]` |
@@ -436,8 +440,7 @@ All 93 automated unit tests are executed with `python -m unittest discover -s te
 | [`test_11_tf_dataset.py`](../tests/test_11_tf_dataset.py) | 16 | 1. Batch size exact multiple of 11 enforcement.<br>2. Member realization order preservation.<br>3. Case-level shuffle integrity (members stay clustered).<br>4. Target broadcasting invariance ($0.00 \times 10^0$).<br>5. Multi-head output dictionary matching UNET_RZSM heads.<br>6. Checkpoint save, restore, and state parity. | 1.5s / `[PASS]` / `[VERIFIED]` |
 | [`test_12_a0_unet.py`](../tests/test_12_a0_unet.py) | 6 | 1. Grid dimensions & Candidate A geometry guard (divisibility by 16).<br>2. Multi-lead channel schedule $[11, 12, 5, 6]$.<br>3. Invalid lead rejection.<br>4. Expected per-lead parameter counts ($W_1=1,627,139; W_2=1,630,307; W_3=1,608,131; W_4=1,611,299$).<br>5. Conditional TensorFlow-gated genuine architecture instantiation, 298 weight tensors, 3 deep supervision heads.<br>6. Multi-lead input shapes, forward pass execution, and output finiteness. | 0.9s / `[PASS]` / `[VERIFIED]` |
 | [`test_13_production_smoke_preflight.py`](../tests/test_13_production_smoke_preflight.py) | 4 | 1. Recursive channel semantics and exact index placement across Leads 2, 3, 4.<br>2. Recursive channel tamper and order scrambling detection.<br>3. Full training-state checkpoint serialization and restoration (model weights, optimizer weights, epoch, step).<br>4. 4-Lead GradientTape backpropagation and parameter update with evaluation domain masking. | 0.05s / `[PASS]` |
-| [`test_14_validation_atmospheric_pipeline.py`](../tests/test_14_validation_atmospheric_pipeline.py) | 6 | 1. Validation manifest census (210 cases, 105 in 2022, 105 in 2023).<br>2. Evaluation mask geometry and active cell count.<br>3. Clean pipeline flow across all 210 validation dates.<br>4. Missing variable hard-failure detection.<br>5. Active cell NaN/Inf injection detection.<br>6. Missing date detection. | 4.2s / `[PASS]` |
-| [`test_09_cloud_gcs_lake_client.py`](../tests/test_09_cloud_gcs_lake_client.py) | 1 | 1. GCS cloud lake bucket connectivity and artifact resolution (gracefully skips in offline local test environment). | 0.01s / `[SKIPPED OFFLINE]` |
+| [`test_14_validation_atmospheric_pipeline.py`](../tests/test_14_validation_atmospheric_pipeline.py) | 7 | 1. Validation manifest census (210 cases, 105 in 2022, 105 in 2023).<br>2. Evaluation mask geometry and active cell count.<br>3. Clean pipeline flow across all 210 validation dates.<br>4. Missing variable hard-failure detection.<br>5. Active cell NaN/Inf injection detection.<br>6. Missing date detection.<br>7. Three-way normalization diagnostics (finite math, unclipped range & excursions, and contracted post-clipping). | 2.8s / `[PASS]` |
 
 
 
