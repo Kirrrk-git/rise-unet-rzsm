@@ -1,0 +1,25 @@
+{
+  "timestamp": "2026-09-15T19:56:43.900443+00:00",
+  "target_gate": "Pre-Production Gate 1 (Validation Atmospheric Pipeline)",
+  "git_commit": "b24ef57e889f44f92f3af89524eef1ce8cb4c4d8",
+  "mode": "mock",
+  "data_dir": "processed/atmospheric/",
+  "status": "PASS",
+  "dates_checked": 210,
+  "missing_dates_count": 0,
+  "missing_dates": [],
+  "missing_vars_count": 0,
+  "missing_vars": [],
+  "nan_inf_count": 0,
+  "shape_conforming": true,
+  "channel_ordering_correct": true,
+  "normalization_diagnostics": {
+    "check_a_parameters_finite": true,
+    "check_b_unclipped_global_min": 2.6855468604480848e-05,
+    "check_b_unclipped_global_max": 0.9999536275863647,
+    "check_b_unclipped_excursions_count": 0,
+    "check_c_contract_clipped_in_unit_range": true
+  },
+  "candidate_files": "synthetic_210_cycles",
+  "active_evaluation_cells": 126
+}

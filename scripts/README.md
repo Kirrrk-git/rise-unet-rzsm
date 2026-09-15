@@ -81,11 +81,15 @@ optional GPU diagnostics & preflights ───────> 11_profile, 12_tiny
 
 ### Stage 3: Observation Harmonization & Preflight Verification
 - **[`03_derive_era5_atmospheric_daily.py`](03_derive_era5_atmospheric_daily.py)**
-  - **Purpose**: Ingests raw hourly ERA5 NetCDFs, computes daily diurnal aggregates (mean $T_{2m}$, $T_{max}$, $D_{2m}$, total precipitation $P$, and $200\,\text{hPa}$ geopotential height $Z_{200}$), and crops to the Mindanao Candidate A grid.
-  - **Outputs**: `processed/atmospheric/pilot/era5_atmospheric_pilot_2015_01.nc`
+  - **Purpose**: Ingests raw hourly ERA5 NetCDFs, derives 5 physical channels ($T_{\max}$, $\Delta T$, $q$ via Bolton 1980, $\text{PWAT}$, and $Z_{200}/g_0$), and asserts Candidate A grid conformity ($32 \times 48$) and 126-cell land mask finiteness (0 NaNs/Infs). Supports standalone January 2015 pilot and multi-year batch derivation (e.g., 2022–2023 for validation pipeline) with optional GCS upload.
+  - **Outputs**: `processed/atmospheric/pilot/era5_atmospheric_pilot_2015_01.nc` (pilot) or `processed/atmospheric/era5_atmospheric_<YYYY>_<MM>.nc` (batch).
   - **Command**:
     ```bash
-    python scripts/03_derive_era5_atmospheric_daily.py
+    # Standalone pilot mode
+    python scripts/03_derive_era5_atmospheric_daily.py --pilot
+
+    # Batch derivation mode (2022-2023)
+    python scripts/03_derive_era5_atmospheric_daily.py --start-year 2022 --end-year 2023 --upload-gcs
     ```
 
 - **[`05_verify_production_cube_preflight.py`](05_verify_production_cube_preflight.py)**
@@ -175,10 +179,10 @@ optional GPU diagnostics & preflights ───────> 11_profile, 12_tiny
     ```
 
 - **[`15_verify_validation_atmospheric_pipeline.py`](15_verify_validation_atmospheric_pipeline.py)**
-  - **Purpose**: **Validation Preprocessing Preflight Engine**. Verifies that newly mirrored 2022–2023 atmospheric data flows through the exact production preprocessing path across all 210 validation cycles, checking 5 channels, 126 cells, Candidate A shape, and frozen normalization alignment.
+  - **Purpose**: **Authoritative Gate 1 Certification Engine**. Verifies that 2022–2023 atmospheric data flows through the exact production preprocessing path across all 210 validation cycles, checking 5 channels, 126 cells, Candidate A shape, three-way normalization audit (Checks A, B, C), and exports execution telemetry. Serves as authoritative source of truth for Pre-Production Gate 1 (invoked via `notebooks/10_mindanao_validation_atmospheric_pipeline.ipynb`).
   - **Command**:
     ```bash
-    python scripts/15_verify_validation_atmospheric_pipeline.py --mode live --data-dir processed/atmospheric/
+    python scripts/15_verify_validation_atmospheric_pipeline.py --mode live --data-dir processed/atmospheric/ --export-json logs/gate1_validation_atmospheric_execution.json
     ```
 
 ---

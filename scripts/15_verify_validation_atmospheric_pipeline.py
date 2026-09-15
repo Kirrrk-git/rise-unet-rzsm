@@ -19,7 +19,10 @@ Usage:
 """
 
 import argparse
+import json
+import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Any
 import numpy as np
@@ -40,6 +43,17 @@ from src.data.case_builder import (
 EXPECTED_ATM_VARS = ["pwat", "spfh", "tmax", "diff_temp", "hgt_pres"]
 EXPECTED_GRID_SHAPE = (32, 48)
 EXPECTED_ACTIVE_CELLS = 126
+
+
+def get_git_commit() -> str:
+    """Retrieves current git commit hash."""
+    try:
+        r = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, cwd=str(REPO_ROOT))
+        if r.returncode == 0:
+            return r.stdout.strip()
+    except Exception:
+        pass
+    return "UNKNOWN"
 
 
 def load_validation_manifest(manifest_path: Optional[Path] = None) -> pd.DataFrame:
@@ -246,6 +260,12 @@ def main():
         default="processed/atmospheric/",
         help="Path to derived daily atmospheric NetCDFs",
     )
+    parser.add_argument(
+        "--export-json",
+        type=str,
+        default=None,
+        help="Path to export execution telemetry JSON (e.g. logs/gate1_validation_atmospheric_execution.json)",
+    )
     args = parser.parse_args()
 
     print("================================================================================")
@@ -265,6 +285,7 @@ def main():
         print("\n[INFO] Running in MOCK verification mode (pipeline architecture certification)...")
         val_dates = pd.to_datetime(val_df["issue_date"].values).tolist()
         atmos_ds = create_mock_validation_atmospheric_dataset(val_dates)
+        candidates_info = "synthetic_210_cycles"
     else:
         data_dir = Path(args.data_dir)
         candidates = list(data_dir.glob("*.nc"))
@@ -274,6 +295,7 @@ def main():
             sys.exit(1)
         print(f"\n[INFO] Opening {len(candidates)} live atmospheric NetCDFs from {data_dir}...")
         atmos_ds = xr.open_mfdataset(candidates)
+        candidates_info = [c.name for c in sorted(candidates)]
 
     print("[4/4] Executing 6-point verification across all 210 validation cycles...")
     res = verify_atmospheric_pipeline(atmos_ds, val_df, norm_contract, eval_mask, verbose=True)
@@ -293,6 +315,38 @@ def main():
     print(f"              Unclipped Bounds Excursions:        {res['unclipped_excursions_count']} cell-observations")
     print(f"    [Check C] Contracted Post-Clipping [0, 1]:    {'PASS' if res['contract_clipped_in_unit_range'] else 'FAIL'}")
     print("--------------------------------------------------------------------------------")
+
+    if args.export_json:
+        telemetry = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "target_gate": "Pre-Production Gate 1 (Validation Atmospheric Pipeline)",
+            "git_commit": get_git_commit(),
+            "mode": args.mode,
+            "data_dir": str(args.data_dir),
+            "status": res["status"],
+            "dates_checked": res["dates_checked"],
+            "missing_dates_count": len(res["missing_dates"]),
+            "missing_dates": res["missing_dates"],
+            "missing_vars_count": len(res["missing_vars"]),
+            "missing_vars": res["missing_vars"],
+            "nan_inf_count": res["nan_inf_count"],
+            "shape_conforming": res["shape_conforming"],
+            "channel_ordering_correct": res["channel_ordering_correct"],
+            "normalization_diagnostics": {
+                "check_a_parameters_finite": res["norm_denominators_valid"] and res["unclipped_finite"],
+                "check_b_unclipped_global_min": float(res["unclipped_global_min"]),
+                "check_b_unclipped_global_max": float(res["unclipped_global_max"]),
+                "check_b_unclipped_excursions_count": int(res["unclipped_excursions_count"]),
+                "check_c_contract_clipped_in_unit_range": res["contract_clipped_in_unit_range"],
+            },
+            "candidate_files": candidates_info,
+            "active_evaluation_cells": EXPECTED_ACTIVE_CELLS,
+        }
+        export_p = Path(args.export_json)
+        export_p.parent.mkdir(parents=True, exist_ok=True)
+        with open(export_p, "w") as f:
+            json.dump(telemetry, f, indent=2)
+        print(f"\n[ARTIFACT] Execution telemetry written to: {export_p}")
 
     if res["status"] == "PASS":
         print("\n[SUCCESS] Validation atmospheric preprocessing pipeline fully certified!")

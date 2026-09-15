@@ -46,7 +46,8 @@ dl_dm_rzsm_subseasonal_forecast/
 │   ├── 06_mindanao_era5_land_daily_climatology_and_anomalies.ipynb
 │   ├── 07_mindanao_s2s_and_pilot_case_assembly.ipynb
 │   ├── 08_mindanao_a0_tf_pipeline_and_checkpoint.ipynb
-│   └── 09_mindanao_a0_vram_profiling.ipynb
+│   ├── 09_mindanao_a0_vram_profiling.ipynb
+│   └── 10_mindanao_validation_atmospheric_pipeline.ipynb
 ├── processed/                               <── Verified Regional Data Artifacts
 │   ├── grid/                                <── Candidate A grid ($32 \times 48$, 126 active cells)
 │   ├── rzsm/                                <── Compiled 11-year RZSM NetCDF cube (2015–2025)
@@ -68,7 +69,7 @@ dl_dm_rzsm_subseasonal_forecast/
 │   ├── data/                                <── case_builder, cloud_lake, tf_dataset, atmospheric, rzsm
 │   ├── models/                              <── genuine a0_unet factory, parameter counts
 │   └── utils/                               <── Geospatial and metric utilities
-├── tests/                                   <── Automated Unit Testing Framework (93 tests)
+├── tests/                                   <── Automated Unit Testing Framework (94 tests)
 ├── figures/                                 <── Publication-Grade Composite Verification Figures
 ├── AGENTS.md                                <── AI engineering safety boundaries & guidelines
 └── README.md                                <── This Master Portal

@@ -33,7 +33,8 @@ def derive_era5_atmospheric_month(
     raw_atmos_dir: Path,
     grid_path: Path,
     eval_mask_path: Path,
-    out_dir: Path
+    out_dir: Path,
+    prefix: str = "era5_atmospheric",
 ) -> Path:
     """
     Derives 5 atmospheric channels for a specific month and writes to NetCDF.
@@ -136,6 +137,6 @@ def derive_era5_atmospheric_month(
     )
 
     out_dir.mkdir(parents=True, exist_ok=True)
-    out_nc = out_dir / f"era5_atmospheric_pilot_{month_str}.nc"
+    out_nc = out_dir / f"{prefix}_{month_str}.nc"
     out_ds.to_netcdf(out_nc)
     return out_nc
