@@ -22,7 +22,21 @@ LEAD_CHANNELS: Dict[int, int] = {
     4: 6,   # 3 RZSM lags + 3 recursive (y_hat_W1, y_hat_W2, y_hat_W3)
 }
 
-TOTAL_A0_PARAMETERS: int = 1_630_307  # Reconciled parent EX29 parameter count for UNET_RZSM
+# Reconciled per-lead parameter counts for UNET_RZSM with Candidate A geometry (32x48)
+# Each input channel variance accounts for exactly 3,168 parameters in the initial inception block:
+# Lead 1 (11 channels) = 1,627,139 params
+# Lead 2 (12 channels) = 1,630,307 params (Parent EX29 parity target)
+# Lead 3 (5 channels)  = 1,608,131 params
+# Lead 4 (6 channels)  = 1,611,299 params
+EXPECTED_A0_PARAMETER_COUNTS: Dict[int, int] = {
+    1: 1_627_139,
+    2: 1_630_307,
+    3: 1_608_131,
+    4: 1_611_299,
+}
+
+# Retained alias for backwards compatibility: parent Lead 2 reference parameter count
+TOTAL_A0_PARAMETERS: int = 1_630_307
 
 
 def build_a0_unet(
@@ -36,28 +50,45 @@ def build_a0_unet(
     """
     Constructs the genuine Model A0 UNET_RZSM architecture for a given forecast lead.
 
+    Architecture & Masking Boundary:
+    --------------------------------
+    The UNET_RZSM neural network outputs unmasked raw continuous predictions across
+    the full (height, width) grid. Output zero-filling for inactive ocean cells is
+    NOT performed inside the neural network graph itself. The regional adaptation
+    enforces spatial boundaries through three distinct, decoupled mechanisms:
+      1. Input inactive-cell zero filling (pre-inference conditioning in case_builder.py).
+      2. Loss and evaluation masking (eval_mask applied during loss computation and metrics).
+      3. Postprocessing masking (optional zeroing applied to final predictions for visualization).
+
     Parameters
     ----------
     lead : int
         Forecast lead week (1, 2, 3, or 4).
     height : int
-        Spatial grid height (default: 32).
+        Spatial grid height (default: 32; must be divisible by 16).
     width : int
-        Spatial grid width (default: 48).
+        Spatial grid width (default: 48; must be divisible by 16).
     output_channels : int
         Target channels per head (default: 1).
     using_deep_supervision : bool
-        Whether to enable the 3 multi-scale output heads (default: True).
+        Whether to enable the 3 multi-scale output heads (default: True, required for production A0).
     name : Optional[str]
         Keras model name.
 
     Returns
     -------
     keras.Model
-        Instantiated Model A0 architecture with 1.63M parameters.
+        Instantiated Model A0 architecture with exact per-lead parameter count.
     """
     if lead not in LEAD_CHANNELS:
         raise ValueError(f"Invalid lead {lead}. Supported leads: {list(LEAD_CHANNELS.keys())}")
+
+    # Architectural invariant guard: 4 levels of 2x2 max-pooling require divisibility by 16
+    if height % 16 != 0 or width % 16 != 0:
+        raise ValueError(
+            f"Spatial grid dimensions ({height}, {width}) must be divisible by 16 "
+            "for 4-level UNet pooling."
+        )
 
     model_name = name or f"UNET_RZSM_Mindanao_A0_Lead_{lead}"
     num_channels = LEAD_CHANNELS[lead]

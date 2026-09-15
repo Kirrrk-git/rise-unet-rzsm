@@ -90,7 +90,7 @@ Dependencies flow strictly in one direction from foundation to deep learning mod
   - **Role**: Factory for instantiating the peer-reviewed RISE-UNet architecture from Kyle Lesinger & Di Tian (2025). Features:
     - 4 encoder downsampling stages and 4 decoder upsampling stages with skip connections.
     - 3 deep supervision output heads ($RZSM\_output\_1$, $RZSM\_output\_2$, $RZSM\_output\_3$).
-    - Parameter count: exactly 1,630,307 trainable weights for Lead 2.
+    - Parameter counts: Lead 1 ($W_1$): 1,627,139; Lead 2 ($W_2$): 1,630,307; Lead 3 ($W_3$): 1,608,131; Lead 4 ($W_4$): 1,611,299 trainable weights.
     - Native multi-head Continuous Ranked Probability Score (CRPS) loss computation.
 
 ---

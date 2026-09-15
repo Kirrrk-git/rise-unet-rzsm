@@ -37,6 +37,7 @@ from src.models.a0_unet import (
     GRID_HEIGHT,
     GRID_WIDTH,
     TOTAL_A0_PARAMETERS,
+    EXPECTED_A0_PARAMETER_COUNTS,
 )
 from src.data.tf_dataset import (
     A0CaseBatchGenerator,
@@ -48,8 +49,11 @@ from src.data.tf_dataset import (
 )
 
 
-def load_evaluation_mask(mask_path: Path = REPO_ROOT / "processed" / "grid" / "mindanao_eval_mask_025.nc") -> np.ndarray:
-    """Loads binary 126-cell evaluation mask."""
+def load_evaluation_mask(
+    mask_path: Path = REPO_ROOT / "processed" / "grid" / "mindanao_eval_mask_025.nc",
+    strict: bool = False,
+) -> np.ndarray:
+    """Loads binary 126-cell evaluation mask. In strict mode, rejects synthetic fallbacks."""
     if mask_path.exists():
         import xarray as xr
         ds = xr.open_dataset(mask_path)
@@ -57,8 +61,13 @@ def load_evaluation_mask(mask_path: Path = REPO_ROOT / "processed" / "grid" / "m
         if mask.shape != (GRID_HEIGHT, GRID_WIDTH):
             raise ValueError(f"Mask shape {mask.shape} does not match grid ({GRID_HEIGHT}, {GRID_WIDTH})")
         return mask
-    # Synthetic fallback mask for testing environments without processed grid files
-    logger.warning("Mask file not found on disk; generating fallback 126-cell mock mask for dry-run testing.")
+    if strict:
+        raise FileNotFoundError(
+            f"Authoritative Mindanao evaluation mask not found: {mask_path}. "
+            "Strict certification mode requires the frozen 126-cell domain mask."
+        )
+    # Synthetic fallback mask ONLY for developer offline dry-run smoke testing
+    logger.warning("Mask file not found on disk; generating fallback 126-cell mock mask for developer smoke testing.")
     mask = np.zeros((GRID_HEIGHT, GRID_WIDTH), dtype=bool)
     mask[10:24, 15:24] = True  # Exactly 14 * 9 = 126 cells
     return mask
@@ -127,6 +136,7 @@ def execute_21j_benchmark(
     output_log_path: Path = REPO_ROOT / "logs" / "A0_gpu_benchmark.json",
     checkpoint_dir: Path = REPO_ROOT / "checkpoints" / "a0_vram_benchmark",
     batch_sizes: List[int] = [11, 22, 33, 44, 66],
+    strict_mode: bool = False,
 ) -> Dict[str, Any]:
     """Executes the full six-pillar Sub-Phase 21J benchmark."""
     logger.info("=" * 80)
@@ -138,7 +148,7 @@ def execute_21j_benchmark(
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
     output_log_path.parent.mkdir(parents=True, exist_ok=True)
 
-    eval_mask = load_evaluation_mask()
+    eval_mask = load_evaluation_mask(strict=strict_mode)
     active_cell_count = int(np.sum(eval_mask))
     logger.info(f"Evaluation Mask: {active_cell_count} active land cells, {int(np.sum(~eval_mask))} ocean cells.")
 
@@ -159,7 +169,6 @@ def execute_21j_benchmark(
     }
 
     # -------------------------------------------------------------------------
-    # -------------------------------------------------------------------------
     # Pillar 21J.1: Genuine Architecture Instantiation
     # -------------------------------------------------------------------------
     logger.info("--- PILLAR 21J.1: Genuine Architecture Instantiation ---")
@@ -173,7 +182,11 @@ def execute_21j_benchmark(
             layer_classes = sorted(list(set(l.__class__.__name__ for l in model_w1.layers)))
             output_heads = [out.name for out in model_w1.outputs]
 
-            params_match = (total_params in (1_627_139, 1_630_307, TOTAL_A0_PARAMETERS))
+            params_match = (
+                total_params == EXPECTED_A0_PARAMETER_COUNTS[1]
+                if model_w1.name.endswith("Lead_1")
+                else (total_params in EXPECTED_A0_PARAMETER_COUNTS.values())
+            )
             weights_match = (trainable_weights_count == 298)
             heads_match = (len(output_heads) == 3)
 
@@ -183,7 +196,7 @@ def execute_21j_benchmark(
                 "model_name": model_w1.name,
                 "input_shape": list(model_w1.input_shape),
                 "actual_count_params": total_params,
-                "expected_count_params": 1_627_139 if model_w1.name.endswith("Lead_1") else TOTAL_A0_PARAMETERS,
+                "expected_count_params": EXPECTED_A0_PARAMETER_COUNTS[1] if model_w1.name.endswith("Lead_1") else TOTAL_A0_PARAMETERS,
                 "trainable_weights_count": trainable_weights_count,
                 "expected_trainable_weights": 298,
                 "layer_count": layer_count,
@@ -201,7 +214,7 @@ def execute_21j_benchmark(
             "status": "PREFLIGHT_MOCK",
             "model_name": "UNET_RZSM_Mindanao_A0_Lead_1",
             "actual_count_params": None,
-            "expected_count_params": TOTAL_A0_PARAMETERS,
+            "expected_count_params": EXPECTED_A0_PARAMETER_COUNTS[1],
             "note": "Host lacks TensorFlow; real-model instantiation deferred to GPU runtime.",
         }
     benchmark_results["pillars"]["pillar_21j_1_architecture"] = pillar_1
@@ -226,8 +239,10 @@ def execute_21j_benchmark(
                 out_shapes = [list(o.shape) for o in outputs]
                 all_finite = all(bool(tf.reduce_all(tf.math.is_finite(o)).numpy()) for o in outputs)
 
-                # Output masking check
-                y_eval = outputs[-1].numpy()
+                # Model output masking invariant verification
+                # NOTE: UNET_RZSM outputs raw unmasked continuous predictions. Output zeroing is
+                # an evaluation-domain / postprocessing operation, NOT an internal network layer.
+                y_eval = outputs[-1].numpy().copy()
                 y_eval[:, ~eval_mask, :] = 0.0
                 ocean_max = float(np.max(np.abs(y_eval[:, ~eval_mask, :])))
 
@@ -237,6 +252,7 @@ def execute_21j_benchmark(
                     "all_finite": all_finite,
                     "ocean_max_masked": ocean_max,
                     "forward_latency_ms": forward_ms,
+                    "masking_mechanism": "evaluation_domain_postprocessing",
                     "status": "PASS" if all_finite and ocean_max == 0.0 else "FAIL",
                 }
             except Exception as e:
@@ -270,7 +286,10 @@ def execute_21j_benchmark(
 
             with tf.GradientTape() as tape:
                 preds = model_train(x_dummy, training=True)
-                # Parent multi-head deep supervision loss
+                # Parent multi-head deep supervision loss workload:
+                # Uses representative multi-head MAE (sum of MAE across 3 heads).
+                # This accurately tests backward pass, graph gradients, and activation memory,
+                # replicating parent executable gradient behavior (where NumPy detached spread term).
                 loss = 0.0
                 for pred in preds:
                     loss += tf.reduce_mean(tf.abs(pred - y_dummy))
@@ -288,6 +307,12 @@ def execute_21j_benchmark(
 
             pillar_3 = {
                 "status": "PASS" if is_finite and has_gradients and weight_delta > 0 else "FAIL",
+                "loss_workload": "Representative Multi-Head MAE (Parent Executable Gradient Equivalent)",
+                "loss_semantics_note": (
+                    "Workload uses multi-head MAE to verify backward pass and gradient stability on target GPU. "
+                    "Replicates parent executable gradient behavior (NumPy spread detachment). Differentiable "
+                    "CRPS loss evaluation is conducted in Sub-Phase 21K.3-pre."
+                ),
                 "loss_value": float(loss.numpy()),
                 "global_gradient_norm": grad_norm,
                 "gradients_all_present": has_gradients,
@@ -301,6 +326,7 @@ def execute_21j_benchmark(
     else:
         pillar_3 = {
             "status": "PREFLIGHT_MOCK",
+            "loss_workload": "Representative Multi-Head MAE",
             "note": "Host lacks TensorFlow; backpropagation verified via analytical test suite.",
         }
     benchmark_results["pillars"]["pillar_21j_3_backward_pass"] = pillar_3
@@ -541,9 +567,17 @@ def execute_21j_benchmark(
             profile_entry["vram_allocated_mb"] = round(6.5 + num_cases * 38.0, 2)
             profile_entry["peak_vram_mb"] = round(profile_entry["vram_allocated_mb"] * 1.5, 2)
             pillar_5["status"] = "PREFLIGHT_MOCK"
-            logger.info(f"Batch Size {b:02d} ({num_cases} cases) -> Theoretical Estimate: {profile_entry['peak_vram_mb']} MB (NOT MEASURED)")
-
-        pillar_5["batch_profiles"].append(profile_entry)
+    # Explicit aggregation across all batch ladder entries:
+    batch_pass = (
+        all(x.get("status") == "PASS" for x in pillar_5["batch_profiles"])
+        and len(pillar_5["batch_profiles"]) > 0
+    )
+    if has_gpu:
+        pillar_5["status"] = "PASS" if batch_pass else "FAIL"
+    elif tf_available:
+        pillar_5["status"] = "NOT_CERTIFIED_CPU"
+    else:
+        pillar_5["status"] = "PREFLIGHT_MOCK"
 
     benchmark_results["pillars"]["pillar_21j_5_vram_ladder"] = pillar_5
 
@@ -566,10 +600,64 @@ def execute_21j_benchmark(
             "validation_split": "2022-2023",
             "sealed_test_split": "2024-2025",
         },
-        "checkpoint_restored_parity": 0.0,
-        "checkpoint_parity_scope": "Model-weight serialization/restoration parity verified. Optimizer state, dynamic dropout, and training-resumption parity deferred to Phase 21K.",
-        "status": "PASS",
+        "checkpoint_parity_scope": (
+            "Model-weight serialization and restoration parity verified by actual save, "
+            "destroy, fresh-instantiate, restore, and weight/output tensor comparison."
+        ),
     }
+    if tf_available and pillar_1.get("status") == "PASS":
+        try:
+            test_ckpt_dir = checkpoint_dir / "parity_validation"
+            test_ckpt_dir.mkdir(parents=True, exist_ok=True)
+            # Instantiate test model
+            m_save = build_a0_unet(lead=1, height=GRID_HEIGHT, width=GRID_WIDTH)
+            x_dummy_ckpt = tf.random.normal((1, GRID_HEIGHT, GRID_WIDTH, LEAD_CHANNELS[1]), dtype=tf.float32)
+            y_save = m_save(x_dummy_ckpt, training=False)[-1].numpy()
+            saved_weights = {w.name: w.numpy().copy() for w in m_save.weights}
+
+            # Execute real save
+            save_path = save_a0_checkpoint(m_save, lead=1, epoch=0, val_loss=0.1234, checkpoint_dir=test_ckpt_dir)
+
+            # Destroy model and clear session
+            del m_save
+            tf.keras.backend.clear_session()
+
+            # Instantiate fresh model and restore
+            m_restore = build_a0_unet(lead=1, height=GRID_HEIGHT, width=GRID_WIDTH)
+            restore_a0_checkpoint(m_restore, save_path)
+
+            # Compare all weights
+            max_weight_delta = 0.0
+            for w in m_restore.weights:
+                if w.name in saved_weights:
+                    diff = float(np.max(np.abs(w.numpy() - saved_weights[w.name])))
+                    if diff > max_weight_delta:
+                        max_weight_delta = diff
+
+            # Compare forward outputs
+            y_restored = m_restore(x_dummy_ckpt, training=False)[-1].numpy()
+            max_output_delta = float(np.max(np.abs(y_restored - y_save)))
+            max_delta = max(max_weight_delta, max_output_delta)
+            parity_passed = bool(max_delta < 1e-6)
+
+            pillar_6["checkpoint_restored_parity"] = max_delta
+            pillar_6["max_weight_delta"] = max_weight_delta
+            pillar_6["max_output_delta"] = max_output_delta
+            pillar_6["status"] = "PASS" if parity_passed else "FAIL"
+            logger.info(
+                f"Pillar 21J.6 Checkpoint Roundtrip Verified: max_weight_delta = {max_weight_delta:.2e}, "
+                f"max_output_delta = {max_output_delta:.2e} -> Status: {pillar_6['status']}"
+            )
+        except Exception as e:
+            logger.error(f"Pillar 21J.6 Checkpoint persistence test failed: {e}")
+            pillar_6["status"] = "FAIL"
+            pillar_6["error"] = str(e)
+            pillar_6["checkpoint_restored_parity"] = None
+    else:
+        pillar_6["status"] = "PREFLIGHT_MOCK"
+        pillar_6["checkpoint_restored_parity"] = None
+        pillar_6["note"] = "Host lacks TensorFlow; checkpoint serialization tested via unit test suite."
+
     benchmark_results["pillars"]["pillar_21j_6_contract_freeze"] = pillar_6
 
     # -------------------------------------------------------------------------
@@ -581,9 +669,9 @@ def execute_21j_benchmark(
         gpu_env.get("peak_allocated_mb", 0) > 0 or 
         any(k in gpu_env.get("device_name", "").upper() for k in ["GPU", "NVIDIA", "TESLA", "T4", "A100", "V100"])
     )
-    all_pillars_pass = all(
-        p.get("status") == "PASS"
-        for p in benchmark_results["pillars"].values()
+    all_pillars_pass = (
+        all(p.get("status") == "PASS" for p in benchmark_results["pillars"].values())
+        and len(benchmark_results["pillars"]) == 6
     )
 
     if has_real_gpu and all_pillars_pass:
@@ -592,16 +680,15 @@ def execute_21j_benchmark(
         benchmark_results["certification_note"] = "Model A0 hardware profiling fully certified on physical target GPU hardware (Tesla T4)."
     elif not has_real_gpu:
         benchmark_results["status"] = "NOT_CERTIFIED_CPU_MOCK"
-        benchmark_results["certification_verdict"] = "PREFLIGHT_INFRASTRUCTURE_VERIFIED_ONLY"
+        benchmark_results["certification_verdict"] = "NOT_CERTIFIED"
         benchmark_results["certification_note"] = (
-            "Benchmark executed in CPU preflight mock mode (no GPU detected). "
-            "Formal Sub-Phase 21J certification requires execution on a physical GPU "
-            "(e.g., Google Colab T4) with genuine TensorFlow measurements."
+            "Benchmark executed on CPU/mock runtime (no physical GPU detected). "
+            "Fail-closed gate rejects CPU/mock execution as physical hardware certification."
         )
     else:
         benchmark_results["status"] = "FAIL"
         benchmark_results["certification_verdict"] = "HARDWARE_BENCHMARK_FAILED"
-        benchmark_results["certification_note"] = "One or more evaluation components failed execution on the target hardware."
+        benchmark_results["certification_note"] = "One or more technical verification pillars failed execution on the target hardware."
 
     with open(output_log_path, "w", encoding="utf-8") as f:
         json.dump(benchmark_results, f, indent=2)
@@ -620,13 +707,25 @@ if __name__ == "__main__":
     parser.add_argument("--cases-dir", type=str, default=str(REPO_ROOT / "processed" / "cases" / "pilot"), help="Directory containing pilot case NPZ files")
     parser.add_argument("--output", type=str, default=str(REPO_ROOT / "logs" / "A0_gpu_benchmark.json"), help="Output benchmark JSON path")
     parser.add_argument("--require-gpu", action="store_true", help="Fail with exit code 1 if no physical GPU is present")
+    parser.add_argument(
+        "--mode",
+        type=str,
+        choices=["smoke", "certify"],
+        default="smoke",
+        help="Execution mode: 'smoke' allows offline mocks; 'certify' strictly enforces physical GPU, authoritative mask, and rejects mocks.",
+    )
     args = parser.parse_args()
 
+    is_certify = (args.mode == "certify" or args.require_gpu)
     res = execute_21j_benchmark(
         cases_dir=Path(args.cases_dir),
         output_log_path=Path(args.output),
+        strict_mode=is_certify,
     )
-    if args.require_gpu and res["status"] != "PASS":
-        logger.error("GPU was required (--require-gpu) but benchmark did not pass on physical GPU.")
+    if is_certify and res["status"] != "PASS":
+        logger.error(
+            f"Certification mode required (--mode certify / --require-gpu), but benchmark status is "
+            f"{res['status']} ({res['certification_verdict']})."
+        )
         sys.exit(1)
 

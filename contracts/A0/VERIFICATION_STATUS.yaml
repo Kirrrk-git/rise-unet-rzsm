@@ -1,0 +1,136 @@
+# contracts/A0/VERIFICATION_STATUS.yaml
+# -------------------------------------
+# Authoritative Machine-Readable Verification Status Matrix for Mindanao RISE-UNet.
+# Single Source of Truth for Milestone Certifications, Governance Boundaries, and Scientific Audits.
+# Reconciles all codebase, cloud lake, and forensic findings as of Phase 21.
+
+version: "2.0.0"
+last_reconciled: "2026-09-15"
+authoritative_branch: "mindanao-adaptation"
+
+certification_rules:
+  mock_counts_as_pass: false
+  estimated_counts_as_pass: false
+  cpu_counts_as_gpu_certified: false
+  sealed_test_access_allowed: false
+  strict_fail_closed_gates: true
+  all_pillars_must_pass_for_hardware_certification: true
+
+milestones:
+  21A_spatial_foundation:
+    name: "Mindanao Spatial Grid, Domain Mask & Cell Census"
+    status: "PASS"
+    certification_level: "CERTIFIED"
+    details: "Candidate A (32x48 grid, 0.25 deg), 126-cell majority-coverage domain (86.46% PSA boundary area), 253 fractional cells, SHA-256 verified."
+    verified_artifacts:
+      - "processed/grid/mindanao_candidate_a_grid.nc"
+      - "processed/grid/mindanao_eval_mask_025.nc"
+      - "processed/grid/mindanao_fractional_coverage_025.nc"
+
+  21B_reanalysis_ingestion:
+    name: "ERA5-Land Multi-Layer Reanalysis Target Extraction"
+    status: "PASS"
+    certification_level: "CERTIFIED"
+    details: "11-year daily netCDF4 cube (1950-2025 accessible range), depth-weighted formula RZSM = 0.07*SWVL1 + 0.21*SWVL2 + 0.72*SWVL3."
+    verified_artifacts:
+      - "processed/reanalysis/mindanao_era5_land_daily_2015_2025.nc"
+
+  21C_target_and_predictors:
+    21C_1_temporal_targets:
+      name: "7-Day Rolling RZSM & Trailing Anomaly Target Cube"
+      status: "PASS"
+      certification_level: "CERTIFIED"
+      details: "Parent EX29 target endpoint L = (lead * 7) - 1 verified. Zero forward-looking leakage. 126-cell active domain verified."
+      verified_artifacts:
+        - "processed/targets/mindanao_rzsm_target_cube_2015_2025.nc"
+    21C_2_era5_land_predictors:
+      name: "Antecedent Daily RZSM Lags (-1d, -7d, -14d)"
+      status: "PASS"
+      certification_level: "CERTIFIED"
+      details: "Trailing lag horizons anchored to t_0, Dec 2014 antecedent support secured."
+    21C_3_era5_atmospheric:
+      name: "ERA5 Surface Atmospheric Predictors (5 Variables)"
+      status: "TRAINING_ARCHIVE_SECURED"
+      certification_level: "PARTIALLY_MIRRORED"
+      details: "Training fold (Jan 2015 - Dec 2021, 84 months x 2 products = 168 files) fully secured in GCS. Dec 2014 antecedent (2 files) secured. Validation/test fold (2022-2025, 96 files) active background mirroring in progress. Total archive: 264 monthly files."
+      verified_archive_files_secured: 170
+      target_archive_files_total: 264
+
+  21D_s2s_pilot:
+    name: "ECMWF S2S Multi-Member Hindcast Pilot Ingestion"
+    status: "PASS"
+    certification_level: "CERTIFIED_PILOT"
+    details: "Pure-Python custom GRIB parser achieving byte-level parity with ecCodes reference decoder for tested messages. 11 ensemble members, 2 leads, 3 variables (t2m, d2m, tcw)."
+
+  21E_recursive_dataset_builder:
+    name: "Multi-Lead Input-Target Hierarchy Assembler"
+    status: "PASS"
+    certification_level: "CERTIFIED_PILOT"
+    details: "Exact channel schedule: W1=11, W2=12 (11 base + y_hat_w1), W3=5 (3 base lags + y_hat_w1, y_hat_w2), W4=6 (3 base lags + y_hat_w1, y_hat_w2, y_hat_w3)."
+
+  21F_autoregressive_cascade_pilot:
+    name: "Autoregressive Cascade Dynamic Propagation Verification"
+    status: "PASS"
+    certification_level: "CERTIFIED_PILOT"
+    details: "Perturbation delta injection into y_hat_w1 propagates non-trivially into W2, W3, and W4. Confirms recursive channel is functionally active."
+
+  21G_pilot_tensor_cube:
+    name: "Assembled Pilot Case Tensor Archive"
+    status: "PASS"
+    certification_level: "CERTIFIED_PILOT"
+    details: "Pilot cases serialized to disk. Input features census mathematically defined."
+
+  21H_surrogate_pipeline_smoke_test:
+    name: "Surrogate TensorFlow Pipeline & Checkpoint Infrastructure Smoke Test"
+    status: "SURROGATE_ONLY"
+    certification_level: "INFRASTRUCTURE_VERIFIED_SURROGATE"
+    details: "SURROGATE SMOKE TEST ONLY. Did NOT instantiate genuine 1.63M-parameter UNET_RZSM (used 2-layer Conv2D surrogate). Validated data feeding, TF Dataset pipeline, loss logging, and checkpoint saving."
+
+  21I_surrogate_tiny_data_overfit:
+    name: "Surrogate Tiny-Data Optimization Smoke Test"
+    status: "SURROGATE_ONLY"
+    certification_level: "OPTIMIZATION_VERIFIED_SURROGATE"
+    details: "SURROGATE SMOKE TEST ONLY. 2-layer Conv2D surrogate on unnormalized inputs. 99% loss drop was an unnormalized scale artifact, NOT proof of genuine RISE-UNet capacity or overfit."
+
+  21J_hardware_profiling_and_vram:
+    name: "Model A0 Hardware Profiling & VRAM Feasibility Benchmark"
+    status: "HISTORICAL_GPU_VERIFIED_CURRENT_CODE_REVALIDATION_PENDING"
+    certification_level: "HISTORICAL_GPU_EVIDENCE_REMEDIATED_CODE_PENDING"
+    details: "Historical execution on physical NVIDIA Tesla T4 (15,360 MB VRAM) in Google Colab established hardware/graph feasibility. Benchmark code and notebook have since been comprehensively remediated (fail-closed logic, mask fallback removed, per-lead parameter expectations, real checkpoint roundtrip). Current code GPU revalidation is pending a rerun of Notebook 09 on Colab/GPU."
+    hardware_target: "NVIDIA Tesla T4"
+    driver_cuda: "CUDA 12.5.1 / cuDNN 9"
+    tensorflow_version: "2.20.0"
+    python_version: "3.13.15"
+
+  21K_1_production_calendar:
+    name: "Authoritative 11-Year S2S Production Calendar"
+    status: "PASS"
+    certification_level: "CERTIFIED"
+    details: "Reconciled to 1,154 bi-weekly ECMWF operational issue cycles (2015-2025). Train=735, Val=210, Test=209 (Total=1,154)."
+    verified_artifacts:
+      - "manifests/production_case_calendar.csv"
+
+  21K_2_splits_and_normalization:
+    name: "Production Split Manifests & Training-Only Active Domain Normalization Contract"
+    status: "PASS_NORMALIZATION_FROZEN_MANIFESTS_VERIFIED"
+    certification_level: "CERTIFIED"
+    details: "Exact non-overlapping partition calendar verified from manifests: Train 2015-2021 (7 years x 105 = 735 cases), Val 2022-2023 (2 years x 105 = 210 cases; Val-A=105, Val-B=105), Test 2024-2025 cohort census = 209 cases (105 in 2024 + 104 in 2025; 202 usable sealed-test cases for evaluation denominator, 7 quarantined cases where W4 extends into Jan 2026). Grand total scheduled cases = 1,154. Normalization parameters computed strictly over active 126 cells of 735 training cases."
+    verified_artifacts:
+      - "contracts/A0/normalization_parameters.yaml"
+      - "contracts/A0/normalization_parameters.json"
+      - "manifests/splits/train_cases.csv"
+      - "manifests/splits/val_cases.csv"
+      - "manifests/splits/test_cases_sealed.csv"
+
+  21K_3_pre_production_smoke_test:
+    name: "Genuine Production-Path Model A0 Training Smoke Test across all 4 Leads"
+    status: "IMPLEMENTED_LOCAL_CONTRACT_TESTS_PASS_GPU_PENDING"
+    certification_level: "PREFLIGHT_AUTOMATED_LOCAL_VERIFIED"
+    details: "Automated 5-stage preflight authored (scripts/14_run_a0_production_smoke_test.py, tests/test_13_production_smoke_preflight.py). Verifies 4-lead genuine backward updates (Cin in [11, 12, 5, 6]), downstream 126-cell masked loss, recursive channel ordering & tamper detection, and full training-state roundtrip. Local non-TF contract tests pass; physical Colab T4 GPU execution pending."
+
+  21K_3_production_training:
+    name: "Full Three-Seed Model A0 Production Training"
+    status: "NOT_YET_AUTHORIZED"
+    certification_level: "BLOCKED_BY_PREREQUISITES"
+    details: "A0 production training is nearly ready, but strictly gated by three concrete prerequisites: (1) finish 2022-2023 atmospheric mirroring (48 monthly NetCDFs) for validation-driven training, (2) current-code 21J GPU revalidation rerun of Notebook 09 on physical Colab T4, and (3) successful 21K.3-pre GPU certification (scripts/14_run_a0_production_smoke_test.py --mode certify)."
+

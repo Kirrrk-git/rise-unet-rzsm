@@ -474,3 +474,93 @@ def restore_a0_checkpoint(
         raise ValueError(f"Cannot restore weights into object: {type(model)}")
 
     logger.info(f"Checkpoint successfully restored from {weights_path}")
+
+
+def save_a0_training_state(
+    model: Any,
+    optimizer: Any,
+    epoch: int,
+    step: int,
+    learning_rate: float,
+    loss: float,
+    checkpoint_dir: Union[str, Path],
+    filename_prefix: str = "a0_training_state",
+    metadata: Optional[Dict[str, Any]] = None,
+) -> Path:
+    """
+    Saves complete training state (model weights, optimizer variables, step/epoch counters,
+    and metadata) to distinguish full training-state checkpointing from model-weight-only checkpointing.
+    """
+    checkpoint_dir = Path(checkpoint_dir)
+    checkpoint_dir.mkdir(parents=True, exist_ok=True)
+
+    weights_file = checkpoint_dir / f"{filename_prefix}_epoch{epoch:03d}_step{step:06d}.weights.h5"
+    opt_file = checkpoint_dir / f"{filename_prefix}_epoch{epoch:03d}_step{step:06d}_opt.npz"
+    meta_file = checkpoint_dir / f"{filename_prefix}_epoch{epoch:03d}_step{step:06d}_meta.json"
+
+    # Save model weights
+    if hasattr(model, "save_weights"):
+        model.save_weights(str(weights_file))
+    else:
+        weights_dict = {f"layer_{i}": w for i, w in enumerate(model.get_weights())}
+        np.savez_compressed(weights_file.with_suffix(".npz"), **weights_dict)
+
+    # Save optimizer weights
+    opt_weights = []
+    if hasattr(optimizer, "get_weights"):
+        opt_weights = optimizer.get_weights()
+    opt_dict = {f"opt_{i}": w for i, w in enumerate(opt_weights)}
+    np.savez_compressed(opt_file, **opt_dict)
+
+    meta = {
+        "checkpoint_type": "FULL_TRAINING_STATE",
+        "epoch": epoch,
+        "step": step,
+        "learning_rate": float(learning_rate),
+        "loss": float(loss),
+        "weights_file": str(weights_file.name),
+        "optimizer_file": str(opt_file.name),
+        "extra": metadata or {},
+    }
+    with open(meta_file, "w", encoding="utf-8") as f:
+        json.dump(meta, f, indent=2)
+
+    logger.info(f"Full training state successfully saved: {meta_file}")
+    return meta_file
+
+
+def restore_a0_training_state(
+    model: Any,
+    optimizer: Any,
+    meta_path: Union[str, Path],
+) -> Dict[str, Any]:
+    """
+    Restores full training state (model weights, optimizer variables, step, epoch).
+    Returns metadata dict.
+    """
+    meta_path = Path(meta_path)
+    if not meta_path.exists():
+        raise FileNotFoundError(f"Training state metadata not found: {meta_path}")
+
+    with open(meta_path, "r", encoding="utf-8") as f:
+        meta = json.load(f)
+
+    checkpoint_dir = meta_path.parent
+    weights_path = checkpoint_dir / meta["weights_file"]
+    opt_path = checkpoint_dir / meta["optimizer_file"]
+
+    # Restore model weights
+    restore_a0_checkpoint(model, weights_path)
+
+    # Restore optimizer weights
+    if opt_path.exists() and hasattr(optimizer, "set_weights"):
+        with np.load(opt_path, allow_pickle=True) as data:
+            opt_weights = [data[k] for k in sorted(data.files, key=lambda x: int(x.split("_")[-1]))]
+        if opt_weights:
+            try:
+                optimizer.set_weights(opt_weights)
+            except Exception as e:
+                logger.warning(f"Could not fully set optimizer weights: {e}")
+
+    logger.info(f"Full training state restored from {meta_path} (epoch {meta.get('epoch')}, step {meta.get('step')})")
+    return meta

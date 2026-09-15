@@ -140,6 +140,33 @@ class TestCaseBuilderSynthetic(unittest.TestCase):
                 s2s_ds=self.s2s_ds,
             )
 
+    def test_recursive_input_no_double_normalization(self):
+        """
+        Verifies the contract invariant: prior recursive predictions y_hat_w1, y_hat_w2, etc.
+        are already normalized model outputs in [0, 1] target space and must be concatenated
+        directly without secondary min/max scaling or alteration.
+        """
+        t0 = "2015-01-16"
+        case = assemble_single_a0_case(
+            issue_date=t0,
+            rzsm_cube_ds=self.rzsm_cube,
+            atmospheric_ds=self.atm_ds,
+            s2s_ds=self.s2s_ds,
+            eval_mask=self.mask,
+        )
+
+        # Create synthetic normalized model output in [0, 1]
+        y_hat_w1 = np.random.uniform(0.1, 0.9, size=(11, 32, 48, 1)).astype(np.float32)
+        x_w2_full = simulate_recursive_cascade_step(case.x_w2_base, [y_hat_w1])
+
+        # Verify recursive channel is appended at index 11 and exactly equal to y_hat_w1
+        np.testing.assert_array_equal(x_w2_full[..., 11:12], y_hat_w1)
+
+        # Also verify shape validation rejection for mismatched shapes
+        invalid_shape_pred = np.ones((11, 32, 48, 2), dtype=np.float32)
+        with self.assertRaises(ValueError):
+            simulate_recursive_cascade_step(case.x_w2_base, [invalid_shape_pred])
+
 
 class TestCaseBuilderRealData(unittest.TestCase):
     """Verifies single-case tensor assembly on real project pilot artifacts."""

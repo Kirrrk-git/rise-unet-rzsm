@@ -6,7 +6,7 @@
 **Parent Study**: Lesinger & Tian (2025), *Nature Communications*, DOI: `10.1038/s41467-025-62761-3`  
 **Active Repository**: `https://github.com/Kirrrk-git/rise-unet-rzsm.git`  
 **GCS Bucket**: `gs://rise-unet-rzsm/`  
-**Status**: Sub-Phases 21A, 21B, 21C (including 21C.3 11-year atmospheric archive: 264/264 files, 1.04 GB, 100% mirrored to GCS lake), 21D, 21E, 21G, 21H, 21I, and 21J certified; Sub-Phase 21F certified as **Case Assembly & Computational Integrity** (`[PASS / VERIFIED]`); Step 21K.1 certified (`[PASS / VERIFIED / ACCEPTED: 2026-09-14]`) via [`18_production_case_calendar_1154_cycles_audit.md`](reproduction_audit/18_production_case_calendar_1154_cycles_audit.md) (1,154 operational forecast cycles 2015–2025 indexed; synced to GCS); Step 21K.2 certified (`[PASS / VERIFIED / ACCEPTED: 2026-09-14]`) via [`19_dataset_splits_and_normalization_contract_audit.md`](reproduction_audit/19_dataset_splits_and_normalization_contract_audit.md) (735 Train, 210 Val, 209 Sealed Test manifests; training-only normalization parameters frozen in `contracts/A0/normalization_parameters.yaml`; pre-training production contract frozen in `contracts/A0/mindanao_a0_production_contract.yaml`; 80/80 unit tests passing; dual synced to GCS). Active milestone: **Sub-Phase 21K.3 (Full Production Model A0 Training across Seeds 42, 123, 456 — Ready to Launch)**.
+**Status**: Sub-Phases 21A, 21B, 21C (21C.3 Training Fold Secured: 168/264 monthly files Jan 2015 – Dec 2021 + Dec 2014 antecedent support secured; 2022–2025 mirroring in progress), 21D, 21E, 21F (`[PASS / VERIFIED]`), 21G (`[PASS / VERIFIED]`), 21H (`[SURROGATE_ONLY: Infrastructure Smoke Test]`), 21I (`[SURROGATE_ONLY: Optimization Smoke Test]`), 21J (`[HISTORICAL_GPU_VERIFIED_CURRENT_CODE_REVALIDATION_PENDING]`), 21K.1 (`[PASS / VERIFIED / ACCEPTED: 2026-09-14]`), and 21K.2 (`[PASS / VERIFIED / ACCEPTED: 2026-09-14]`). Authoritative status tracking governed by [`contracts/A0/VERIFICATION_STATUS.yaml`](contracts/A0/VERIFICATION_STATUS.yaml). Active pre-requisite: **Step 21K.3-pre (Genuine Production-Path Model A0 Training Smoke Test across all 4 Leads with Evaluation Domain Masking)** prior to full production training.
 
 
 ## Executive Verification & Methodological Alignment
@@ -304,9 +304,9 @@ The artifact registry is an inventory and status index; it must never contradict
     - `hgt_pres`: $[12,411.5, 12,481.9]\text{ gpm}$ (mean: $12,442.8\text{ gpm}$)
   * Verified Artifacts: Exported pilot NetCDF `processed/atmospheric/pilot/era5_atmospheric_pilot_2015_01.nc` (1.17 MB) and 300 DPI composite figure `figures/mindanao_era5_atmospheric_pilot_verification.png` (1.27 MB publication edition).
   * Certification Status: [PASS: Software execution] + [VERIFIED: Variable schedule] + [ACCEPTED: Regional derivations].
-- [ ] **Step 21C.3**: 11-Year ERA5 atmospheric archive mirroring (2015–2025). [IN PROGRESS: 63.6% / TRAINING FOLD 100% SECURED]
+- [ ] **Step 21C.3**: 11-Year ERA5 atmospheric archive mirroring (2015–2025). [TRAINING FOLD SECURED: 168/264 files (63.6%) + Dec 2014 Antecedent / Mirroring In Progress]
   * Objective: Retrieve complete hourly single-level and 200 hPa pressure-level fields across the 11-year nominal window via CDS-Beta API (`scripts/02_download_era5_atmospheric.py`) and mirror into Google Cloud Storage lake (`gs://rise-unet-rzsm/raw/era5/`).
-  * Status: [IN PROGRESS: Exactly 168 of 264 monthly files (84 single-level + 84 pressure-level) covering December 2014 through December 2021 are fully downloaded and verified on local disk, securing 100% of the 7-year Model A0 training fold. Process paused cleanly at Job 169 (2022-01) due to CDS daytime queue latency; one-command resumption (`python scripts/02_download_era5_atmospheric.py`) ready for validation/test partitions (2022–2025) without blocking forward modeling].
+  * Status: Exactly 168 of 264 monthly files (84 single-level + 84 pressure-level) covering January 2015 through December 2021 (84 months $\times$ 2 products = 168 files) are fully downloaded, verified, and mirrored to GCS (`gs://rise-unet-rzsm/raw/era5_atmospheric/`), securing 100% of the 7-year Model A0 training fold. The December 2014 antecedent support files (2 files: single-level and pressure-level) are tracked separately. The remaining 96 monthly files covering the validation and test partitions (2022–2025, 48 months $\times$ 2 products) are currently downloading via background Cloud Shell process. Full archive target is 264 monthly files.
 
 ---
 
@@ -513,8 +513,8 @@ The artifact registry is an inventory and status index; it must never contradict
 
 ---
 
-#### Sub-Phase 21H: 20 to 50 Case TensorFlow Data Pipeline & Checkpoint Test
-**Objective**: Validate `tf.data.Dataset` streaming from GCS, mini-batch loss computation respecting ensemble grouping semantics, backpropagation, and state persistence.
+#### Sub-Phase 21H: Surrogate TensorFlow Pipeline & Checkpoint Infrastructure Smoke Test
+**Objective**: Validate `tf.data.Dataset` streaming from GCS, mini-batch loss computation respecting ensemble grouping semantics, backpropagation, and state persistence using a lightweight 2-layer Conv2D surrogate architecture (did NOT instantiate genuine UNET_RZSM).
 
 - [x] **Step 21H.1**: Implement high-throughput `tf.data` pipeline streaming from GCS. [PASS / VERIFIED: 2026-09-13]
   * Ensemble Grouping Constraint: Batch construction strictly enforces and tests the 11-member ensemble grouping invariant required by the verified `crps2d_tf` implementation; exact-multiple-of-11 batching ($B \in 11\mathbb{Z}^+$) across the complete set $\{11, 22, \dots, 110\}$ is enforced via `validate_batch_size(B)` with hard rejection on invalid sizes.
@@ -523,31 +523,31 @@ The artifact registry is an inventory and status index; it must never contradict
   * CRPS Mathematical Reconciliation: Independently verified against the exact analytical pairwise difference formula ($\text{CRPS}_{\text{exact}} = 0.045455$) and the author's spatial proxy ($\mathcal{L}_{\text{author}} = 0.123715$) on a deterministic toy ensemble.
   * Implementation: Modular batch generator and pipeline engine in `src/data/tf_dataset.py` with multi-head deep supervision outputs (`RZSM_output_1`, `RZSM_output_2`, `RZSM_output_3`).
   * Pass Criterion: Certified PASS (Automated unit tests in `tests/test_11_tf_dataset.py` verify $B=11$ and $B=22$ streaming with zero NaNs/Infs).
-- [x] **Step 21H.2**: Execute 5-epoch training loop with Adam optimizer and CRPS loss. [PASS / VERIFIED: 2026-09-13]
-  * Execution: Tested via `scripts/13_train_a0_pipeline_checkpoint.py` and interactive Colab notebook `notebooks/08_mindanao_a0_tf_pipeline_and_checkpoint.ipynb` on NVIDIA Tesla T4 GPU.
-  * Loss & Gradient Verification: CRPS loss evaluates to strictly finite numbers across all epochs; on physical Colab GPU, mean CRPS loss decreased from $0.2233 \to 0.0748$ (66.5% reduction) with gradient norms in $[0.0468, 0.1637]$, non-zero weight updates occur across all 24 layer groups ($\|\Delta w\| \in [0.0074, 1.8462]$), and zero gradient explosion.
-  * Calibration: Certified as an infrastructure, execution, and numerical-stability benchmark (NOT evidence of predictive learning or forecasting skill); provides the explicit motivation for Sub-Phase 21I.
+- [x] **Step 21H.2**: Execute 5-epoch training loop with Adam optimizer and CRPS loss. [PASS / VERIFIED FOR SURROGATE INFRASTRUCTURE: 2026-09-13]
+  * Execution: Tested via `scripts/13_train_a0_pipeline_checkpoint.py` and interactive Colab notebook `notebooks/08_mindanao_a0_tf_pipeline_and_checkpoint.ipynb` on NVIDIA Tesla T4 GPU using a 2-layer Conv2D surrogate model.
+  * Loss & Gradient Verification: CRPS loss evaluates to strictly finite numbers across all epochs; on physical Colab GPU, mean CRPS loss decreased from $0.2233 \to 0.0748$ (66.5% reduction) with gradient norms in $[0.0468, 0.1637]$, non-zero weight updates occur across all layers, and zero gradient explosion.
+  * Calibration & Scope: Certified strictly as an infrastructure, data-feeding, and numerical-stability smoke test (NOT evidence of predictive learning or genuine A0 forecasting skill).
   * Pass Criterion: Certified PASS (Finite execution, stable backpropagation, non-zero weight updates).
 - [x] **Step 21H.3**: Verify checkpoint saving and restoration from GCS. [PASS / VERIFIED: 2026-09-13]
   * Checkpoint Artifacts: Exported `checkpoints/a0_pipeline_test/a0_test_epoch005.weights.*` and metadata JSON; Colab checkpoint serialized as `a0_tf_test_epoch005.weights.h5`.
   * Parity Assertion: Restoring checkpoint into a freshly initialized clean model instance yields $\max |\hat{Y}_{\text{original}} - \hat{Y}_{\text{restored}}| = 0.00 \times 10^0$ (exact bit-for-bit parity confirmed under both CPU and physical GPU runtimes).
   * Cloud Lake Mirroring: Checkpoint artifacts targeted for `gs://rise-unet-rzsm/checkpoints/a0_pipeline_test/`.
-  * Pass Criterion: Certified PASS (Discrepancy $= 0.00 \times 10^0$ across all evaluation cells; 63/63 repository unit tests passing).
+  * Pass Criterion: Certified PASS (Discrepancy $= 0.00 \times 10^0$ across all evaluation cells; unit tests passing).
   * Formal Audit Dossier: Certified in [`20_tf_dataset_pipeline_and_checkpoint_audit.md`](reproduction_audit/20_tf_dataset_pipeline_and_checkpoint_audit.md).
-
 
 ---
 
-#### Sub-Phase 21I: Tiny-Data A0 Overfit Test
-**Objective**: Empirically confirm that the adapted Mindanao model graph and loss formulation possess genuine optimization and representational capacity on real Mindanao tensors before hardware profiling and full training.
+#### Sub-Phase 21I: Surrogate Tiny-Data Optimization Smoke Test
+**Objective**: Empirically verify parameter updates and gradient descent mechanics on real Mindanao tensors using a lightweight 2-layer Conv2D surrogate model before hardware profiling and full training.
 
-- [x] **Step 21I.1**: Train on 8 fixed Mindanao cases for 40 epochs. [PASS / VERIFIED FOR INTENDED PURPOSE: 2026-09-14] (`CONDITIONAL GO → 21J`)
+- [x] **Step 21I.1**: Train on 8 fixed Mindanao cases for 40 epochs. [PASS / VERIFIED FOR SURROGATE PURPOSE: 2026-09-14] (`CONDITIONAL GO → 21J`)
+  * Model Topology: 2-layer Conv2D surrogate model (did NOT instantiate the genuine 1.63M-parameter UNET_RZSM).
   * Dataset & Budget: Exactly 8 fixed pilot forecast cycles (`CASE_20150115_W01.npz` to `CASE_20150304_W08.npz`) $\times$ 11 members = 88 samples; batch size $B=11$; exactly 320 parameter updates executed.
   * Optimizer & Loss: Adam ($\eta = 0.001$, $\beta_1=0.9, \beta_2=0.999$), deep supervision weighting ($1.0 \times \mathcal{L}_1 + 1.0 \times \mathcal{L}_2 + 1.0 \times \mathcal{L}_3$).
-  * Training-Set Overfit Diagnostics: Total loss reduced from $1.0791 \to 0.0105$ (99.03% reduction); active-cell MAE fell from $10.0671 \to 0.0428\,\text{m}^3/\text{m}^3$ (99.57% error reduction); active-cell target Euclidean distance dropped from $1060.08 \to 5.56$ (Decoupled Prediction Movement Test passed).
-  * Spatial Mask & Ocean Invariant: Evaluated strictly over 126 active land cells; model output layer masking strictly enforces $0.00 \times 10^0$ across all 1,410 ocean buffer cells.
+  * Training-Set Overfit Diagnostics (Historical Surrogate Diagnostic — Not Representative of A0 Training): Total loss reduced from $1.0791 \to 0.0105$ (99.03% reduction); active-cell MAE fell from $10.0671 \to 0.0428\,\text{m}^3/\text{m}^3$ (99.57% error reduction); active-cell target Euclidean distance dropped from $1060.08 \to 5.56$. As demonstrated by forensic audit, these massive numerical drops were scaling artifacts caused by raw unnormalized physical predictors (e.g., geopotential height $\sim 12,400\text{ gpm}$, temperature $\sim 300\text{ K}$) entering the surrogate, not proof of full RISE-UNet capacity.
+  * Spatial Mask & Ocean Invariant: Evaluated over 126 active land cells; evaluation-domain postprocessing mask strictly sets $0.00 \times 10^0$ across all 1,410 ocean buffer cells (note: network graph outputs raw unmasked predictions; masking is an evaluation-domain step).
   * Checkpoint & Dispersion Diagnostics: Bit-for-bit restore parity verified ($0.00 \times 10^0$ error); per-case ensemble spread tracked diagnostically ($\bar{\sigma}_{\text{ens}}: 0.000325 \to 0.000387$, mean member correlation $r = 0.9847$).
-  * Scope Limitation: Certified strictly as an optimization-path and training-set representational capacity gate; provides zero claims of predictive skill, out-of-sample generalization, or probabilistic calibration. [PASS / VERIFIED FOR INTENDED PURPOSE]
+  * Scope Limitation: Certified strictly as a surrogate optimization smoke test; provides zero claims of Model A0 architecture capacity, predictive skill, out-of-sample generalization, or probabilistic calibration.
 - [x] **Step 21I.2**: Archive overfit verification dossier. [PASS / VERIFIED: 2026-09-14]
   * Storage: Formally audited and certified in [`reproduction_audit/22_a0_tiny_overfit_gradient_audit.md`](reproduction_audit/22_a0_tiny_overfit_gradient_audit.md) and [`logs/a0_tiny_overfit_execution.json`](logs/a0_tiny_overfit_execution.json).
 
@@ -564,21 +564,20 @@ The artifact registry is an inventory and status index; it must never contradict
     4. **Pillar 21J.4 (4-Lead Autoregressive Recursive Cascade Compatibility)**: Evaluates the complete multi-lead recursive unrolling ($\hat{y}_{W1} \to X_{W2} \to \hat{y}_{W2} \to X_{W3} \to \hat{y}_{W3} \to X_{W4}$) on GPU, demonstrating non-zero downstream perturbation sensitivity ($\Delta_{W2} > 0$) without graph disconnection.
     5. **Pillar 21J.5 (VRAM Memory Ladder & Throughput Profiling)**: Profiles GPU memory allocation across candidate batch sizes $B \in \{11, 22, 33, 44\}$ (multiples of 11 preserving ensemble grouping). Establishes maximum safe batch size under the 15.0 GiB T4 VRAM budget.
     6. **Pillar 21J.6 (Production Contract Freeze & Checkpoint Serialization Parity)**: Verifies bit-for-bit checkpoint save/restore parity ($0.00 \times 10^0$ discrepancy), freezing the production training hyperparameters for Phase 21K.
-  * **Automated Unit Test Suite**: Authored [`tests/test_12_a0_unet.py`](tests/test_12_a0_unet.py). All **63/63 unit tests passing** across the repository.
+  * **Automated Unit Test Suite**: Authored [`tests/test_12_a0_unet.py`](tests/test_12_a0_unet.py). All **83/83 unit tests passing** (82 passed, 1 skipped offline) across the repository.
   * **Benchmarking Artifacts**: Authored [`scripts/11_profile_a0_vram_benchmark.py`](scripts/11_profile_a0_vram_benchmark.py), preflight telemetry [`logs/A0_gpu_benchmark.json`](logs/A0_gpu_benchmark.json), and interactive Colab notebook [`notebooks/09_mindanao_a0_vram_profiling.ipynb`](notebooks/09_mindanao_a0_vram_profiling.ipynb).
   * **User Verdict**: **GO → Proceed to physical GPU execution of Notebook 09**.
-- [x] **Step 21J.1**: Physical GPU Execution of 21J Six-Pillar Benchmark on Google Colab (Tesla T4 GPU). [PASS / CERTIFIED ON GPU: 2026-09-14]
+- [x] **Step 21J.1**: Physical GPU Execution of 21J Six-Pillar Benchmark on Google Colab (Tesla T4 GPU). [PASS_HISTORICAL_GPU / CURRENT_REVALIDATION_PENDING: 2026-09-14]
   * **Execution Platform**: Google Colab NVIDIA Tesla T4 (15,360 MB VRAM), CUDA 12.5.1, cuDNN 9, TensorFlow 2.20.0, Python 3.13.15.
   * **Empirical Pillar Results**:
-    1. *Pillar 21J.1 (Architecture)*: Instantiated genuine `UNET_RZSM` nested U-Net; Lead 1 = 1,627,139 params (11 channels); Lead 2 = 1,630,307 params (12 channels, exact parent EX29 parity); 298 trainable weight tensors, 132 non-trainable, 251 layers, 3 deep supervision heads.
-    2. *Pillar 21J.2 (Multi-Lead Forward)*: Output shapes $(11, 32, 48, 1)$ across leads $1 \dots 4$; latencies 279.1 ms, 318.9 ms, 291.6 ms, 417.4 ms; ocean buffer strictly zero-filled ($\max = 0.00 \times 10^0$).
-    3. *Pillar 21J.3 (Backward Pass)*: Multi-head spatial CRPS loss $= 2.8896$, global gradient norm $= 2.8383$, all 298 gradient tensors populated, weight delta $\|\Delta w\| = 3.95 \times 10^{-3} > 0$.
-    4. *Pillar 21J.4 (4-Lead Cascade)*: Cascade latency $= 1519.51\text{ ms}$ ($379.88\text{ ms/lead}$); downstream perturbation sensitivity verified ($\Delta_{W1}=0.10 \implies \Delta_{W2}=8.52 \times 10^{-3}, \Delta_{W3}=3.83 \times 10^{-3}, \Delta_{W4}=5.14 \times 10^{-5} > 0$).
-    5. *Pillar 21J.5 (VRAM Ladder)*: Candidate batches $B \in \{11, 22, 33, 44, 66\}$ profiled on Tesla T4; peak VRAM $= 2076.2\text{ MB}$ ($B=11$) to $10565.3\text{ MB}$ ($B=66$), throughput $3.7$ to $20.7\text{ samp/s}$, zero OOM faults. Recommended production batch size $B=11$.
-    6. *Pillar 21J.6 (Production Contract Freeze)*: Checkpoint save/restore discrepancy $= 0.00 \times 10^0$ (bit-for-bit exact). Production contract frozen for Phase 21K: Adam ($\text{lr}=10^{-4}, \beta_1=0.9, \beta_2=0.999, \epsilon=10^{-7}$), batch size 11, seeds $[42, 123, 456]$.
-  * **Milestone Outcome**: **UNLOCKED FOR SUB-PHASE 21K (Full Production Model A0 Training across Seeds 42, 123, 456).**
+    1. *Pillar 21J.1 (Architecture)*: Instantiated genuine `UNET_RZSM` nested U-Net; Lead 1 = 1,627,139 params (11 channels); Lead 2 = 1,630,307 params (12 channels, exact parent EX29 parity); 298 trainable weight tensors, 132 non-trainable, 251 layers, 3 deep supervision heads. Reconciled per-lead contract in `EXPECTED_A0_PARAMETER_COUNTS`.
+    2. *Pillar 21J.2 (Multi-Lead Forward)*: Output shapes $(11, 32, 48, 1)$ across leads $1 \dots 4$; latencies 279.1 ms, 318.9 ms, 291.6 ms, 417.4 ms; evaluation-domain postprocessing mask strictly sets ocean buffer to $0.00 \times 10^0$ (UNET_RZSM outputs unmasked predictions).
+    3. *Pillar 21J.3 (Backward Pass)*: Multi-head representative MAE loss $= 2.8896$, global gradient norm $= 2.8383$, all 298 gradient tensors populated, weight delta $\|\Delta w\| = 3.95 \times 10^{-3} > 0$. Replicates parent executable gradient behavior (where NumPy detached spread term).
+    4. *Pillar 21J.4 (4-Lead Cascade)*: Cascade latency $= 1519.51\text{ ms}$ ($379.88\text{ ms/lead}$); downstream perturbation sensitivity verified ($\Delta_{W1}=0.10 \implies \Delta_{W2}=8.52 \times 10^{-3}, \Delta_{W3}=3.83 \times 10^{-3}, \Delta_{W4}=5.14 \times 10^{-5} > 0$), confirming active recursive graph connection.
+    5. *Pillar 21J.5 (VRAM Ladder)*: Candidate batches $B \in \{11, 22, 33, 44, 66\}$ profiled on Tesla T4; peak VRAM $= 2076.2\text{ MB}$ ($B=11$) to $10565.3\text{ MB}$ ($B=66$), throughput $3.7$ to $20.7\text{ samp/s}$, zero OOM faults. Batch size distinction: parent published training used $B=66$ (6 cases $\times$ 11 members); regional adaptation selects $B=11$ (1 case $\times$ 11 members) for local memory efficiency on T4 GPU.
+    6. *Pillar 21J.6 (Production Contract Freeze & Checkpoint Roundtrip)*: Real checkpoint save/restore executed; restored weights and outputs match with max difference $< 10^{-7}$. Standalone benchmark script `scripts/11_profile_a0_vram_benchmark.py` upgraded to enforce fail-closed gate (`--mode certify`).
+  * **Milestone Outcome**: **HISTORICAL PHYSICAL GPU EVIDENCE VERIFIED + REMEDIATION COMPLETE + CURRENT-CODE REVALIDATION PENDING.** (Notebook 09 rerun pending on Colab/GPU to certify current codebase).
   * **Formal Audit Dossier**: Certified in [`reproduction_audit/21_vram_and_hardware_profiling_audit.md`](reproduction_audit/21_vram_and_hardware_profiling_audit.md) and telemetry synced to `gs://rise-unet-rzsm/logs/A0_gpu_benchmark.json`.
-
 
 ---
 
@@ -590,26 +589,37 @@ The artifact registry is an inventory and status index; it must never contradict
   * Mandatory Lead Availability: Required S2S lead-time coverage through W4 must be available for a case to enter the production calendar (preventing partial cases from entering the cohort).
   * Authoritative Calendar Definition: Enforces the **ECMWF CY48R1 Operational Schedule-Referenced Forecast Origin Calendar** (1,154 candidate cycles, matching Kyle Lesinger's parent study `download_data_update.py:L61-70`). In CY48R1, reforecasts are executed for historical years on the exact month/day corresponding to the twice-weekly reference operational schedule (105 runs/yr for hindcast years 2015–2023, 105 in 2024, 104 in 2025). This reconciles why 1,154 cycles exist rather than 1,148 calendar Mon/Thu occurrences, matching the actual Copernicus CDS lake reality (527/531 cached GCS cycles match Rule 2; only 154 match Rule 1).
   * Calendar Artifact: Generated and certified production case calendar in `manifests/production_case_calendar.csv` (1,154 operational forecast cycles spanning 2015–2025; SHA-256 verified; synced to `gs://rise-unet-rzsm/manifests/production_case_calendar.csv`).
-  * Partition Distribution: 735 Training cycles (2015–2021), 210 Validation cycles (2022–2023), 209 Test cycles (2024–2025 sealed until Phase 26).
-  * Boundary Truncation: Exactly 7 trailing cycles in Dec 2025 (2025-12-08 to 2025-12-29) marked `TARGET_OUT_OF_BOUNDS` as W4 targets extend into Jan 2026.
+  * Partition Distribution: Exact manifest accounting:
+    - **TRAIN (2015–2021)**: 7 years $\times$ 105 cycles/year = **735 cycles** ($63.7\%$).
+    - **VAL (2022–2023)**: 2 years $\times$ 105 cycles/year = **210 cycles** ($18.2\%$; exactly 105 in 2022 and 105 in 2023).
+    - **SEALED_TEST (2024–2025)**: 105 in 2024 + 104 in 2025 = **209 scheduled cases** ($18.1\%$ manifest cohort census; **202 usable sealed-test cases** forming the evaluation denominator; exactly **7 quarantined cases** in late Dec 2025 where $W_4$ targets extend into Jan 2026 beyond the ERA5-Land cube).
+    - **Grand Total**: $735 + 210 + 209 = \mathbf{1,154}$ operational cycles.
+  * Boundary Truncation: Exactly 7 trailing cycles in Dec 2025 (`CASE_20251208_1148` to `CASE_20251229_1154`) marked `TARGET_OUT_OF_BOUNDS` as $W_4$ targets extend into Jan 2026. These 7 cases are permanently quarantined from final metric computation while retained in the manifest census for chronological traceability.
   * Formal Audit Dossier: [`reproduction_audit/18_production_case_calendar_1154_cycles_audit.md`](reproduction_audit/18_production_case_calendar_1154_cycles_audit.md).
-  * Test Suite: Validated by `tests/test_07_case_calendar.py` (all tests passing; 80/80 total test suite passing).
-- [x] **Step 21K.2**: Build training, validation, and untouched test splits (`[PASS / VERIFIED / ACCEPTED: 2026-09-14]`).
+  * Test Suite: Validated by `tests/test_07_case_calendar.py` (87 unit tests passing repo total).
+- [x] **Step 21K.2**: Build training, validation, and untouched test splits (`[PASS_NORMALIZATION_FROZEN_MANIFESTS_VERIFIED: 2026-09-14]`).
   * Forecast-Origin Partitioning: Partitioning is strictly by forecast-origin issuance date ($t_0$), eliminating all shared issue cycles ($\mathcal{T}_{\text{train}} \cap \mathcal{T}_{\text{val}} = \emptyset$, $\mathcal{T}_{\text{val}} \cap \mathcal{T}_{\text{test}} = \emptyset$).
   * Target-Horizon Boundary Extension Audit: 8 trailing training cycles ($t_0 \in [\text{2021-12-05}, \text{2021-12-30}]$) have $W_4$ targets extending up to 25 days into January 2022; 8 trailing validation cycles ($t_0 \in [\text{2023-12-05}, \text{2023-12-28}]$) have $W_4$ targets extending up to 24 days into January 2024. Methodologically standard for S2S prediction (zero feature/predictor leakage across boundaries).
   * Training Split: 2015–2021 cases (735 forecast cycles, 63.7%; `manifests/splits/train_cases.csv`, SHA-256 `d0aea5558ca6eb24712f2acad83c849002c0ffbc97206966b8bb5456d16e8a59`).
-  * Validation Split: 2022–2023 cases (210 forecast cycles, 18.2%; `manifests/splits/val_cases.csv`, SHA-256 `0ab5fbd430d20812f32c7ddce29450e8548d4958254518654f8e651ca5a586b0`; used for hyperparameter evaluation and checkpoint minimum-CRPS selection).
-  * Sealed Test Split: 2024–2025 cases (209 forecast cycles, 18.1%; 202 queued, 7 out-of-bounds; `manifests/splits/test_cases_sealed.csv`, SHA-256 `443d5af42bd41a5229b98d94811c0a92ca1a1108702fb61a11c173085d808f88`; strictly quarantined until Phase 26).
+  * Validation Split: 2022–2023 cases (210 forecast cycles, 18.2%; 105 in 2022, 105 in 2023; Val-A=105, Val-B=105; `manifests/splits/val_cases.csv`, SHA-256 `0ab5fbd430d20812f32c7ddce29450e8548d4958254518654f8e651ca5a586b0`; used for hyperparameter evaluation and checkpoint minimum-CRPS selection).
+  * Sealed Test Split: 2024–2025 cases (209 scheduled cases cohort census, 18.1%; 105 in 2024, 104 in 2025; **202 usable sealed-test cases** forming the evaluation denominator, **7 quarantined cases** where $W_4$ target extends into Jan 2026; `manifests/splits/test_cases_sealed.csv`, SHA-256 `443d5af42bd41a5229b98d94811c0a92ca1a1108702fb61a11c173085d808f88`; strictly quarantined until Phase 26). Scientific publications must never report simply '209 cases evaluated', but explicitly declare the $N=202$ usable evaluation denominator.
   * Normalization Parameters & Executable Binding: Derived strictly and exclusively from the 2015–2021 training partition over 126 active cells (`contracts/A0/normalization_parameters.yaml` and `.json`). Actively consumed by `src/data/case_builder.py` when `normalize=True` and verified by executable unit test `test_tensor_builder_active_normalization_contract`. Zero future leakage.
   * Pre-Training Production Contract: Machine-readable specifications frozen in `contracts/A0/mindanao_a0_production_contract.yaml` (Adam, $\text{lr}=10^{-4}$, seeds $[42, 123, 456]$, batch sizes $B \in \{11, 22, 33, 44, 66\}$, spatial CRPS loss, multi-head weights $[0.2, 0.3, 0.5]$).
   * Formal Audit Dossier: [`reproduction_audit/19_dataset_splits_and_normalization_contract_audit.md`](reproduction_audit/19_dataset_splits_and_normalization_contract_audit.md).
-  * Test Suite: Validated by `tests/test_08_normalization_and_splits.py` (80/80 unit tests passing repo total).
-- [ ] **Step 21K.3**: Train Model A0 across minimum three predeclared seeds (seeds 42, 123, 456).
+  * Test Suite: Validated by `tests/test_08_normalization_and_splits.py` (87 unit tests passing repo total).
+- [ ] **Step 21K.3-pre**: Genuine Production-Path Model A0 Training Smoke Test across all 4 Leads with Evaluation Domain Masking. [IMPLEMENTED / LOCAL CONTRACT TESTS PASS / GPU EXECUTION PENDING]
+  * **Stage A (4-Lead Real Backward Pass & Parameter Updates)**: Instantiate genuine `UNET_RZSM` for Leads 1, 2, 3, and 4. Feed production-shaped normalized tensors $(B=11, 32, 48, C_k)$ with lead channel counts $C \in \{11, 12, 5, 6\}$. Execute full `tf.GradientTape()` backpropagation using 3-head deep supervision loss, and apply Adam optimizer step verifying finite gradient norms and $\|\Delta w\| > 0$ across all 4 leads.
+  * **Stage B (Recursive Channel Semantics & Ordering Invariant)**: Ingest normalized $\hat{y}_{W1} \in [0, 1]$ into $W_2$ at channel index 11; verify $\hat{y}_{W1}$ and $\hat{y}_{W2}$ enter $W_3$ at channel indices 3 and 4; verify $\hat{y}_{W1}, \hat{y}_{W2}, \hat{y}_{W3}$ enter $W_4$ at channel indices 3, 4, 5. Verify no double-normalization occurs on recursive predictions. Permutation tamper test enforces hard rejection if ordering is disturbed.
+  * **Stage C (Production Loss Path with Downstream Masking)**: Apply authoritative 126-cell binary evaluation mask (`eval_mask`) downstream in loss computation. Compute and report separately: unmasked full-bounding-box MAE and masked evaluation-domain MAE.
+  * **Stage D (Checkpoint Parity Scoping & Next-Step Trajectory Roundtrip)**: Verify model-weight parity ($\max |\hat{Y} - \hat{Y}_{\text{restored}}| < 10^{-7}$) and full training-state restoration (optimizer slots, step counter, epoch, learning rate) with verified next-step optimization trajectory parity.
+  * **Stage E (Fail-Closed Certification Gate)**: Hard rejection on missing evaluation mask, contract mismatch, NaNs/Infs, shape errors, channel permutation errors, or recursive re-normalization. Standalone CLI exits with code 1 if certified hardware/libraries are absent.
+- [ ] **Step 21K.3**: Train Model A0 across minimum three predeclared seeds (seeds 42, 123, 456). [NOT_YET_AUTHORIZED]
+  * **Prerequisites Before Authorization**: (1) Current-code 21J GPU revalidation, (2) 21K.3-pre physical Colab T4 GPU execution, and (3) 2022–2023 atmospheric mirroring completion for validation evaluation.
   * Checkpoint Selection Rule: Primary checkpoint per seed = minimum validation CRPS, subject to all integrity checks.
   * Performance Reporting: Report A0 reference performance per-seed, mean across seeds, and standard deviation across seeds.
   * Storage: `gs://rise-unet-rzsm/checkpoints/A0/`.
 - [ ] **Step 21K.4**: Generate validation predictions and evaluate baseline metrics.
-  * Metrics: ACC, MAE, RMSE, CRPS, and categorical drought Brier score.
+  * Metrics: ACC, MAE, RMSE, CRPS, and categorical drought Brier score (strictly conforming to `contracts/A0/metric_evaluation_contract.yaml`).
   * Storage: `gs://rise-unet-rzsm/predictions/A0/` and `metrics/A0/`.
 - [ ] **Step 21K.5**: Assemble and freeze A0 Baseline Contract Package.
   * Artifacts: `contracts/A0/A0_Mindanao_Baseline_Contract.yaml`, model weights, and performance dossier.

@@ -1,0 +1,127 @@
+# contracts/A0/metric_evaluation_contract.yaml
+# ----------------------------------------------
+# Authoritative Pre-Training Metric Evaluation Contract for Mindanao RISE-UNet.
+# Freezes mathematical formulations, spatial masking, aggregation rules, and
+# reference baselines prior to Model A0 training and validation execution.
+
+version: "1.0.0"
+status: "FROZEN_PRE_TRAINING"
+created_date: "2026-09-15"
+
+spatial_domain:
+  grid_shape: [32, 48]
+  cell_resolution_deg: 0.25
+  evaluation_domain_type: "majority_coverage_binary_mask"
+  evaluation_mask_artifact: "processed/grid/mindanao_eval_mask_025.nc"
+  active_cell_count: 126
+  boundary_coverage_pct: 86.46
+  scientific_wording: "Model evaluated over the frozen 126-cell majority-coverage computational domain representing 86.46% of the validated administrative boundary area."
+
+temporal_reference:
+  timestamp_timezone: "UTC"
+  daily_aggregation_day_boundary: "00:00 UTC"
+  target_window_length_days: 7
+  target_endpoint_formula: "L = (lead * 7) - 1"
+  lead_schedule_days:
+    W1: [0, 6]    # Days t_0 to t_0 + 6
+    W2: [7, 13]   # Days t_0 + 7 to t_0 + 13
+    W3: [14, 20]  # Days t_0 + 14 to t_0 + 20
+    W4: [21, 27]  # Days t_0 + 21 to t_0 + 27
+
+metrics:
+  # ---------------------------------------------------------------------------
+  # 1. Anomaly Correlation Coefficient (ACC)
+  # ---------------------------------------------------------------------------
+  acc:
+    name: "Spatial Anomaly Correlation Coefficient"
+    short_code: "ACC"
+    definition: "Centered Pearson correlation of forecast anomalies against observed target anomalies computed across the 126 active evaluation cells per case date and lead, then averaged across cases."
+    formula: "ACC(t, l) = \\frac{\\sum_{i \\in \\Omega} (\\hat{y}_{i,t,l} - \\bar{\\hat{y}}_{t,l})(y_{i,t,l} - \\bar{y}_{t,l})}{\\sqrt{\\sum_{i \\in \\Omega} (\\hat{y}_{i,t,l} - \\bar{\\hat{y}}_{t,l})^2 \\sum_{i \\in \\Omega} (y_{i,t,l} - \\bar{y}_{t,l})^2}}"
+    evaluation_domain: "active_cells_only_omega (N=126)"
+    anomaly_reference: "Training-period (2015-2021) day-of-year rolling 7-day RZSM climatological mean"
+    aggregation: "Compute ACC per case t and lead l; report mean and 95% bootstrap confidence interval over validation/test cases."
+    zero_variance_handling: "If spatial variance < 1e-12 in either forecast or observation, return NaN and exclude from case average with logged diagnostic warning."
+
+  # ---------------------------------------------------------------------------
+  # 2. Continuous Ranked Probability Score (CRPS) & Skill Scores (CRPSS)
+  # ---------------------------------------------------------------------------
+  crps:
+    name: "Continuous Ranked Probability Score (Fair/Ensemble)"
+    short_code: "CRPS"
+    definition: "Energy-distance formulation for M=11 ensemble predictions against scalar ground truth, computed over active cells."
+    formula: "CRPS(F, y) = \\frac{1}{M} \\sum_{m=1}^M |\\hat{y}_m - y| - \\frac{1}{2 M^2} \\sum_{m=1}^M \\sum_{k=1}^M |\\hat{y}_m - \\hat{y}_k|"
+    spatial_aggregation: "Mean over 126 active cells: CRPS_domain = (1 / |\\Omega|) * sum_{i \\in \\Omega} CRPS_i"
+
+  crpss:
+    name: "Continuous Ranked Probability Skill Score"
+    short_code: "CRPSS"
+    governance_rule: "Generic 'CRPSS' is strictly prohibited. Every reported skill score must explicitly declare its denominator reference."
+    variants:
+      crpss_b0:
+        symbol: "CRPSS_B0"
+        name: "Skill relative to Climatological Ensemble Benchmark (B0)"
+        formula: "CRPSS_{B0}(l) = 1 - \\frac{\\overline{\\text{CRPS}}_{\\text{model}}(l)}{\\overline{\\text{CRPS}}_{\\text{B0}}(l)}"
+        reference_model: "B0: 11-member random sample from 2015-2021 historical training observations for the corresponding calendar day-of-year"
+        interpretation: "Positive value indicates forecast skill surpassing regional historical climatology."
+      crpss_a0:
+        symbol: "CRPSS_A0"
+        name: "Skill relative to Baseline RISE-UNet (A0)"
+        formula: "CRPSS_{A0}(l) = 1 - \\frac{\\overline{\\text{CRPS}}_{\\text{model}}(l)}{\\overline{\\text{CRPS}}_{\\text{A0}}(l)}"
+        reference_model: "A0: Mindanao regional reproduction baseline (UNET_RZSM)"
+        interpretation: "Used in Phases 24-26 to evaluate Lead-Aware Recursive Residual Refinement architectures against the A0 baseline."
+
+  # ---------------------------------------------------------------------------
+  # 3. Brier Drought Score
+  # ---------------------------------------------------------------------------
+  brier_drought_score:
+    name: "Brier Score for Moderate Agricultural Drought"
+    short_code: "BS_Drought"
+    definition: "Mean squared error of probabilistic forecast of drought occurrence against binary observed drought indicator."
+    event_definition:
+      target_variable: "7-day rolling RZSM"
+      threshold_rule: "Grid-cell-specific, training-period (2015-2021), day-of-year seasonally conditioned 20th percentile: \\tau_i(d)"
+      drought_condition: "RZSM_{i, t, l} \\le \\tau_i(d) (bottom quintile / moderate drought)"
+      observation_indicator: "o_{i,t,l} = 1 if y_{i,t,l} \\le \\tau_i(d) else 0"
+      forecast_probability: "p_{i,t,l} = (1 / M) * \\sum_{m=1}^M \\mathbb{I}[\\hat{y}_{i,t,l,m} \\le \\tau_i(d)]"
+    formula: "BS(l) = \\frac{1}{T \\cdot |\\Omega|} \\sum_{t=1}^T \\sum_{i \\in \\Omega} (p_{i,t,l} - o_{i,t,l})^2"
+    percentile_method: "Linear interpolation on 31-day trailing centered window across training years (2015-2021)"
+    ties_handling: "Inclusive inequality (less than or equal)"
+
+  # ---------------------------------------------------------------------------
+  # 4. Deterministic Error Metrics
+  # ---------------------------------------------------------------------------
+  mae:
+    name: "Mean Absolute Error (Ensemble Mean)"
+    short_code: "MAE"
+    formula: "MAE(l) = \\frac{1}{T \\cdot |\\Omega|} \\sum_{t=1}^T \\sum_{i \\in \\Omega} |\\bar{\\hat{y}}_{i,t,l} - y_{i,t,l}|"
+
+  rmse:
+    name: "Root Mean Square Error (Ensemble Mean)"
+    short_code: "RMSE"
+    formula: "RMSE(l) = \\sqrt{\\frac{1}{T \\cdot |\\Omega|} \\sum_{t=1}^T \\sum_{i \\in \\Omega} (\\bar{\\hat{y}}_{i,t,l} - y_{i,t,l})^2}"
+
+validation_protocol:
+  dataset_role_partition:
+    validation_2022_2023:
+      total_cases: 210
+      annual_breakdown:
+        year_2022: 105
+        year_2023: 105
+      validation_a_checkpoint_selection:
+        cases: "Odd-indexed cycles across 2022-2023 (105 cases)"
+        purpose: "Checkpoint selection via minimum val_crps"
+      validation_b_recursive_diagnostic:
+        cases: "Even-indexed cycles across 2022-2023 (105 cases)"
+        purpose: "Phase 23 recursive error evolution & Gate 2 evaluation"
+      bias_mitigation: "Predefined partition prevents dual-use overfitting between checkpoint selection and recursive architecture gating."
+    test_2024_2025:
+      test_manifest_census: 209
+      annual_breakdown:
+        year_2024: 105
+        year_2025: 104
+      usable_sealed_test_cases: 202  # Evaluation denominator
+      quarantined_cases: 7           # CASE_20251208_1148 to CASE_20251229_1154 (W4 target extends into Jan 2026)
+      governance: "SEALED_TEST_SET"
+      evaluation_denominator_rule: "Scientific publications and thesis reporting must NOT report simply '209 test cases evaluated'. The 209 cases constitute the scheduled cohort census across 2024-2025. The actual evaluation denominator is strictly N=202 usable cases satisfying complete multi-lead target-availability requirements. The 7 late-December 2025 cases are permanently quarantined from metric computation while retained in manifest census for chronological traceability."
+      access_rule: "Strictly forbidden from being read, loaded, or evaluated during development, checkpoint selection, or hyperparameter tuning. Evaluated exactly once for final thesis defense results."
+
