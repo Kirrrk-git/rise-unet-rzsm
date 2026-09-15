@@ -27,6 +27,7 @@ load_validation_manifest = verify_atmos_module.load_validation_manifest
 load_eval_mask = verify_atmos_module.load_eval_mask
 create_mock_validation_atmospheric_dataset = verify_atmos_module.create_mock_validation_atmospheric_dataset
 verify_atmospheric_pipeline = verify_atmos_module.verify_atmospheric_pipeline
+verify_case_builder_ingestion = verify_atmos_module.verify_case_builder_ingestion
 EXPECTED_ATM_VARS = verify_atmos_module.EXPECTED_ATM_VARS
 EXPECTED_GRID_SHAPE = verify_atmos_module.EXPECTED_GRID_SHAPE
 EXPECTED_ACTIVE_CELLS = verify_atmos_module.EXPECTED_ACTIVE_CELLS
@@ -115,6 +116,42 @@ class TestValidationAtmosphericPipeline(unittest.TestCase):
         self.assertGreater(res["unclipped_excursions_count"], 0)
         self.assertGreater(res["unclipped_global_max"], 1.0)
         self.assertTrue(res["contract_clipped_in_unit_range"])
+
+    def test_case_tensor_hierarchy_ingestion(self):
+        """Verifies direct invocation of CaseBuilder and construction of CaseTensorHierarchy."""
+        sample_dates = [self.val_df.iloc[0]["issue_date"], self.val_df.iloc[105]["issue_date"]]
+        ok, err = verify_case_builder_ingestion(
+            self.mock_ds, sample_dates, self.eval_mask, self.norm_contract, verbose=False
+        )
+        self.assertTrue(ok, f"CaseBuilder ingestion failed: {err}")
+        self.assertIsNone(err)
+
+    def test_calendar_730_continuity_and_duplicate_fail_closed(self):
+        """Verifies full 730 continuous daily timestamps contract and duplicate detection."""
+        res = verify_atmospheric_pipeline(
+            self.mock_ds, self.val_df, self.norm_contract, self.eval_mask, verbose=False
+        )
+        self.assertTrue(res["calendar_730_complete"])
+        self.assertEqual(res["calendar_unique_days"], 730)
+        self.assertFalse(res["has_duplicate_timestamps"])
+        self.assertEqual(res["missing_calendar_days_count"], 0)
+
+        # Test duplicate timestamp rejection
+        dup_ds = xr.concat([self.mock_ds, self.mock_ds.isel(time=[0])], dim="time")
+        res_dup = verify_atmospheric_pipeline(
+            dup_ds, self.val_df, self.norm_contract, self.eval_mask, verbose=False
+        )
+        self.assertEqual(res_dup["status"], "FAIL")
+        self.assertTrue(res_dup["has_duplicate_timestamps"])
+
+        # Test missing calendar day rejection (dropping 2022-06-15)
+        times_keep = [t for t in self.mock_ds["time"].values if pd.Timestamp(t).strftime("%Y-%m-%d") != "2022-06-15"]
+        gap_ds = self.mock_ds.sel(time=times_keep)
+        res_gap = verify_atmospheric_pipeline(
+            gap_ds, self.val_df, self.norm_contract, self.eval_mask, verbose=False
+        )
+        self.assertEqual(res_gap["status"], "FAIL")
+        self.assertIn("2022-06-15", res_gap["missing_calendar_days"])
 
 
 if __name__ == "__main__":

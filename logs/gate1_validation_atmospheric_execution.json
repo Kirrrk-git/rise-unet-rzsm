@@ -1,10 +1,18 @@
 {
-  "timestamp": "2026-09-15T19:56:43.900443+00:00",
+  "timestamp": "2026-09-15T20:13:16.688864+00:00",
   "target_gate": "Pre-Production Gate 1 (Validation Atmospheric Pipeline)",
-  "git_commit": "b24ef57e889f44f92f3af89524eef1ce8cb4c4d8",
+  "authority_engine": "scripts/15_verify_validation_atmospheric_pipeline.py",
+  "git_commit": "3ffa9d3ced63b2039ced79b5149a005ecd9f7d81",
   "mode": "mock",
   "data_dir": "processed/atmospheric/",
+  "gate1_status": "PASS",
   "status": "PASS",
+  "calendar_730_complete": true,
+  "calendar_unique_days": 730,
+  "calendar_start_date": "2022-01-01",
+  "calendar_end_date": "2023-12-31",
+  "has_duplicate_timestamps": false,
+  "missing_calendar_days_count": 0,
   "dates_checked": 210,
   "missing_dates_count": 0,
   "missing_dates": [],
@@ -20,6 +28,7 @@
     "check_b_unclipped_excursions_count": 0,
     "check_c_contract_clipped_in_unit_range": true
   },
-  "candidate_files": "synthetic_210_cycles",
+  "case_builder_ingestion_pass": true,
+  "candidate_files": "synthetic_730_days_210_cycles",
   "active_evaluation_cells": 126
 }

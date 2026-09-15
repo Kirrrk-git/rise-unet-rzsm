@@ -4,7 +4,7 @@
 [![Scientific Certification: 3-Tier Passing](https://img.shields.io/badge/Certification-3--Tier%20Pass-brightgreen.svg)](reproduction_audit/OPERATIONAL_EXECUTION_MATRIX_AND_ARTIFACT_REGISTRY.md)
 [![Target Grid: Candidate A (32x48)](https://img.shields.io/badge/Grid-Candidate%20A%20(32%C3%9748)-blue.svg)](contracts/A0/mindanao_a0_production_contract.yaml)
 [![Parent Reference: Nature Comms 2025](https://img.shields.io/badge/Parent%20Study-Lesinger%20%26%20Tian%20(2025)-orange.svg)](https://doi.org/10.1038/s41467-025-62761-3)
-[![Test Suite: 94 Tests (91 Passed, 3 Skipped)](https://img.shields.io/badge/Tests-91%20Passed%20%7C%203%20Skipped-success.svg)](tests/)
+[![Test Suite: 96 Tests (93 Passed, 3 Skipped)](https://img.shields.io/badge/Tests-93%20Passed%20%7C%203%20Skipped-success.svg)](tests/)
 
 ---
 
@@ -69,7 +69,7 @@ dl_dm_rzsm_subseasonal_forecast/
 │   ├── data/                                <── case_builder, cloud_lake, tf_dataset, atmospheric, rzsm
 │   ├── models/                              <── genuine a0_unet factory, parameter counts
 │   └── utils/                               <── Geospatial and metric utilities
-├── tests/                                   <── Automated Unit Testing Framework (94 tests)
+├── tests/                                   <── Automated Unit Testing Framework (96 tests)
 ├── figures/                                 <── Publication-Grade Composite Verification Figures
 ├── AGENTS.md                                <── AI engineering safety boundaries & guidelines
 └── README.md                                <── This Master Portal

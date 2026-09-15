@@ -133,6 +133,7 @@ def derive_era5_atmospheric_month(
             "title": f"Derived ERA5 Atmospheric Predictors ({year}-{month:02d}) for Mindanao RISE-UNet",
             "spatial_resolution": "0.25 degree Candidate A grid (32 x 48)",
             "evaluation_cells": 126,
+            "derivation_status": "DERIVED_BASIC_CHECKS_PASS",
         }
     )
 

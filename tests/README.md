@@ -3,7 +3,7 @@
 
 This directory contains the automated test suite for the **Mindanao Tropical RISE-UNet Adaptation (Track B)**.
 
-All unit tests are self-contained, execute without requiring external network access or cloud credentials, and validate the physical, mathematical, and algorithmic integrity of the pipeline across 94 tests (91 passed, 3 skipped).
+All unit tests are self-contained, execute without requiring external network access or cloud credentials, and validate the physical, mathematical, and algorithmic integrity of the pipeline across 96 tests (93 passed, 3 skipped).
 
 To provide clear operational order and verification hierarchy, the test suite is structured into a **4-Tier Verification Ladder**, advancing from low-level coordinate invariants to full deep learning architectures.
 
@@ -11,7 +11,7 @@ To provide clear operational order and verification hierarchy, the test suite is
 
 ## 1. Quick Start: Running Tests
 
-To run the complete test suite (94 tests across 14 test modules):
+To run the complete test suite (96 tests across 14 test modules):
 
 ```bash
 # From repository root (dl_dm_rzsm_subseasonal_forecast/)
@@ -81,7 +81,7 @@ python -m unittest tests.test_11_tf_dataset tests.test_12_a0_unet tests.test_13_
 | **Tier 4** | **[`test_11_tf_dataset.py`](test_11_tf_dataset.py)** | TensorFlow Data Pipeline | • Ensemble grouping constraint ($B \pmod{11} == 0$).<br>• Target broadcasting: $Y_{Wk} (1, 32, 48, 1) \to (11, 32, 48, 1)$.<br>• Multi-head CRPS loss calculation and checkpoint save/restore parity. |
 | **Tier 4** | **[`test_12_a0_unet.py`](test_12_a0_unet.py)** | Model A0 UNET_RZSM Architecture | • Instantiation across Leads 1, 2, 3, 4 with Candidate A geometry guard ($H, W \pmod{16} == 0$).<br>• Per-lead parameter counts ($W_1$: 1,627,139; $W_2$: 1,630,307; $W_3$: 1,608,131; $W_4$: 1,611,299).<br>• Output shapes `(B, 32, 48, 1)` across 3 deep supervision heads. |
 | **Tier 4** | **[`test_13_production_smoke_preflight.py`](test_13_production_smoke_preflight.py)** | Production Smoke Preflight | • Step 21K.3-pre contracts: 4-lead genuine backward updates ($\Delta w > 0$).<br>• Recursive channel semantics ($W_2$ ch 11, $W_3$ ch 3–4, $W_4$ ch 3–5).<br>• Downstream 126-cell masked loss vs unmasked loss.<br>• Full training-state trajectory roundtrip (optimizer slots, step, epoch, lr). |
-| **Tier 4** | **[`test_14_validation_atmospheric_pipeline.py`](test_14_validation_atmospheric_pipeline.py)** | Validation Atmospheric Preflight | • Complete census of 210 validation cycles (105 in 2022, 105 in 2023).<br>• End-to-end flow through production preprocessing path with 5 channels.<br>• Detection of missing dates, missing channels, and active domain NaNs.<br>• Three-way normalization diagnostics (finite math, unclipped range & excursions, and contracted post-clipping). |
+| **Tier 4** | **[`test_14_validation_atmospheric_pipeline.py`](test_14_validation_atmospheric_pipeline.py)** | Validation Atmospheric Preflight | • Complete census of 210 validation cycles (105 in 2022, 105 in 2023) and 730-day daily calendar continuity.<br>• End-to-end flow through production `CaseBuilder` into `CaseTensorHierarchy` with 5 atmospheric channels.<br>• Detection of missing dates, duplicate dates, missing channels, and active domain NaNs.<br>• Three-way normalization diagnostics (finite math, unclipped range & excursions, and contracted post-clipping). |
 
 ---
 

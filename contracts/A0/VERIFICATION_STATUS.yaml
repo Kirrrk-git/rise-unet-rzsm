@@ -128,9 +128,20 @@ milestones:
     certification_level: "PREFLIGHT_AUTOMATED_LOCAL_VERIFIED"
     details: "Automated 5-stage preflight authored (scripts/14_run_a0_production_smoke_test.py, tests/test_13_production_smoke_preflight.py). Verifies 4-lead genuine backward updates (Cin in [11, 12, 5, 6]), downstream 126-cell masked loss, recursive channel ordering & tamper detection, and full training-state roundtrip. Local non-TF contract tests pass; physical Colab T4 GPU execution pending."
 
+  pre_production_gate_1_validation_atmospheric_pipeline:
+    name: "Pre-Production Gate 1: Validation Atmospheric Pipeline Preflight Certification"
+    status: "IMPLEMENTED_MOCK_TESTED_COLAB_EXECUTION_PENDING"
+    certification_level: "AUTHORITATIVE_VERIFIER_HARDENED"
+    details: "Authoritative verifier (scripts/15_verify_validation_atmospheric_pipeline.py) hardened with continuous 730-day calendar continuity check (0 missing/duplicate days), fail-closed 24-file monthly whitelist, 210 validation cycles (105 in 2022, 105 in 2023), 5 channels, 126 active cells, 3-way normalization diagnostics (finite math, unclipped range & excursions, and contracted post-clipping), and genuine production CaseBuilder ingestion into CaseTensorHierarchy ([11, 12, 5, 6] channels, normalization, zero ocean buffer). Official execution wrapper configured in notebooks/10_mindanao_validation_atmospheric_pipeline.ipynb."
+    verified_artifacts:
+      - "scripts/15_verify_validation_atmospheric_pipeline.py"
+      - "notebooks/10_mindanao_validation_atmospheric_pipeline.ipynb"
+      - "tests/test_14_validation_atmospheric_pipeline.py"
+      - "logs/gate1_validation_atmospheric_execution.json"
+
   21K_3_production_training:
     name: "Full Three-Seed Model A0 Production Training"
     status: "NOT_YET_AUTHORIZED"
     certification_level: "BLOCKED_BY_PREREQUISITES"
-    details: "A0 production training is nearly ready, but strictly gated by three concrete prerequisites: (1) finish 2022-2023 atmospheric mirroring (48 monthly NetCDFs) for validation-driven training, (2) current-code 21J GPU revalidation rerun of Notebook 09 on physical Colab T4, and (3) successful 21K.3-pre GPU certification (scripts/14_run_a0_production_smoke_test.py --mode certify)."
+    details: "A0 production training is nearly ready, but strictly gated by three concrete prerequisites: (1) finish 2022-2023 atmospheric mirroring (48 monthly NetCDFs) for validation-driven training and pass Gate 1 (scripts/15_verify_validation_atmospheric_pipeline.py --mode live), (2) current-code 21J GPU revalidation rerun of Notebook 09 on physical Colab T4, and (3) successful 21K.3-pre GPU certification (scripts/14_run_a0_production_smoke_test.py --mode certify)."
 

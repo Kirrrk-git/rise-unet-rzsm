@@ -219,7 +219,7 @@ def derive_month(
             "spatial_domain": "Mindanao Candidate A Grid (32x48)",
             "temporal_resolution": "Daily aggregated from 24 hourly timesteps",
             "evaluation_land_cells": 126,
-            "verification_status": "CERTIFIED_PASS",
+            "derivation_status": "DERIVED_BASIC_CHECKS_PASS",
         },
     )
     ds_out.to_netcdf(str(out_nc_path))
