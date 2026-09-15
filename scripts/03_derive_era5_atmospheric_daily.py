@@ -229,7 +229,7 @@ def derive_month(
     if is_pilot:
         fig_dir = Path("figures")
         fig_dir.mkdir(parents=True, exist_ok=True)
-        fig_path = fig_dir / "mindanao_era5_atmospheric_pilot_verification.png"
+        fig_path = fig_dir / "era5_atmospheric_pilot_quickcheck.png"
         fig, axes = plt.subplots(2, 3, figsize=(16, 9), dpi=300)
         fig.suptitle(
             "Sub-Phase 21C Verified Atmospheric Pilot — Monthly Mean Fields (January 2015)\nCandidate A Grid (32×48, 0.25° Resolution) | 126 Mindanao Evaluation Land Cells",
