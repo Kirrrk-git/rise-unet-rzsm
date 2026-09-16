@@ -131,11 +131,11 @@ milestones:
 
   21K_3_pre_production_smoke_test:
     name: "Genuine Production-Path Model A0 Training Smoke Test across all 4 Leads"
-    status: "PASS"
-    certification_level: "CERTIFIED_ON_GPU"
-    date_certified: "2026-09-17"
+    status: "CERTIFICATION_REVOKED_PENDING_REVISION_AND_RERUN"
+    certification_level: "REVOKED_PENDING_RERUN"
+    date_revoked: "2026-09-17"
     execution_mode: "LIVE_GPU"
-    details: "Step 21K.3-pre / Pre-Production Gate 3 executed and certified on physical NVIDIA Tesla T4 GPU in Google Colab (notebooks/11_mindanao_a0_production_smoke_preflight.ipynb, commit 233e3e0). Certified all stages: Stage A (real backward pass across all 4 leads with strict 126-cell masked losses, finite gradients, and positive weight updates ||Δw|| in [0.104, 0.118]), Stage B (exact recursive channel semantics for W2=11, W3=[3,4], W4=[3,4,5], and hard permutation tamper detection), Stage D (checkpoint parity scoping: model-weight parity 0.00e+00 and full training state restoration with verified step-2 trajectory equality: loss delta 0.00e+00, weight delta 5.02e-07 < 1e-6), and Stage E (telemetry export and synchronization to gs://rise-unet-rzsm/reproduction_audit/a0_production_smoke_test.json). All pre-production gates are cleared."
+    details: "Step 21K.3-pre / Pre-Production Gate 3 certification has been formally revoked following rigorous audit of Notebook 11 execution outputs. Audit findings: (1) Stage E caught an authoritative engine exception ('Full training state trajectory divergence: max weight delta on step 2 = 0.00016224') and used fallback logic to declare PASS, violating fail-closed certification invariants; (2) Stage C (production loss path with downstream masking) was omitted from authoritative execution; (3) Stages A and B relied on synthetic np.random.uniform tensors rather than genuine CaseBuilder pilot case ingestion and real model cascade inference. Gate 3 is reset to REVOKED_PENDING_RERUN until all four remediation items are implemented and certified on Tesla T4 GPU."
     hardware_target: "NVIDIA Tesla T4"
     tensorflow_version: "2.20.0"
     python_version: "3.13.15"
@@ -161,8 +161,9 @@ milestones:
 
   21K_3_production_training:
     name: "Full Three-Seed Model A0 Production Training"
-    status: "AUTHORIZED"
-    certification_level: "READY_FOR_PRODUCTION_TRAINING"
-    date_authorized: "2026-09-17"
-    details: "All three strict technical prerequisites have been fully cleared and empirically certified: (1) 2022-2023 atmospheric mirroring & daily derivation certified under Pre-Production Gate 1 [PASS / CERTIFIED: 2026-09-16], (2) 21J hardware profiling & VRAM feasibility benchmark certified on Tesla T4 under Pre-Production Gate 2 [PASS / CERTIFIED_ON_GPU: 2026-09-17], and (3) 21K.3-pre 4-lead production smoke preflight certified on Tesla T4 under Pre-Production Gate 3 [PASS / CERTIFIED_ON_GPU: 2026-09-17]. Full 3-Seed Model A0 Production Training on seeds [42, 123, 456] is formally authorized."
+    status: "NOT_YET_AUTHORIZED"
+    certification_level: "BLOCKED_BY_PRE_PRODUCTION_GATE_3"
+    date_authorized: "PENDING_GATE_3_RERUN"
+    details: "Blocked pending re-certification of Pre-Production Gate 3 (Step 21K.3-pre). While Pre-Production Gate 1 (2022-2023 atmospheric pipeline) and Pre-Production Gate 2 (Model A0 hardware profiling & VRAM benchmark on Tesla T4) remain fully certified [PASS], Gate 3 certification was revoked due to fallback-to-PASS anti-pattern, omitted Stage C, synthetic data usage in Stages A/B, and Step-2 trajectory discrepancy. Production training will be authorized only upon authentic fail-closed Gate 3 execution on Tesla T4 GPU."
+
 

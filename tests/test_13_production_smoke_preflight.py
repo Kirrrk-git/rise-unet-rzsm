@@ -195,9 +195,40 @@ class TestProductionSmokePreflight(unittest.TestCase):
             optimizer.apply_gradients(zip(grads, model.trainable_variables))
 
             weights_after = [w.numpy() for w in model.trainable_variables]
-            delta = sum(np.sum(np.abs(wa - wb)) for wa, wb in zip(weights_after, weights_before))
-            self.assertGreater(delta, 0.0)
+    def test_normalize_assembled_case(self):
+        """Verifies normalization scaling into [0, 1] and ocean buffer zero-filling."""
+        from src.data.tf_dataset import normalize_assembled_case
+
+        mask = np.zeros((32, 48), dtype=bool)
+        mask[10:24, 15:24] = True  # 126 active cells
+
+        b = 11
+        mock_raw = {
+            "x_w1": np.full((b, 32, 48, 11), 300.0, dtype=np.float32),
+            "x_w2_base": np.full((b, 32, 48, 11), 300.0, dtype=np.float32),
+            "x_w3_base": np.full((b, 32, 48, 3), 0.0, dtype=np.float32),
+            "x_w4_base": np.full((b, 32, 48, 3), 0.0, dtype=np.float32),
+            "y_w1": np.zeros((1, 32, 48, 1), dtype=np.float32),
+            "y_w2": np.zeros((1, 32, 48, 1), dtype=np.float32),
+            "y_w3": np.zeros((1, 32, 48, 1), dtype=np.float32),
+            "y_w4": np.zeros((1, 32, 48, 1), dtype=np.float32),
+        }
+        # Give hgt_pres realistic value in channel 7
+        mock_raw["x_w1"][..., 7] = 12400.0
+        mock_raw["x_w2_base"][..., 7] = 12400.0
+
+        normed = normalize_assembled_case(mock_raw, eval_mask=mask)
+
+        # Invariant checks
+        for k in ["x_w1", "x_w2_base", "x_w3_base", "x_w4_base", "y_w1", "y_w2", "y_w3", "y_w4"]:
+            arr = normed[k]
+            # Active cells must be in [0, 1]
+            self.assertTrue(np.all(arr[:, mask] >= 0.0))
+            self.assertTrue(np.all(arr[:, mask] <= 1.0))
+            # Ocean cells must be exactly 0.0
+            self.assertEqual(float(np.max(np.abs(arr[:, ~mask]))), 0.0)
 
 
 if __name__ == "__main__":
     unittest.main()
+

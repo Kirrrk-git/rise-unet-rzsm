@@ -467,7 +467,14 @@ def restore_a0_checkpoint(
     if str(weights_path).endswith(".npz"):
         with np.load(weights_path) as data:
             weights = [data[k] for k in sorted(data.files, key=lambda x: int(x.split("_")[-1]))]
-        model.set_weights(weights)
+        if hasattr(model, "set_weights") and len(weights) == len(model.get_weights()):
+            model.set_weights(weights)
+        elif hasattr(model, "trainable_variables") and len(weights) == len(model.trainable_variables):
+            for w_target, w_arr in zip(model.trainable_variables, weights):
+                w_target.assign(w_arr)
+        else:
+            # Fallback
+            model.set_weights(weights)
     elif hasattr(model, "load_weights"):
         model.load_weights(str(weights_path))
     else:
@@ -490,20 +497,23 @@ def save_a0_training_state(
     """
     Saves complete training state (model weights, optimizer variables, step/epoch counters,
     and metadata) to distinguish full training-state checkpointing from model-weight-only checkpointing.
+    Preserves exact bit-for-bit numpy arrays of trainable and optimizer variables.
     """
     checkpoint_dir = Path(checkpoint_dir)
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
-    weights_file = checkpoint_dir / f"{filename_prefix}_epoch{epoch:03d}_step{step:06d}.weights.h5"
+    weights_file = checkpoint_dir / f"{filename_prefix}_epoch{epoch:03d}_step{step:06d}_weights.npz"
     opt_file = checkpoint_dir / f"{filename_prefix}_epoch{epoch:03d}_step{step:06d}_opt.npz"
     meta_file = checkpoint_dir / f"{filename_prefix}_epoch{epoch:03d}_step{step:06d}_meta.json"
 
-    # Save model weights
-    if hasattr(model, "save_weights"):
-        model.save_weights(str(weights_file))
+    # Save model trainable variables directly
+    if hasattr(model, "trainable_variables"):
+        w_dict = {f"var_{i}": w.numpy() for i, w in enumerate(model.trainable_variables)}
+    elif hasattr(model, "get_weights"):
+        w_dict = {f"var_{i}": w for i, w in enumerate(model.get_weights())}
     else:
-        weights_dict = {f"layer_{i}": w for i, w in enumerate(model.get_weights())}
-        np.savez_compressed(weights_file.with_suffix(".npz"), **weights_dict)
+        raise ValueError(f"Cannot extract weights from object: {type(model)}")
+    np.savez_compressed(weights_file, **w_dict)
 
     # Save optimizer weights
     opt_weights = []
@@ -551,30 +561,134 @@ def restore_a0_training_state(
     weights_path = checkpoint_dir / meta["weights_file"]
     opt_path = checkpoint_dir / meta["optimizer_file"]
 
-    # Restore model weights
-    restore_a0_checkpoint(model, weights_path)
+    # Restore model trainable variables directly
+    if weights_path.suffix == ".npz" and hasattr(model, "trainable_variables"):
+        with np.load(weights_path) as data:
+            w_keys = sorted(data.files, key=lambda x: int(x.split("_")[-1]))
+            if len(w_keys) == len(model.trainable_variables):
+                for w_target, k in zip(model.trainable_variables, w_keys):
+                    w_target.assign(data[k])
+            else:
+                restore_a0_checkpoint(model, weights_path)
+    else:
+        restore_a0_checkpoint(model, weights_path)
 
-    # Restore optimizer weights
+    # Build optimizer variables against model trainable variables
+    if hasattr(optimizer, "build") and hasattr(model, "trainable_variables"):
+        try:
+            optimizer.build(model.trainable_variables)
+        except Exception:
+            pass
+
+    # Restore optimizer variables directly
     if opt_path.exists():
         with np.load(opt_path, allow_pickle=True) as data:
-            opt_weights = [data[k] for k in sorted(data.files, key=lambda x: int(x.split("_")[-1]))]
-        if opt_weights:
-            if hasattr(optimizer, "build") and hasattr(model, "trainable_variables"):
-                try:
-                    optimizer.build(model.trainable_variables)
-                except Exception:
-                    pass
-            if hasattr(optimizer, "variables") and len(optimizer.variables) == len(opt_weights):
-                try:
-                    for v, w in zip(optimizer.variables, opt_weights):
-                        v.assign(w)
-                except Exception as e:
-                    logger.warning(f"Could not assign optimizer variables: {e}")
-            elif hasattr(optimizer, "set_weights"):
-                try:
-                    optimizer.set_weights(opt_weights)
-                except Exception as e:
-                    logger.warning(f"Could not fully set optimizer weights: {e}")
+            opt_keys = sorted(data.files, key=lambda x: int(x.split("_")[-1]))
+            opt_weights = [data[k] for k in opt_keys]
+
+        if hasattr(optimizer, "variables") and len(optimizer.variables) == len(opt_weights):
+            for v_target, w in zip(optimizer.variables, opt_weights):
+                v_target.assign(w)
+        elif hasattr(optimizer, "set_weights"):
+            try:
+                optimizer.set_weights(opt_weights)
+            except Exception as e:
+                logger.warning(f"Could not fully set optimizer weights: {e}")
 
     logger.info(f"Full training state restored from {meta_path} (epoch {meta.get('epoch')}, step {meta.get('step')})")
     return meta
+
+
+def normalize_assembled_case(
+    case_data: Dict[str, np.ndarray],
+    norm_cfg: Optional[Dict[str, Any]] = None,
+    eval_mask: Optional[np.ndarray] = None,
+) -> Dict[str, np.ndarray]:
+    """
+    Normalizes real assembled case arrays into [0, 1] unit interval using
+    frozen training normalization contract (contracts/A0/normalization_parameters.yaml)
+    and enforces the ocean-buffer zero-filling invariant (~eval_mask -> 0.0).
+
+    Returns dictionary with normalized arrays:
+      - x_w1: (11, 32, 48, 11)
+      - x_w2_base: (11, 32, 48, 11)
+      - x_w3_base: (11, 32, 48, 3)
+      - x_w4_base: (11, 32, 48, 3)
+      - y_w1, y_w2, y_w3, y_w4: (11, 32, 48, 1) broadcast across 11 members
+    """
+    if norm_cfg is None:
+        import yaml
+        norm_file = Path(__file__).resolve().parent.parent.parent / "contracts" / "A0" / "normalization_parameters.yaml"
+        with open(norm_file, "r", encoding="utf-8") as f:
+            norm_cfg = yaml.safe_load(f)
+
+    rzsm_p = norm_cfg["rzsm_parameters"]["seasonal_anomaly"]
+    rzsm_min, rzsm_max = float(rzsm_p["min"]), float(rzsm_p["max"])
+
+    atm_vars = ["pwat", "spfh", "tmax", "diff_temp", "hgt_pres"]
+    s2s_vars = ["t2m", "d2m", "tcw"]
+
+    def _scale(arr: np.ndarray, mi: float, ma: float) -> np.ndarray:
+        denom = ma - mi
+        if np.isclose(denom, 0.0):
+            raise ValueError(f"Degenerate bounds: max ({ma}) == min ({mi})")
+        return np.clip((arr - mi) / denom, 0.0, 1.0).astype(np.float32)
+
+    # Lead 1: 3 RZSM lags + 5 ERA5 surface + 3 S2S W1 = 11 channels
+    x_w1_norm = np.zeros_like(case_data["x_w1"], dtype=np.float32)
+    for c in range(3):
+        x_w1_norm[..., c] = _scale(case_data["x_w1"][..., c], rzsm_min, rzsm_max)
+    for i, var in enumerate(atm_vars):
+        p = norm_cfg["atmospheric_parameters"][var]
+        x_w1_norm[..., 3 + i] = _scale(case_data["x_w1"][..., 3 + i], float(p["min"]), float(p["max"]))
+    for i, var in enumerate(s2s_vars):
+        p = norm_cfg["s2s_parameters"]["lead_1"][var]
+        x_w1_norm[..., 8 + i] = _scale(case_data["x_w1"][..., 8 + i], float(p["min"]), float(p["max"]))
+
+    # Lead 2 base: 3 RZSM lags + 5 ERA5 surface + 3 S2S W2 = 11 channels
+    x_w2_base_norm = np.zeros_like(case_data["x_w2_base"], dtype=np.float32)
+    for c in range(3):
+        x_w2_base_norm[..., c] = _scale(case_data["x_w2_base"][..., c], rzsm_min, rzsm_max)
+    for i, var in enumerate(atm_vars):
+        p = norm_cfg["atmospheric_parameters"][var]
+        x_w2_base_norm[..., 3 + i] = _scale(case_data["x_w2_base"][..., 3 + i], float(p["min"]), float(p["max"]))
+    for i, var in enumerate(s2s_vars):
+        p = norm_cfg["s2s_parameters"]["lead_2"][var]
+        x_w2_base_norm[..., 8 + i] = _scale(case_data["x_w2_base"][..., 8 + i], float(p["min"]), float(p["max"]))
+
+    # Lead 3 base: 3 RZSM lags
+    x_w3_base_norm = np.zeros_like(case_data["x_w3_base"], dtype=np.float32)
+    for c in range(3):
+        x_w3_base_norm[..., c] = _scale(case_data["x_w3_base"][..., c], rzsm_min, rzsm_max)
+
+    # Lead 4 base: 3 RZSM lags
+    x_w4_base_norm = np.zeros_like(case_data["x_w4_base"], dtype=np.float32)
+    for c in range(3):
+        x_w4_base_norm[..., c] = _scale(case_data["x_w4_base"][..., c], rzsm_min, rzsm_max)
+
+    # Targets Y_w1..Y_w4
+    y_norm = {}
+    for l in [1, 2, 3, 4]:
+        raw_y = case_data[f"y_w{l}"].astype(np.float32)
+        if raw_y.shape[0] == 1:
+            raw_y = np.repeat(raw_y, 11, axis=0)
+        y_norm[f"y_w{l}"] = _scale(raw_y, rzsm_min, rzsm_max)
+
+    # Ocean buffer zero-filling invariant
+    if eval_mask is not None:
+        ocean = ~eval_mask
+        x_w1_norm[:, ocean, :] = 0.0
+        x_w2_base_norm[:, ocean, :] = 0.0
+        x_w3_base_norm[:, ocean, :] = 0.0
+        x_w4_base_norm[:, ocean, :] = 0.0
+        for l in [1, 2, 3, 4]:
+            y_norm[f"y_w{l}"][:, ocean, :] = 0.0
+
+    return {
+        "x_w1": x_w1_norm,
+        "x_w2_base": x_w2_base_norm,
+        "x_w3_base": x_w3_base_norm,
+        "x_w4_base": x_w4_base_norm,
+        **y_norm,
+    }
+
