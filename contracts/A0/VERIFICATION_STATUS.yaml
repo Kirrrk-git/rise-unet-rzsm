@@ -130,14 +130,17 @@ milestones:
 
   pre_production_gate_1_validation_atmospheric_pipeline:
     name: "Pre-Production Gate 1: Validation Atmospheric Pipeline Preflight Certification"
-    status: "IMPLEMENTED_MOCK_TESTED_COLAB_EXECUTION_PENDING"
-    certification_level: "AUTHORITATIVE_VERIFIER_HARDENED"
-    details: "Authoritative verifier (scripts/15_verify_validation_atmospheric_pipeline.py) hardened with continuous 730-day calendar continuity check (0 missing/duplicate days), fail-closed 24-file monthly whitelist, 210 validation cycles (105 in 2022, 105 in 2023), 5 channels, 126 active cells, 3-way normalization diagnostics (finite math, unclipped range & excursions, and contracted post-clipping), and genuine production CaseBuilder ingestion into CaseTensorHierarchy ([11, 12, 5, 6] channels, normalization, zero ocean buffer). Official execution wrapper configured in notebooks/10_mindanao_validation_atmospheric_pipeline.ipynb."
+    status: "PASS"
+    certification_level: "CERTIFIED"
+    execution_mode: "LIVE"
+    date_certified: "2026-09-16"
+    details: "Authoritative verifier (scripts/15_verify_validation_atmospheric_pipeline.py) executed end-to-end on Google Colab with EXIT CODE 0 (PASS). Certified continuous 730-day calendar continuity (2022-01-01 to 2023-12-31, 0 missing/duplicate days), 24-file monthly whitelist, 210 validation cycles (105 in 2022, 105 in 2023), 5 channels, 126 active cells (0 NaNs/Infs), 3-way normalization diagnostics (finite math, unclipped range [0.0220, 0.9879] with 0 bounds excursions, and post-clipping [0, 1]), and genuine production CaseBuilder ingestion into CaseTensorHierarchy ([11, 12, 5, 6] channels). Execution wrapper notebooks/10_mindanao_validation_atmospheric_pipeline.ipynb executed cleanly. Telemetry and diagnostic composite synced to GCS."
     verified_artifacts:
       - "scripts/15_verify_validation_atmospheric_pipeline.py"
       - "notebooks/10_mindanao_validation_atmospheric_pipeline.ipynb"
       - "tests/test_14_validation_atmospheric_pipeline.py"
       - "logs/gate1_validation_atmospheric_execution.json"
+      - "figures/gate1_validation_atmospheric_spatial_sanity.png"
 
   21K_3_production_training:
     name: "Full Three-Seed Model A0 Production Training"
