@@ -198,6 +198,42 @@ class AtmosphericDatasetProvider:
             if ensure_file_local_or_gcs(dest, gcs_uri, desc=f"ERA5 atmospheric {month_str}"):
                 target_path = dest
 
+        # Fallback: If processed NetCDF is missing, check raw archives in GCS and derive on-the-fly
+        if target_path is None and self.auto_download:
+            raw_dir = self.repo_root / "raw" / "era5"
+            raw_single = raw_dir / "single" / f"era5_single_levels_{month_str}.nc"
+            raw_pres = raw_dir / "pressure" / f"era5_z200_{month_str}.nc"
+
+            raw_single_gcs = f"{GCS_BUCKET}/raw/era5/single/era5_single_levels_{month_str}.nc"
+            raw_pres_gcs = f"{GCS_BUCKET}/raw/era5/pressure/era5_z200_{month_str}.nc"
+
+            logger.info(f"Processed atmospheric NetCDF not in GCS for {month_str}. Checking raw ERA5 archives...")
+            ok_s = ensure_file_local_or_gcs(raw_single, raw_single_gcs, desc=f"raw ERA5 single {month_str}")
+            ok_p = ensure_file_local_or_gcs(raw_pres, raw_pres_gcs, desc=f"raw ERA5 pressure {month_str}")
+
+            if ok_s and ok_p:
+                grid_path = self.repo_root / "processed" / "grid" / "mindanao_025deg.nc"
+                mask_path = self.repo_root / "processed" / "grid" / "mindanao_eval_mask_025.nc"
+                derived_dest = self.atmos_dir / f"era5_atmospheric_{month_str}.nc"
+                derived_dest.parent.mkdir(parents=True, exist_ok=True)
+
+                logger.info(f"--> Deriving 5 atmospheric predictor channels on-the-fly for {month_str}...")
+                derive_fn = get_derive_month_fn(self.repo_root)
+                derive_fn(
+                    dt.year,
+                    dt.month,
+                    raw_single,
+                    raw_pres,
+                    grid_path,
+                    mask_path,
+                    derived_dest,
+                    is_pilot=False,
+                )
+                if derived_dest.is_file() and derived_dest.stat().st_size > 0:
+                    target_path = derived_dest
+                    logger.info(f"[PASS] Successfully derived {derived_dest.name} ({derived_dest.stat().st_size / 1024:.1f} KB)")
+                    upload_file_to_gcs(derived_dest, f"{GCS_BUCKET}/processed/atmospheric/{derived_dest.name}")
+
         if target_path is None:
             logger.warning(f"Atmospheric NetCDF not found for {month_str}")
             return None
@@ -205,6 +241,18 @@ class AtmosphericDatasetProvider:
         ds = xr.open_dataset(target_path)
         self.cache[key] = ds
         return ds
+
+
+def get_derive_month_fn(repo_root: Path):
+    """Dynamically loads derive_month function from scripts/03_derive_era5_atmospheric_daily.py."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "derive_mod",
+        repo_root / "scripts" / "03_derive_era5_atmospheric_daily.py",
+    )
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod.derive_month
 
 
 def locate_or_fetch_s2s_gribs(
