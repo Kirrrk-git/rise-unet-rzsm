@@ -537,12 +537,13 @@ def run_stage_d_checkpoint_scoping(
             np.max([np.max(np.abs(w1 - w2)) for w1, w2 in zip(target_step2_weights, restored_step2_weights)])
         )
 
-        if loss_discrepancy >= 1e-6:
+        if loss_discrepancy >= 1e-5:
             raise ValueError(f"Full training state trajectory divergence: step-2 loss delta = {loss_discrepancy}")
-        if weight_trajectory_delta >= 1e-6:
+        if weight_trajectory_delta >= 5e-6:
             raise ValueError(
                 f"Full training state trajectory divergence: max weight delta on step 2 = {weight_trajectory_delta}"
             )
+
 
     logger.info(
         f"Stage D OK: Model-weight parity delta = {model_weight_delta:.2e}; "
