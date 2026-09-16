@@ -39,11 +39,32 @@ EXPECTED_A0_PARAMETER_COUNTS: Dict[int, int] = {
 TOTAL_A0_PARAMETERS: int = 1_630_307
 
 
+def _patch_depthwise_conv2d_cls(cls: Any) -> None:
+    """Patches DepthwiseConv2D.__init__ in place to translate legacy Keras 2 kwargs to Keras 3."""
+    if cls is None or getattr(cls, "_is_mindanao_patched", False):
+        return
+    orig_init = cls.__init__
+
+    def compatible_init(self, *args, **kwargs):
+        if "kernel_initializer" in kwargs:
+            kwargs["depthwise_initializer"] = kwargs.pop("kernel_initializer")
+        if "kernel_constraint" in kwargs:
+            kwargs["depthwise_constraint"] = kwargs.pop("kernel_constraint")
+        if "kernel_regularizer" in kwargs:
+            kwargs["depthwise_regularizer"] = kwargs.pop("kernel_regularizer")
+        if "groups" in kwargs:
+            kwargs.pop("groups")
+        orig_init(self, *args, **kwargs)
+
+    cls.__init__ = compatible_init
+    cls._is_mindanao_patched = True
+
+
 def ensure_keras_compatibility() -> None:
     """
     Applies runtime compatibility shims for protobuf runtime validation
     and Keras 3 DepthwiseConv2D keyword translation (kernel_initializer -> depthwise_initializer).
-    Ensures genuine UNET_RZSM architecture instantiation succeeds across modern Keras 3 / TF 2.16+ environments.
+    Directly patches the __init__ method of DepthwiseConv2D across all loaded and importable Keras modules.
     """
     try:
         import google.protobuf.runtime_version as _rt
@@ -51,34 +72,31 @@ def ensure_keras_compatibility() -> None:
     except (ImportError, AttributeError):
         pass
 
-    try:
-        import tensorflow as tf
-        import keras.layers
+    import sys
+    import importlib
+
+    for mod_name in [
+        "keras.layers",
+        "keras.src.layers",
+        "keras.src.layers.convolutional",
+        "keras.src.layers.convolutional.depthwise_conv2d",
+        "tensorflow.keras.layers",
+    ]:
         try:
-            import keras.src.layers.convolutional.depthwise_conv2d as dw_mod
-            base_dw = dw_mod.DepthwiseConv2D
+            m = importlib.import_module(mod_name)
+            if hasattr(m, "DepthwiseConv2D"):
+                _patch_depthwise_conv2d_cls(getattr(m, "DepthwiseConv2D"))
         except Exception:
-            base_dw = keras.layers.DepthwiseConv2D
+            pass
 
-        if getattr(base_dw, "_is_mindanao_compatible", False):
-            return
-
-        class CompatibleDepthwiseConv2D(base_dw):
-            """Keras 3 compatibility shim translating legacy kwargs to depthwise kwargs."""
-            _is_mindanao_compatible = True
-
-            def __init__(self, *args, **kwargs):
-                if "kernel_initializer" in kwargs:
-                    kwargs["depthwise_initializer"] = kwargs.pop("kernel_initializer")
-                if "kernel_constraint" in kwargs:
-                    kwargs["depthwise_constraint"] = kwargs.pop("kernel_constraint")
-                super().__init__(*args, **kwargs)
-
-        keras.layers.DepthwiseConv2D = CompatibleDepthwiseConv2D
-        if hasattr(tf, "keras") and hasattr(tf.keras, "layers"):
-            tf.keras.layers.DepthwiseConv2D = CompatibleDepthwiseConv2D
-    except (ImportError, AttributeError):
-        pass
+    for mod in list(sys.modules.values()):
+        if mod is not None and hasattr(mod, "DepthwiseConv2D"):
+            try:
+                dw = getattr(mod, "DepthwiseConv2D")
+                if isinstance(dw, type):
+                    _patch_depthwise_conv2d_cls(dw)
+            except Exception:
+                pass
 
 
 # Automatically ensure compatibility on module load
@@ -146,6 +164,24 @@ def build_a0_unet(
         Input = tf.keras.layers.Input
         Model = tf.keras.models.Model
         from parent_study_ex29.function import modelRzsmRelu as UNETRzsm
+        if hasattr(UNETRzsm, "DepthwiseConv2D"):
+            _patch_depthwise_conv2d_cls(getattr(UNETRzsm, "DepthwiseConv2D"))
+
+            dw_base = getattr(UNETRzsm, "DepthwiseConv2D")
+
+            class CompatibleDepthwiseConv2D(dw_base):
+                def __init__(self, *args, **kwargs):
+                    if "kernel_initializer" in kwargs:
+                        kwargs["depthwise_initializer"] = kwargs.pop("kernel_initializer")
+                    if "kernel_constraint" in kwargs:
+                        kwargs["depthwise_constraint"] = kwargs.pop("kernel_constraint")
+                    if "kernel_regularizer" in kwargs:
+                        kwargs["depthwise_regularizer"] = kwargs.pop("kernel_regularizer")
+                    if "groups" in kwargs:
+                        kwargs.pop("groups")
+                    super().__init__(*args, **kwargs)
+
+            UNETRzsm.DepthwiseConv2D = CompatibleDepthwiseConv2D
     except (ImportError, AttributeError) as e:
         raise ImportError(
             f"TensorFlow / Keras / parent_study_ex29.function.modelRzsmRelu required to instantiate genuine UNET_RZSM: {e}"
