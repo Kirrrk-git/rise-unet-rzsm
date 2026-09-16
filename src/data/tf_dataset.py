@@ -692,3 +692,70 @@ def normalize_assembled_case(
         **y_norm,
     }
 
+
+def crps2d_tf(
+    y_true: Any,
+    y_pred: Any,
+    factor: float = DEFAULT_FACTOR,
+    eval_mask: Optional[Any] = None,
+) -> Any:
+    """
+    TensorFlow graph-compatible implementation of the spatial CRPS loss function (parent EX29).
+
+        CRPS = MAE_eval - factor * std_spatial_ensemble
+
+    Parameters
+    ----------
+    y_true : tf.Tensor
+        Ground truth target tensor of shape (B, 32, 48, 1), where B is a multiple of 11.
+    y_pred : tf.Tensor
+        Model output predictions of shape (B, 32, 48, 1).
+    factor : float
+        Spread reward factor (default: 0.08).
+    eval_mask : Optional[tf.Tensor or np.ndarray]
+        Binary evaluation mask of shape (32, 48) indicating 126 active land cells.
+
+    Returns
+    -------
+    tf.Tensor
+        Scalar spatial CRPS loss.
+    """
+    import tensorflow as tf
+
+    y_t = tf.cast(y_true, tf.float32)
+    y_p = tf.cast(y_pred, tf.float32)
+
+    # Apply evaluation mask if provided
+    if eval_mask is not None:
+        mask = tf.cast(eval_mask, tf.float32)
+        if len(mask.shape) == 2:
+            mask = tf.expand_dims(tf.expand_dims(mask, 0), -1)  # (1, 32, 48, 1)
+        y_t = y_t * mask
+        y_p = y_p * mask
+        num_eval_cells = tf.reduce_sum(mask)
+        denom = num_eval_cells * tf.cast(tf.shape(y_t)[0], tf.float32)
+        mae = tf.reduce_sum(tf.abs(y_p - y_t)) / tf.maximum(denom, 1.0)
+    else:
+        mae = tf.reduce_mean(tf.abs(y_p - y_t))
+
+    # Ensemble spread calculation over chunks of 11 members
+    batch_size = tf.shape(y_p)[0]
+    num_cases = batch_size // ENSEMBLE_MEMBERS
+
+    h = tf.shape(y_p)[1]
+    w = tf.shape(y_p)[2]
+    c = tf.shape(y_p)[3]
+
+    y_p_cases = tf.reshape(y_p[: num_cases * ENSEMBLE_MEMBERS], (num_cases, ENSEMBLE_MEMBERS, h, w, c))
+    ens_std = tf.math.reduce_std(y_p_cases, axis=1)  # (num_cases, H, W, C)
+
+    if eval_mask is not None:
+        mask_cases = tf.tile(mask, [num_cases, 1, 1, 1])
+        ens_std = ens_std * mask_cases
+        spread = tf.reduce_sum(ens_std) / tf.maximum(tf.reduce_sum(mask_cases), 1.0)
+    else:
+        spread = tf.reduce_mean(ens_std)
+
+    return mae - factor * spread
+
+

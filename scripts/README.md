@@ -185,6 +185,13 @@ optional GPU diagnostics & preflights ───────> 11_profile, 12_tiny
     python scripts/15_verify_validation_atmospheric_pipeline.py --mode live --data-dir processed/atmospheric/ --export-json logs/gate1_validation_atmospheric_execution.json
     ```
 
+- **[`16_train_a0_production.py`](16_train_a0_production.py)**
+  - **Purpose**: **Step 21K.3 Full Three-Seed Model A0 Production Training Engine**. Orchestrates the multi-seed (`[42, 123, 456]`), multi-lead ($W_1 \to W_4$) recursive production training cascade. Enforces genuine `UNET_RZSM` architecture (1,627,139 / 1,630,307 / 1,608,131 / 1,611,299 params), spatial CRPS loss with deep-supervision weights `[0.2, 0.3, 0.5]`, downstream 126-cell land masking, Adam optimizer ($\eta=10^{-4}$), ReduceLROnPlateau, early stopping (patience 8), minimum validation CRPS checkpoint selection, and automated GCS lake synchronization (`gs://rise-unet-rzsm/checkpoints/A0/`).
+  - **Command**:
+    ```bash
+    python scripts/16_train_a0_production.py --seeds 42 123 456 --leads 1 2 3 4 --batch-size 33 --epochs 40 --patience 8 --gcs-sync
+    ```
+
 ---
 
 ## 3. Script Catalog Quick Reference
@@ -206,3 +213,4 @@ optional GPU diagnostics & preflights ───────> 11_profile, 12_tiny
 | 13 | [`13_train_a0_pipeline_checkpoint.py`](13_train_a0_pipeline_checkpoint.py) | Surrogate data pipeline smoke test | Surrogate pipeline |
 | 14 | [`14_run_a0_production_smoke_test.py`](14_run_a0_production_smoke_test.py) | **Step 21K.3-pre Production Preflight** | GPU-capable TensorFlow, Model A0 |
 | 15 | [`15_verify_validation_atmospheric_pipeline.py`](15_verify_validation_atmospheric_pipeline.py) | **Validation Atmospheric Preflight** | Mirrored 2022–2023 atmospheric NetCDFs |
+| 16 | [`16_train_a0_production.py`](16_train_a0_production.py) | **Step 21K.3 Full 3-Seed Model A0 Production Training** | GPU-capable TensorFlow, production cases, Tesla T4 |

@@ -43,7 +43,8 @@ python -m unittest tests.test_11_tf_dataset tests.test_12_a0_unet tests.test_13_
   ├── test_11_tf_dataset.py                     <── Ensemble grouping (B mod 11 == 0), target broadcasting, checkpoint parity
   ├── test_12_a0_unet.py                        <── Model A0 parameter counts (W1: 1.627M, W2: 1.630M, W3: 1.608M, W4: 1.611M), deep supervision
   ├── test_13_production_smoke_preflight.py    <── Step 21K.3-pre contracts: 4-lead backward pass, masked loss, training-state trajectory
-  └── test_14_validation_atmospheric_pipeline.py <── Validation data flow: 210 cycles, 5 channels, 126 active cells, [0, 1] norm
+  ├── test_14_validation_atmospheric_pipeline.py <── Validation data flow: 210 cycles, 5 channels, 126 active cells, [0, 1] norm
+  └── test_15_production_training_contracts.py <── Step 21K.3 production training: seeds [42, 123, 456], crps2d_tf loss, masking invariance
         ▲
   Tier 3: Calendar, Partitions & Case Assembly
   ├── test_07_case_calendar.py                  <── 1,154 CY48R1 operational cycle schedule, leap days, date math
@@ -82,6 +83,7 @@ python -m unittest tests.test_11_tf_dataset tests.test_12_a0_unet tests.test_13_
 | **Tier 4** | **[`test_12_a0_unet.py`](test_12_a0_unet.py)** | Model A0 UNET_RZSM Architecture | • Instantiation across Leads 1, 2, 3, 4 with Candidate A geometry guard ($H, W \pmod{16} == 0$).<br>• Per-lead parameter counts ($W_1$: 1,627,139; $W_2$: 1,630,307; $W_3$: 1,608,131; $W_4$: 1,611,299).<br>• Output shapes `(B, 32, 48, 1)` across 3 deep supervision heads. |
 | **Tier 4** | **[`test_13_production_smoke_preflight.py`](test_13_production_smoke_preflight.py)** | Production Smoke Preflight | • Step 21K.3-pre contracts: 4-lead genuine backward updates ($\Delta w > 0$).<br>• Recursive channel semantics ($W_2$ ch 11, $W_3$ ch 3–4, $W_4$ ch 3–5).<br>• Downstream 126-cell masked loss vs unmasked loss.<br>• Full training-state trajectory roundtrip (optimizer slots, step, epoch, lr). |
 | **Tier 4** | **[`test_14_validation_atmospheric_pipeline.py`](test_14_validation_atmospheric_pipeline.py)** | Validation Atmospheric Preflight | • Complete census of 210 validation cycles (105 in 2022, 105 in 2023) and 730-day daily calendar continuity.<br>• End-to-end flow through production `CaseBuilder` into `CaseTensorHierarchy` with 5 atmospheric channels.<br>• Detection of missing dates, duplicate dates, missing channels, and active domain NaNs.<br>• Three-way normalization diagnostics (finite math, unclipped range & excursions, and contracted post-clipping). |
+| **Tier 4** | **[`test_15_production_training_contracts.py`](test_15_production_training_contracts.py)** | Production Training Contracts | • Step 21K.3 contracts: 4-lead channel schedule ($W_1: 11, W_2: 12, W_3: 5, W_4: 6$) and exact parameter counts.<br>• Graph-differentiable `crps2d_tf` loss calculation under gradient tape.<br>• Active domain 126-cell masking invariance (zero sensitivity to ocean buffer perturbations). |
 
 ---
 
