@@ -33,12 +33,16 @@ sys.path.insert(0, str(REPO_ROOT))
 
 from src.models.a0_unet import (
     build_a0_unet,
+    ensure_keras_compatibility,
     LEAD_CHANNELS,
     GRID_HEIGHT,
     GRID_WIDTH,
     TOTAL_A0_PARAMETERS,
     EXPECTED_A0_PARAMETER_COUNTS,
 )
+
+# Enforce runtime compatibility shims for Keras 3 and Protobuf
+ensure_keras_compatibility()
 from src.data.tf_dataset import (
     A0CaseBatchGenerator,
     validate_batch_size,
@@ -118,6 +122,15 @@ def query_gpu_memory() -> Dict[str, Any]:
             try:
                 details = tf.config.experimental.get_device_details(gpus[0])
                 gpu_info["device_name"] = details.get("device_name", gpus[0].name)
+            except Exception:
+                pass
+            try:
+                import subprocess
+                smi = subprocess.check_output(
+                    ["nvidia-smi", "--query-gpu=memory.total", "--format=csv,nounits,noheader"],
+                    stderr=subprocess.DEVNULL,
+                ).decode()
+                gpu_info["total_memory_mb"] = float(smi.strip().split("\n")[0])
             except Exception:
                 pass
             try:
@@ -567,6 +580,8 @@ def execute_21j_benchmark(
             profile_entry["vram_allocated_mb"] = round(6.5 + num_cases * 38.0, 2)
             profile_entry["peak_vram_mb"] = round(profile_entry["vram_allocated_mb"] * 1.5, 2)
             pillar_5["status"] = "PREFLIGHT_MOCK"
+
+        pillar_5["batch_profiles"].append(profile_entry)
     # Explicit aggregation across all batch ladder entries:
     batch_pass = (
         all(x.get("status") == "PASS" for x in pillar_5["batch_profiles"])
@@ -667,7 +682,8 @@ def execute_21j_benchmark(
     benchmark_results["gpu_environment"] = gpu_env
     has_real_gpu = bool(gpu_env.get("gpu_available")) and (
         gpu_env.get("peak_allocated_mb", 0) > 0 or 
-        any(k in gpu_env.get("device_name", "").upper() for k in ["GPU", "NVIDIA", "TESLA", "T4", "A100", "V100"])
+        gpu_env.get("total_memory_mb", 0) > 0 or
+        any(k in gpu_env.get("device_name", "").upper() for k in ["GPU", "NVIDIA", "TESLA", "T4", "A100", "V100", "L4", "A10"])
     )
     all_pillars_pass = (
         all(p.get("status") == "PASS" for p in benchmark_results["pillars"].values())

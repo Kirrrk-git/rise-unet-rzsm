@@ -1,7 +1,7 @@
 {
   "objective": "Model A0 Hardware Profiling & VRAM Feasibility Benchmark",
   "status": "NOT_CERTIFIED_CPU_MOCK",
-  "timestamp": "2026-09-15T13:45:09Z",
+  "timestamp": "2026-09-16T12:26:27Z",
   "gpu_environment": {
     "gpu_available": false,
     "device_name": "CPU",
@@ -87,7 +87,88 @@
     },
     "pillar_21j_5_vram_ladder": {
       "status": "PREFLIGHT_MOCK",
-      "batch_profiles": [],
+      "batch_profiles": [
+        {
+          "batch_size": 11,
+          "num_cases": 1,
+          "measured_on_gpu": false,
+          "forward_time_ms": 0.0,
+          "backward_time_ms": 0.0,
+          "optimizer_time_ms": 0.0,
+          "step_time_ms": 0.0,
+          "samples_per_second": 0.0,
+          "vram_allocated_mb": 44.5,
+          "peak_vram_mb": 66.75,
+          "oom_fault": false,
+          "finite_gradients": false,
+          "nonzero_updates": false,
+          "status": "ESTIMATED_THEORETICAL_ONLY"
+        },
+        {
+          "batch_size": 22,
+          "num_cases": 2,
+          "measured_on_gpu": false,
+          "forward_time_ms": 0.0,
+          "backward_time_ms": 0.0,
+          "optimizer_time_ms": 0.0,
+          "step_time_ms": 0.0,
+          "samples_per_second": 0.0,
+          "vram_allocated_mb": 82.5,
+          "peak_vram_mb": 123.75,
+          "oom_fault": false,
+          "finite_gradients": false,
+          "nonzero_updates": false,
+          "status": "ESTIMATED_THEORETICAL_ONLY"
+        },
+        {
+          "batch_size": 33,
+          "num_cases": 3,
+          "measured_on_gpu": false,
+          "forward_time_ms": 0.0,
+          "backward_time_ms": 0.0,
+          "optimizer_time_ms": 0.0,
+          "step_time_ms": 0.0,
+          "samples_per_second": 0.0,
+          "vram_allocated_mb": 120.5,
+          "peak_vram_mb": 180.75,
+          "oom_fault": false,
+          "finite_gradients": false,
+          "nonzero_updates": false,
+          "status": "ESTIMATED_THEORETICAL_ONLY"
+        },
+        {
+          "batch_size": 44,
+          "num_cases": 4,
+          "measured_on_gpu": false,
+          "forward_time_ms": 0.0,
+          "backward_time_ms": 0.0,
+          "optimizer_time_ms": 0.0,
+          "step_time_ms": 0.0,
+          "samples_per_second": 0.0,
+          "vram_allocated_mb": 158.5,
+          "peak_vram_mb": 237.75,
+          "oom_fault": false,
+          "finite_gradients": false,
+          "nonzero_updates": false,
+          "status": "ESTIMATED_THEORETICAL_ONLY"
+        },
+        {
+          "batch_size": 66,
+          "num_cases": 6,
+          "measured_on_gpu": false,
+          "forward_time_ms": 0.0,
+          "backward_time_ms": 0.0,
+          "optimizer_time_ms": 0.0,
+          "step_time_ms": 0.0,
+          "samples_per_second": 0.0,
+          "vram_allocated_mb": 234.5,
+          "peak_vram_mb": 351.75,
+          "oom_fault": false,
+          "finite_gradients": false,
+          "nonzero_updates": false,
+          "status": "ESTIMATED_THEORETICAL_ONLY"
+        }
+      ],
       "loss_objective_note": "21J.5 measures hardware feasibility and peak activation memory using a representative training-step memory workload (not production-loss certification)."
     },
     "pillar_21j_6_contract_freeze": {

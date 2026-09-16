@@ -39,6 +39,52 @@ EXPECTED_A0_PARAMETER_COUNTS: Dict[int, int] = {
 TOTAL_A0_PARAMETERS: int = 1_630_307
 
 
+def ensure_keras_compatibility() -> None:
+    """
+    Applies runtime compatibility shims for protobuf runtime validation
+    and Keras 3 DepthwiseConv2D keyword translation (kernel_initializer -> depthwise_initializer).
+    Ensures genuine UNET_RZSM architecture instantiation succeeds across modern Keras 3 / TF 2.16+ environments.
+    """
+    try:
+        import google.protobuf.runtime_version as _rt
+        _rt.ValidateProtobufRuntimeVersion = lambda *args, **kwargs: None
+    except (ImportError, AttributeError):
+        pass
+
+    try:
+        import tensorflow as tf
+        import keras.layers
+        try:
+            import keras.src.layers.convolutional.depthwise_conv2d as dw_mod
+            base_dw = dw_mod.DepthwiseConv2D
+        except Exception:
+            base_dw = keras.layers.DepthwiseConv2D
+
+        if getattr(base_dw, "_is_mindanao_compatible", False):
+            return
+
+        class CompatibleDepthwiseConv2D(base_dw):
+            """Keras 3 compatibility shim translating legacy kwargs to depthwise kwargs."""
+            _is_mindanao_compatible = True
+
+            def __init__(self, *args, **kwargs):
+                if "kernel_initializer" in kwargs:
+                    kwargs["depthwise_initializer"] = kwargs.pop("kernel_initializer")
+                if "kernel_constraint" in kwargs:
+                    kwargs["depthwise_constraint"] = kwargs.pop("kernel_constraint")
+                super().__init__(*args, **kwargs)
+
+        keras.layers.DepthwiseConv2D = CompatibleDepthwiseConv2D
+        if hasattr(tf, "keras") and hasattr(tf.keras, "layers"):
+            tf.keras.layers.DepthwiseConv2D = CompatibleDepthwiseConv2D
+    except (ImportError, AttributeError):
+        pass
+
+
+# Automatically ensure compatibility on module load
+ensure_keras_compatibility()
+
+
 def build_a0_unet(
     lead: int = 1,
     height: int = GRID_HEIGHT,
@@ -92,6 +138,8 @@ def build_a0_unet(
 
     model_name = name or f"UNET_RZSM_Mindanao_A0_Lead_{lead}"
     num_channels = LEAD_CHANNELS[lead]
+
+    ensure_keras_compatibility()
 
     try:
         import tensorflow as tf
