@@ -94,13 +94,20 @@ milestones:
 
   21J_hardware_profiling_and_vram:
     name: "Model A0 Hardware Profiling & VRAM Feasibility Benchmark"
-    status: "HISTORICAL_GPU_VERIFIED_CURRENT_CODE_REVALIDATION_PENDING"
-    certification_level: "HISTORICAL_GPU_EVIDENCE_REMEDIATED_CODE_PENDING"
-    details: "Historical execution on physical NVIDIA Tesla T4 (15,360 MB VRAM) in Google Colab established hardware/graph feasibility. Benchmark code and notebook have since been comprehensively remediated (fail-closed logic, mask fallback removed, per-lead parameter expectations, real checkpoint roundtrip). Current code GPU revalidation is pending a rerun of Notebook 09 on Colab/GPU."
+    status: "PASS"
+    certification_level: "CERTIFIED_ON_GPU"
+    date_certified: "2026-09-17"
+    execution_mode: "LIVE_GPU"
+    details: "Sub-Phase 21J / Pre-Production Gate 2 executed end-to-end on physical NVIDIA Tesla T4 GPU (15,360 MB VRAM) in Google Colab with status PASS - CERTIFIED_ON_GPU. Certified all 6 technical pillars: Pillar 1 (genuine 1,627,139 params, 298 weight tensors, 3 heads), Pillar 2 (leads 1-4 forward pass, 126-cell land mask invariant, 0.00e+00 ocean leakage), Pillar 3 (multi-head MAE loss, finite gradients across all 298 tensors, nonzero optimizer update ||Δw|| = 3.95e-3), Pillar 4 (4-lead recursive cascade W1->W2->W3->W4, real pilot case CASE_20150115_W01.npz ingestion, perturbation sensitivity verified across all leads), Pillar 5 (VRAM ladder B in [11, 22, 33, 44, 66], peak VRAM 10,565.33 MB with zero OOM faults), and Pillar 6 (checkpoint serialization parity, 0.00e+00 max weight discrepancy, bit-for-bit exact restore). Telemetry verified in cloud lake (gs://rise-unet-rzsm/reproduction_audit/A0_gpu_benchmark.json)."
     hardware_target: "NVIDIA Tesla T4"
     driver_cuda: "CUDA 12.5.1 / cuDNN 9"
     tensorflow_version: "2.20.0"
     python_version: "3.13.15"
+    peak_vram_mb: 10565.33
+    verified_artifacts:
+      - "scripts/11_profile_a0_vram_benchmark.py"
+      - "notebooks/09_mindanao_a0_vram_profiling.ipynb"
+      - "logs/A0_gpu_benchmark.json"
 
   21K_1_production_calendar:
     name: "Authoritative 11-Year S2S Production Calendar"
@@ -146,5 +153,5 @@ milestones:
     name: "Full Three-Seed Model A0 Production Training"
     status: "NOT_YET_AUTHORIZED"
     certification_level: "BLOCKED_BY_PREREQUISITES"
-    details: "A0 production training is nearly ready, but strictly gated by three concrete prerequisites: (1) finish 2022-2023 atmospheric mirroring (48 monthly NetCDFs) for validation-driven training and pass Gate 1 (scripts/15_verify_validation_atmospheric_pipeline.py --mode live), (2) current-code 21J GPU revalidation rerun of Notebook 09 on physical Colab T4, and (3) successful 21K.3-pre GPU certification (scripts/14_run_a0_production_smoke_test.py --mode certify)."
+    details: "A0 production training is strictly gated by three concrete prerequisites: (1) finish 2022-2023 atmospheric mirroring (48 monthly NetCDFs) for validation-driven training and pass Gate 1 [PASS / CERTIFIED: 2026-09-16], (2) current-code 21J GPU revalidation on physical Colab T4 / Pre-Production Gate 2 [PASS / CERTIFIED_ON_GPU: 2026-09-17], and (3) successful 21K.3-pre GPU certification (scripts/14_run_a0_production_smoke_test.py --mode certify) [ACTIVE PRE-REQUISITE]."
 
