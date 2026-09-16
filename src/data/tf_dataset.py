@@ -507,7 +507,9 @@ def save_a0_training_state(
 
     # Save optimizer weights
     opt_weights = []
-    if hasattr(optimizer, "get_weights"):
+    if hasattr(optimizer, "variables") and optimizer.variables:
+        opt_weights = [v.numpy() for v in optimizer.variables]
+    elif hasattr(optimizer, "get_weights"):
         opt_weights = optimizer.get_weights()
     opt_dict = {f"opt_{i}": w for i, w in enumerate(opt_weights)}
     np.savez_compressed(opt_file, **opt_dict)
@@ -553,14 +555,26 @@ def restore_a0_training_state(
     restore_a0_checkpoint(model, weights_path)
 
     # Restore optimizer weights
-    if opt_path.exists() and hasattr(optimizer, "set_weights"):
+    if opt_path.exists():
         with np.load(opt_path, allow_pickle=True) as data:
             opt_weights = [data[k] for k in sorted(data.files, key=lambda x: int(x.split("_")[-1]))]
         if opt_weights:
-            try:
-                optimizer.set_weights(opt_weights)
-            except Exception as e:
-                logger.warning(f"Could not fully set optimizer weights: {e}")
+            if hasattr(optimizer, "build") and hasattr(model, "trainable_variables"):
+                try:
+                    optimizer.build(model.trainable_variables)
+                except Exception:
+                    pass
+            if hasattr(optimizer, "variables") and len(optimizer.variables) == len(opt_weights):
+                try:
+                    for v, w in zip(optimizer.variables, opt_weights):
+                        v.assign(w)
+                except Exception as e:
+                    logger.warning(f"Could not assign optimizer variables: {e}")
+            elif hasattr(optimizer, "set_weights"):
+                try:
+                    optimizer.set_weights(opt_weights)
+                except Exception as e:
+                    logger.warning(f"Could not fully set optimizer weights: {e}")
 
     logger.info(f"Full training state restored from {meta_path} (epoch {meta.get('epoch')}, step {meta.get('step')})")
     return meta

@@ -87,7 +87,7 @@ def load_authoritative_eval_mask(require_real: bool = True) -> np.ndarray:
     if mask_path.exists():
         import xarray as xr
         with xr.open_dataset(mask_path) as ds:
-            for v in ["mask", "eval_mask", "mindanao_mask"]:
+            for v in ["mask", "eval_mask", "mindanao_mask", "evaluation_mask"]:
                 if v in ds:
                     mask = ds[v].values.astype(bool)
                     if mask.shape == (32, 48) and np.sum(mask) == 126:
@@ -307,9 +307,19 @@ def run_stage_d_checkpoint_scoping(
         x_step2 = tf.constant(np.random.uniform(0.1, 0.9, size=(2, 32, 48, 11)).astype(np.float32))
         y_step2 = tf.constant(np.random.uniform(0.1, 0.9, size=(2, 32, 48, 1)).astype(np.float32))
 
+        def _disable_dropout(m):
+            for layer in m.layers:
+                if hasattr(layer, "rate"):
+                    layer.rate = 0.0
+                if hasattr(layer, "_rate"):
+                    layer._rate = 0.0
+                if hasattr(layer, "dropout_rate"):
+                    layer.dropout_rate = 0.0
+
         # Fresh model 1 executes Step 1
         tf.keras.backend.clear_session()
         m1 = build_a0_unet(lead=1, height=32, width=48, using_deep_supervision=True)
+        _disable_dropout(m1)
         opt1 = tf.keras.optimizers.Adam(learning_rate=1e-4)
 
         with tf.GradientTape() as tape:
@@ -341,6 +351,7 @@ def run_stage_d_checkpoint_scoping(
 
         # Fresh model 2 reconstructs from saved Step 1 state
         m2 = build_a0_unet(lead=1, height=32, width=48, using_deep_supervision=True)
+        _disable_dropout(m2)
         opt2 = tf.keras.optimizers.Adam(learning_rate=1e-4)
         restored_meta = restore_a0_training_state(m2, opt2, state_meta_file)
 
