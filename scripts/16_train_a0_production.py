@@ -633,18 +633,53 @@ def main():
         cases_dir = REPO_ROOT / args.cases_dir
 
         limit = args.limit_cases if args.limit_cases > 0 else None
-        train_paths = load_manifest_cases(train_manifest, cases_dir, limit=limit)
-        val_paths = load_manifest_cases(val_manifest, cases_dir, limit=limit)
+        all_train_paths = load_manifest_cases(train_manifest, cases_dir, limit=limit)
+        all_val_paths = load_manifest_cases(val_manifest, cases_dir, limit=limit)
 
-        # Fallback to pilot if cases_dir is not yet fully populated
-        existing_train = [p for p in train_paths if p.exists()]
-        if len(existing_train) == 0:
-            logger.warning(
-                f"No cases found in {cases_dir}! Falling back to available pilot cases in processed/cases/pilot/."
+        existing_train = [p for p in all_train_paths if p.exists()]
+        existing_val = [p for p in all_val_paths if p.exists()]
+
+        # Load availability audit ledger for fail-closed cohort accounting
+        audit_path = REPO_ROOT / "manifests" / "splits" / "cases_availability_audit.csv"
+        df_audit = pd.read_csv(audit_path) if audit_path.exists() else pd.DataFrame(columns=["split", "category"])
+        train_audit = df_audit[df_audit["split"] == "TRAIN"]
+        val_audit = df_audit[df_audit["split"] == "VAL"]
+
+        expected_train_available = len(train_audit[train_audit["category"] == "USABLE_AVAILABLE"]) if len(train_audit) > 0 else 677
+        expected_train_mars = len(train_audit[train_audit["category"] == "PROVIDER_UNAVAILABLE_MARS_NO_DATA"]) if len(train_audit) > 0 else 58
+        expected_val_available = len(val_audit[val_audit["category"] == "USABLE_AVAILABLE"]) if len(val_audit) > 0 else 194
+        expected_val_mars = len(val_audit[val_audit["category"] == "PROVIDER_UNAVAILABLE_MARS_NO_DATA"]) if len(val_audit) > 0 else 16
+
+        if limit is None:
+            logger.info("=" * 80)
+            logger.info("VERIFYING FULL PRODUCTION COHORT ACCOUNTING (735 Train + 210 Val = 945 Cases)")
+            logger.info("=" * 80)
+            logger.info(f"Train Cohort: {len(existing_train)} on disk + {expected_train_mars} MARS provider exceptions = {len(existing_train) + expected_train_mars} / 735 scheduled")
+            logger.info(f"Val Cohort:   {len(existing_val)} on disk + {expected_val_mars} MARS provider exceptions = {len(existing_val) + expected_val_mars} / 210 scheduled")
+
+            assert len(existing_train) == expected_train_available, (
+                f"CRITICAL COHORT BREACH: Expected {expected_train_available} valid training cases on disk, found {len(existing_train)}!"
             )
-            pilot_dir = REPO_ROOT / "processed" / "cases" / "pilot"
-            train_paths = sorted(pilot_dir.glob("CASE_*.npz"))[:6]
-            val_paths = sorted(pilot_dir.glob("CASE_*.npz"))[6:]
+            assert len(existing_val) == expected_val_available, (
+                f"CRITICAL COHORT BREACH: Expected {expected_val_available} valid validation cases on disk, found {len(existing_val)}!"
+            )
+            assert len(existing_train) + expected_train_mars == 735, (
+                f"Train cohort conservation violated: {len(existing_train)} + {expected_train_mars} != 735"
+            )
+            assert len(existing_val) + expected_val_mars == 210, (
+                f"Validation cohort conservation violated: {len(existing_val)} + {expected_val_mars} != 210"
+            )
+            assert len(existing_train) + expected_train_mars + len(existing_val) + expected_val_mars == 945, (
+                f"Total cohort conservation violated: 735 train + 210 val != 945!"
+            )
+            logger.info("[PASS] Full production cohort verified: 871 active cases + 74 audited provider exceptions = 945 scheduled cases (0 unexplained gaps).")
+
+            train_paths = existing_train
+            val_paths = existing_val
+        else:
+            logger.info(f"Operating with limit-cases={limit}: {len(existing_train)} train and {len(existing_val)} val cases available on disk.")
+            train_paths = existing_train
+            val_paths = existing_val
 
     logger.info(f"Partition setup: Train = {len(train_paths)} cases | Validation = {len(val_paths)} cases.")
 

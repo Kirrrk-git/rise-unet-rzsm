@@ -120,6 +120,59 @@ class TestProductionCaseBuilder(unittest.TestCase):
         self.assertEqual(case.target_dates[3], "2015-02-04")
         self.assertEqual(case.target_dates[4], "2015-02-11")
 
+    def test_cohort_availability_exact_conservation(self):
+        """
+        Asserts that 100% of the 1,154 production cycles are accounted for:
+          - Train: 735 scheduled = 677 available + 58 provider unavailable
+          - Val: 210 scheduled = 194 available + 16 provider unavailable
+          - Sealed Test: 209 scheduled = 202 available + 7 target out of bounds
+          - Total scheduled: 735 train + 210 val = 945 cases
+          - Total repository cohort: 1,154 cycles
+          - Zero unexplained discrepancies.
+        """
+        audit_csv = Path(__file__).resolve().parent.parent / "manifests" / "splits" / "cases_availability_audit.csv"
+        self.assertTrue(audit_csv.exists(), f"Audit CSV not found at {audit_csv}")
+
+        df = pd.read_csv(audit_csv)
+        self.assertEqual(len(df), 1154, "Total audited cycles must equal exactly 1,154.")
+
+        # Train partition
+        train_df = df[df["split"] == "TRAIN"]
+        self.assertEqual(len(train_df), 735, "Train partition must have 735 rows.")
+        train_avail = len(train_df[train_df["category"] == "USABLE_AVAILABLE"])
+        train_mars = len(train_df[train_df["category"] == "PROVIDER_UNAVAILABLE_MARS_NO_DATA"])
+        self.assertEqual(train_avail, 677, "Expected 677 available train cases.")
+        self.assertEqual(train_mars, 58, "Expected 58 MARS no data train exceptions.")
+        self.assertEqual(train_avail + train_mars, 735, "Train cohort conservation violated: avail + mars != 735.")
+
+        # Val partition
+        val_df = df[df["split"] == "VAL"]
+        self.assertEqual(len(val_df), 210, "Val partition must have 210 rows.")
+        val_avail = len(val_df[val_df["category"] == "USABLE_AVAILABLE"])
+        val_mars = len(val_df[val_df["category"] == "PROVIDER_UNAVAILABLE_MARS_NO_DATA"])
+        self.assertEqual(val_avail, 194, "Expected 194 available val cases.")
+        self.assertEqual(val_mars, 16, "Expected 16 MARS no data val exceptions.")
+        self.assertEqual(val_avail + val_mars, 210, "Val cohort conservation violated: avail + mars != 210.")
+
+        # Combined Train + Val
+        self.assertEqual(
+            train_avail + train_mars + val_avail + val_mars,
+            945,
+            "Expected 945 total scheduled cases (735 train + 210 val)."
+        )
+
+        # Sealed Test partition
+        test_df = df[df["split"] == "SEALED_TEST"]
+        self.assertEqual(len(test_df), 209, "Sealed test partition must have 209 rows.")
+        test_avail = len(test_df[test_df["category"] == "USABLE_AVAILABLE"])
+        test_oob = len(test_df[test_df["category"] == "TARGET_OUT_OF_BOUNDS"])
+        self.assertEqual(test_avail, 202, "Expected 202 available test cases.")
+        self.assertEqual(test_oob, 7, "Expected 7 target out of bounds test cases.")
+        self.assertEqual(test_avail + test_oob, 209, "Test cohort conservation violated: avail + oob != 209.")
+
+        # Grand Total
+        self.assertEqual(len(train_df) + len(val_df) + len(test_df), 1154, "Grand total cycles mismatch.")
+
 
 if __name__ == "__main__":
     unittest.main()

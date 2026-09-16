@@ -1,6 +1,6 @@
-case_id,issue_date,status,path,sha256,bytes,split
-CASE_20150101_0001,2015-01-01,SKIPPED_NO_S2S,,,0,train
-CASE_20150104_0002,2015-01-04,SKIPPED_NO_S2S,,,0,train
-CASE_20150108_0003,2015-01-08,SKIPPED_NO_S2S,,,0,train
-CASE_20150111_0004,2015-01-11,SKIPPED_NO_S2S,,,0,train
-CASE_20150115_0005,2015-01-15,EXISTING_VALID,C:\Users\Jensville\Downloads\Rise-UNet\dl_dm_rzsm_subseasonal_forecast\processed\cases\production\CASE_20150115_0005.npz,2825f6b09174f79737fb08f5c7a3c2e95202f5c68e1f1a5a336edbce9da4e203,114261,train
+case_id,issue_date,status,reason,path,sha256,bytes,split
+CASE_20150101_0001,2015-01-01,ASSEMBLED_OK,Normalized case assembled and verified conforming to EX29 contracts,C:\Users\Jensville\Downloads\Rise-UNet\dl_dm_rzsm_subseasonal_forecast\processed\cases\production\CASE_20150101_0001.npz,30b892311b453048a123cff27ed3f156b12ce9ab95aa23ab41e9244ed2f56e42,114925,train
+CASE_20150104_0002,2015-01-04,ASSEMBLED_OK,Normalized case assembled and verified conforming to EX29 contracts,C:\Users\Jensville\Downloads\Rise-UNet\dl_dm_rzsm_subseasonal_forecast\processed\cases\production\CASE_20150104_0002.npz,174af62afd6c33c4c52ef2d81dbc763c2d450691430614c3d7e16cae41f4a861,114110,train
+CASE_20150108_0003,2015-01-08,ASSEMBLED_OK,Normalized case assembled and verified conforming to EX29 contracts,C:\Users\Jensville\Downloads\Rise-UNet\dl_dm_rzsm_subseasonal_forecast\processed\cases\production\CASE_20150108_0003.npz,fe514704c26a9e69edd85aa950b1d97115aabcb005e54cd8cad1406a2cd0a3e7,113959,train
+CASE_20150111_0004,2015-01-11,ASSEMBLED_OK,Normalized case assembled and verified conforming to EX29 contracts,C:\Users\Jensville\Downloads\Rise-UNet\dl_dm_rzsm_subseasonal_forecast\processed\cases\production\CASE_20150111_0004.npz,c527d48ed0ad37ff300e6ec85374c7fc78cdb0e4e99cdde7410500b5b597e6eb,114522,train
+CASE_20150115_0005,2015-01-15,EXISTING_VALID,Existing valid NPZ artifact on disk,C:\Users\Jensville\Downloads\Rise-UNet\dl_dm_rzsm_subseasonal_forecast\processed\cases\production\CASE_20150115_0005.npz,2825f6b09174f79737fb08f5c7a3c2e95202f5c68e1f1a5a336edbce9da4e203,114261,train

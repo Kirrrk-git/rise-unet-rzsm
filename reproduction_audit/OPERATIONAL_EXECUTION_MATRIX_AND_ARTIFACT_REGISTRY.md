@@ -165,11 +165,13 @@ dl_dm_rzsm_subseasonal_forecast/
 ├── manifests/
 │   ├── cases_pilot_v001.csv
 │   ├── cases_pilot_summary_v001.csv
+│   ├── cases_production_summary.csv
 │   ├── production_case_calendar.csv
 │   └── splits/
 │       ├── train_cases.csv
 │       ├── val_cases.csv
 │       ├── test_cases_sealed.csv
+│       ├── cases_availability_audit.csv
 │       └── split_summary.json
 ├── metadata/
 │   └── grid_definition.yaml
@@ -181,7 +183,9 @@ dl_dm_rzsm_subseasonal_forecast/
 │   ├── 07_mindanao_s2s_and_pilot_case_assembly.ipynb
 │   ├── 08_mindanao_a0_tf_pipeline_and_checkpoint.ipynb
 │   ├── 09_mindanao_a0_vram_profiling.ipynb
-│   └── 10_mindanao_validation_atmospheric_pipeline.ipynb
+│   ├── 10_mindanao_validation_atmospheric_pipeline.ipynb
+│   ├── 11_mindanao_a0_production_smoke_preflight.ipynb
+│   └── 12_mindanao_a0_production_training.ipynb
 ├── reproduction_audit/
 │   ├── README.md                               <── Dossier directory and navigation portal
 │   ├── OPERATIONAL_EXECUTION_MATRIX_AND_ARTIFACT_REGISTRY.md (This File)
@@ -208,7 +212,9 @@ dl_dm_rzsm_subseasonal_forecast/
 │   ├── 19_dataset_splits_and_normalization_contract_audit.md
 │   ├── 20_tf_dataset_pipeline_and_checkpoint_audit.md
 │   ├── 21_vram_and_hardware_profiling_audit.md
-│   └── 22_a0_tiny_overfit_gradient_audit.md
+│   ├── 22_a0_tiny_overfit_gradient_audit.md
+│   ├── 23_production_smoke_preflight_audit.md
+│   └── 24_s2s_provider_availability_and_cohort_census_audit.md
 ├── scripts/
 │   ├── 01_generate_mindanao_masks.py
 │   ├── 02_download_era5_atmospheric.py
@@ -381,6 +387,7 @@ dl_dm_rzsm_subseasonal_forecast/
 | [`18_production_case_calendar_1154_cycles_audit.md`](18_production_case_calendar_1154_cycles_audit.md) | Step 21K.1 | Usable production case calendar audit: 1,154 operational cycles, 4-way data intersection, 735 Train / 210 Val / 209 Test partitioning, dual GCS parity. | `[PASS / VERIFIED / ACCEPTED]` |
 | [`19_dataset_splits_and_normalization_contract_audit.md`](19_dataset_splits_and_normalization_contract_audit.md) | Step 21K.2 | Dataset split partitioning manifest and training-only normalization parameter audit: 735 Train / 210 Val / 209 Sealed Test, four-part scope, production contract freeze, 83 unit tests passing, dual GCS parity. | `[PASS / VERIFIED / ACCEPTED]` |
 | [`23_production_smoke_preflight_audit.md`](23_production_smoke_preflight_audit.md) | Step 21K.3-pre | Pre-Production Gate 3 production smoke preflight audit on physical Tesla T4 GPU: 5 stages (4-lead genuine backward pass on real data, recursive cascade on model inferences, downstream 126-cell masking, trajectory roundtrip parity $< 5\times 10^{-6}$, and authoritative fail-closed engine execution). Step 21K.3 production training AUTHORIZED. | `[PASS / VERIFIED / ACCEPTED: 2026-09-17: CERTIFIED_ON_GPU]` |
+| [`24_s2s_provider_availability_and_cohort_census_audit.md`](24_s2s_provider_availability_and_cohort_census_audit.md) | Step 21K.3-census | S2S provider availability audit & cohort census reconciliation: mathematical proof of 74 provider archive gaps (58 Train + 16 Val, `MarsNoDataError`), 677 Train & 194 Val active cases, fail-closed census assertion, and dual GCS sync. | `[PASS / VERIFIED / ACCEPTED: 2026-09-17]` |
 | [`OPERATIONAL_EXECUTION_MATRIX_AND_ARTIFACT_REGISTRY.md`](OPERATIONAL_EXECUTION_MATRIX_AND_ARTIFACT_REGISTRY.md) | Governance | Master operational execution matrix, living directory registry, and file map (This Document). | `[APPROVED]` |
 
 ---

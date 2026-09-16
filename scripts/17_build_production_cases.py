@@ -28,6 +28,7 @@ import hashlib
 import json
 import logging
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -68,6 +69,18 @@ def compute_sha256(filepath: Path) -> str:
     return hasher.hexdigest()
 
 
+def run_cloud_cmd(cmd_args: list) -> subprocess.CompletedProcess:
+    """
+    Executes a gcloud or gsutil command cross-platform.
+    On Windows, uses shutil.which to find .CMD batch files and runs with shell=True.
+    """
+    primary_cmd = cmd_args[0]
+    resolved_cmd = shutil.which(primary_cmd)
+    full_args = [resolved_cmd] + cmd_args[1:] if resolved_cmd else cmd_args
+    is_windows = sys.platform == "win32"
+    return subprocess.run(full_args, capture_output=True, text=True, check=False, shell=is_windows)
+
+
 def ensure_file_local_or_gcs(
     local_path: Path,
     gcs_uri: str,
@@ -81,52 +94,73 @@ def ensure_file_local_or_gcs(
     logger.info(f"Downloading {desc} from {gcs_uri} -> {local_path}...")
 
     # Try gcloud storage cp first, then gsutil cp
-    try:
-        res = subprocess.run(
-            ["gcloud", "storage", "cp", gcs_uri, str(local_path)],
-            capture_output=True, text=True, check=False,
-        )
-        if res.returncode == 0 and local_path.is_file() and local_path.stat().st_size > 0:
-            return True
-    except Exception:
-        pass
+    res = run_cloud_cmd(["gcloud", "storage", "cp", gcs_uri, str(local_path)])
+    if res.returncode == 0 and local_path.is_file() and local_path.stat().st_size > 0:
+        return True
 
-    try:
-        res = subprocess.run(
-            ["gsutil", "cp", gcs_uri, str(local_path)],
-            capture_output=True, text=True, check=False,
-        )
-        if res.returncode == 0 and local_path.is_file() and local_path.stat().st_size > 0:
-            return True
-    except Exception:
-        pass
+    res = run_cloud_cmd(["gsutil", "cp", gcs_uri, str(local_path)])
+    if res.returncode == 0 and local_path.is_file() and local_path.stat().st_size > 0:
+        return True
 
     return local_path.is_file() and local_path.stat().st_size > 0
 
 
 def upload_file_to_gcs(local_path: Path, gcs_uri: str) -> bool:
     """Uploads a local file to GCS."""
-    try:
-        res = subprocess.run(
-            ["gcloud", "storage", "cp", str(local_path), gcs_uri],
-            capture_output=True, text=True, check=False,
-        )
-        if res.returncode == 0:
-            return True
-    except Exception:
-        pass
+    res = run_cloud_cmd(["gcloud", "storage", "cp", str(local_path), gcs_uri])
+    if res.returncode == 0:
+        return True
 
-    try:
-        res = subprocess.run(
-            ["gsutil", "cp", str(local_path), gcs_uri],
-            capture_output=True, text=True, check=False,
-        )
-        if res.returncode == 0:
-            return True
-    except Exception:
-        pass
+    res = run_cloud_cmd(["gsutil", "cp", str(local_path), gcs_uri])
+    return res.returncode == 0
 
-    return False
+
+def load_availability_audit(repo_root: Path) -> Dict[str, Dict[str, Any]]:
+    """Loads authoritative case availability audit ledger."""
+    audit_path = repo_root / "manifests" / "splits" / "cases_availability_audit.csv"
+    if not audit_path.exists():
+        ensure_file_local_or_gcs(
+            audit_path,
+            f"{GCS_BUCKET}/manifests/splits/cases_availability_audit.csv",
+            desc="cases availability audit ledger",
+        )
+    if audit_path.exists():
+        df = pd.read_csv(audit_path)
+        return df.set_index("case_id").to_dict(orient="index")
+    return {}
+
+
+def load_continuous_rzsm_with_antecedent_support(repo_root: Path) -> xr.Dataset:
+    """
+    Loads the 2015-2025 RZSM production continuous cube and prepends
+    the late-2014 antecedent support window (2014-12-18 to 2014-12-31)
+    so that the opening January 2015 cycles have full lag coverage.
+    """
+    rzsm_path = repo_root / "processed" / "rzsm" / "production" / "era5_land_rzsm_production_2015_2025.nc"
+    ensure_file_local_or_gcs(rzsm_path, f"{GCS_BUCKET}/processed/rzsm/production/era5_land_rzsm_production_2015_2025.nc", desc="RZSM production cube")
+    ds_prod = xr.open_dataset(rzsm_path)
+
+    pilot_rzsm_path = repo_root / "processed" / "rzsm" / "pilot" / "era5_land_rzsm_pilot_2014_2015.nc"
+    if not pilot_rzsm_path.exists():
+        ensure_file_local_or_gcs(pilot_rzsm_path, f"{GCS_BUCKET}/processed/rzsm/pilot/era5_land_rzsm_pilot_2014_2015.nc", desc="RZSM pilot antecedent support cube")
+
+    if pilot_rzsm_path.exists():
+        ds_pilot = xr.open_dataset(pilot_rzsm_path)
+        roll_7d = ds_pilot["rzsm_0_100_masked"].rolling(time=7, min_periods=7, center=False).mean()
+        djf_clim = ds_prod["climatology_seasonal"].sel(season="DJF").values
+        anom_2014 = (roll_7d - djf_clim).sel(time=slice("2014-12-18", "2014-12-31"))
+
+        ds_2014 = xr.Dataset(
+            {
+                "rzsm_0_100_seasonal_anomaly": anom_2014,
+                "rzsm_0_100_rolling_7d": roll_7d.sel(time=slice("2014-12-18", "2014-12-31")),
+                "rzsm_0_100_raw": ds_pilot["rzsm_0_100_masked"].sel(time=slice("2014-12-18", "2014-12-31")),
+            },
+            coords={"time": anom_2014.time, "lat": ds_prod.lat, "lon": ds_prod.lon}
+        )
+        return xr.concat([ds_2014, ds_prod], dim="time")
+
+    return ds_prod
 
 
 class AtmosphericDatasetProvider:
@@ -274,6 +308,7 @@ def build_single_case(
     target_var_name: str = "rzsm_0_100_seasonal_anomaly",
     auto_download: bool = True,
     force: bool = False,
+    availability_audit_map: Optional[Dict[str, Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
     """
     Builds, normalizes, validates, and serializes a single forecast case.
@@ -290,6 +325,7 @@ def build_single_case(
                         "case_id": clean_id,
                         "issue_date": issue_date,
                         "status": "EXISTING_VALID",
+                        "reason": "Existing valid NPZ artifact on disk",
                         "path": str(out_npz),
                         "sha256": compute_sha256(out_npz),
                         "bytes": out_npz.stat().st_size,
@@ -302,10 +338,22 @@ def build_single_case(
     # 1. Locate S2S GRIB files
     cf_path, pf_path = locate_or_fetch_s2s_gribs(issue_date, repo_root, auto_download=auto_download)
     if cf_path is None or pf_path is None:
+        audit_info = (
+            availability_audit_map.get(clean_id) or availability_audit_map.get(case_id)
+            if availability_audit_map else None
+        )
+        if audit_info and audit_info.get("category") == "PROVIDER_UNAVAILABLE_MARS_NO_DATA":
+            st = "PROVIDER_UNAVAILABLE_MARS_NO_DATA"
+            reason = audit_info.get("reason", "ECMWF MARS archive returned MarsNoDataError")
+        else:
+            st = "SKIPPED_UNEXPECTED_NO_S2S"
+            reason = "S2S GRIB files missing from local storage and GCS cloud lake"
+
         return {
             "case_id": clean_id,
             "issue_date": issue_date,
-            "status": "SKIPPED_NO_S2S",
+            "status": st,
+            "reason": reason,
             "path": None,
             "sha256": None,
             "bytes": 0,
@@ -317,7 +365,8 @@ def build_single_case(
         return {
             "case_id": clean_id,
             "issue_date": issue_date,
-            "status": "SKIPPED_NO_ATMOS",
+            "status": "SKIPPED_UNEXPECTED_NO_ATMOS",
+            "reason": f"Atmospheric NetCDF missing for {t0.strftime('%Y-%m')}",
             "path": None,
             "sha256": None,
             "bytes": 0,
@@ -382,6 +431,7 @@ def build_single_case(
         "case_id": clean_id,
         "issue_date": issue_date,
         "status": "ASSEMBLED_OK",
+        "reason": "Normalized case assembled and verified conforming to EX29 contracts",
         "path": str(out_npz),
         "sha256": checksum,
         "bytes": size_bytes,
@@ -404,6 +454,8 @@ def main():
                         help="Disable automatic on-demand GCS downloads for raw files.")
     parser.add_argument("--force", action="store_true",
                         help="Force reassembly of existing NPZ files.")
+    parser.add_argument("--no-strict", action="store_true",
+                        help="Do not fail closed if cohort counts deviate from contract.")
     args = parser.parse_args()
 
     print("=" * 85)
@@ -414,6 +466,7 @@ def main():
     print(f"Output Directory  : {args.out_dir}")
     print(f"GCS Synchronization: {args.gcs_sync}")
     print(f"Limit per Split   : {args.limit or 'All Available'}")
+    print(f"Strict Cohort Gate: {not args.no_strict}")
     print("=" * 85)
 
     out_dir = REPO_ROOT / args.out_dir
@@ -430,12 +483,12 @@ def main():
     ensure_file_local_or_gcs(norm_path, f"{GCS_BUCKET}/contracts/A0/normalization_parameters.yaml", desc="normalization contract")
     norm_params = load_frozen_normalization_contract(norm_path)
 
-    rzsm_path = REPO_ROOT / "processed" / "rzsm" / "production" / "era5_land_rzsm_production_2015_2025.nc"
-    ensure_file_local_or_gcs(rzsm_path, f"{GCS_BUCKET}/processed/rzsm/production/era5_land_rzsm_production_2015_2025.nc", desc="RZSM production cube")
-    logger.info("Opening RZSM production continuous cube...")
-    ds_rzsm = xr.open_dataset(rzsm_path)
+    logger.info("Opening RZSM production continuous cube with 2014 antecedent support...")
+    ds_rzsm = load_continuous_rzsm_with_antecedent_support(REPO_ROOT)
 
     atmos_provider = AtmosphericDatasetProvider(REPO_ROOT, auto_download=not args.no_auto_download)
+    availability_audit_map = load_availability_audit(REPO_ROOT)
+    logger.info(f"Loaded availability audit ledger with {len(availability_audit_map)} tracked cycles.")
 
     # 2. Iterate over designated splits
     manifest_map = {
@@ -479,6 +532,7 @@ def main():
                 target_var_name=args.target_var,
                 auto_download=not args.no_auto_download,
                 force=args.force,
+                availability_audit_map=availability_audit_map,
             )
             res["split"] = split_name
             all_results.append(res)
@@ -494,9 +548,12 @@ def main():
                 existing_count += 1
                 if idx % 25 == 0 or idx == len(df_split) - 1:
                     logger.info(f"  [{idx+1}/{len(df_split)}] {cid} ({issue_date}) -> [EXISTING_OK]")
+            elif st == "PROVIDER_UNAVAILABLE_MARS_NO_DATA":
+                skipped_count += 1
+                logger.info(f"  [{idx+1}/{len(df_split)}] {cid} ({issue_date}) -> [MARS_NO_DATA_AUDITED_EXCEPTION]")
             else:
                 skipped_count += 1
-                logger.warning(f"  [{idx+1}/{len(df_split)}] {cid} ({issue_date}) -> [{st}]")
+                logger.warning(f"  [{idx+1}/{len(df_split)}] {cid} ({issue_date}) -> [{st}] {res.get('reason')}")
 
         logger.info(f"[{split_name.upper()} COMPLETE] Assembled: {assembled_count} | Existing: {existing_count} | Skipped: {skipped_count}")
 
@@ -510,17 +567,57 @@ def main():
     if args.gcs_sync:
         upload_file_to_gcs(summary_csv, f"{GCS_BUCKET}/manifests/cases_production_summary.csv")
 
-    # 4. Final Census Table
+    # 4. Authoritative Cohort Census & Fail-Closed Gate
     print("\n" + "=" * 85)
-    print("STEP 21K PRODUCTION CASE ASSEMBLY SUMMARY")
+    print("STEP 21K PRODUCTION COHORT AUDIT & FAIL-CLOSED VERIFICATION SUMMARY")
     print("=" * 85)
+    has_unaccounted = False
     for sname in args.splits:
         sub = summary_df[summary_df["split"] == sname]
+        total_scheduled = len(sub)
         ok_count = len(sub[sub["status"].isin(["ASSEMBLED_OK", "EXISTING_VALID"])])
-        skip_count = len(sub[~sub["status"].isin(["ASSEMBLED_OK", "EXISTING_VALID"])])
-        print(f"  Split: {sname:<8} | Total Scheduled: {len(sub):<4} | Valid Cases: {ok_count:<4} | Skipped: {skip_count:<4}")
+        mars_exceptions = len(sub[sub["status"] == "PROVIDER_UNAVAILABLE_MARS_NO_DATA"])
+        oob_count = len(sub[sub["status"] == "TARGET_OUT_OF_BOUNDS"])
+        unexpected_count = len(
+            sub[~sub["status"].isin(["ASSEMBLED_OK", "EXISTING_VALID", "PROVIDER_UNAVAILABLE_MARS_NO_DATA", "TARGET_OUT_OF_BOUNDS"])]
+        )
+
+        print(f"  Split: {sname.upper():<11} | Scheduled: {total_scheduled:<4} | Valid Cases: {ok_count:<4} | MarsNoData: {mars_exceptions:<2} | OOB: {oob_count:<2} | Unexpected: {unexpected_count:<2}")
+
+        if unexpected_count > 0:
+            has_unaccounted = True
+            unexpected_cases = sub[
+                ~sub["status"].isin(["ASSEMBLED_OK", "EXISTING_VALID", "PROVIDER_UNAVAILABLE_MARS_NO_DATA", "TARGET_OUT_OF_BOUNDS"])
+            ]["case_id"].tolist()
+            logger.error(f"[{sname.upper()} COHORT BREACH] {unexpected_count} unexpected missing cases: {unexpected_cases[:10]}")
+
+        # Strict fail-closed verification when processing full split
+        if args.limit is None and not args.no_strict:
+            if sname == "train":
+                assert total_scheduled == 735, f"Train scheduled mismatch: expected 735, got {total_scheduled}"
+                assert ok_count == 677, f"Train valid case mismatch: expected 677, got {ok_count}"
+                assert mars_exceptions == 58, f"Train MARS exceptions mismatch: expected 58, got {mars_exceptions}"
+                assert ok_count + mars_exceptions == 735, "Train conservation equation violated: valid + exceptions != 735"
+            elif sname == "val":
+                assert total_scheduled == 210, f"Val scheduled mismatch: expected 210, got {total_scheduled}"
+                assert ok_count == 194, f"Val valid case mismatch: expected 194, got {ok_count}"
+                assert mars_exceptions == 16, f"Val MARS exceptions mismatch: expected 16, got {mars_exceptions}"
+                assert ok_count + mars_exceptions == 210, "Val conservation equation violated: valid + exceptions != 210"
+
     print(f"Total Pipeline Runtime: {total_time:.1f} seconds")
     print("=" * 85)
+
+    if has_unaccounted:
+        raise AssertionError("Cohort verification failed: Unaccounted cases detected in production split! Halt.")
+
+    if args.limit is None and not args.no_strict:
+        if set(args.splits) == {"train", "val"}:
+            total_valid = len(summary_df[summary_df["status"].isin(["ASSEMBLED_OK", "EXISTING_VALID"])])
+            total_mars = len(summary_df[summary_df["status"] == "PROVIDER_UNAVAILABLE_MARS_NO_DATA"])
+            assert total_valid == 871, f"Total valid cases mismatch: expected 871, got {total_valid}"
+            assert total_mars == 74, f"Total MARS exceptions mismatch: expected 74, got {total_mars}"
+            assert total_valid + total_mars == 945, f"Expected 945 total cases (735 train + 210 val), got {total_valid + total_mars}"
+            logger.info("[GOVERNANCE VERIFIED] 735 Train + 210 Val = 945 expected cases mathematically verified (871 valid + 74 audited exceptions).")
 
 
 if __name__ == "__main__":

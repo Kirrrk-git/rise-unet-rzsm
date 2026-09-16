@@ -27,12 +27,20 @@ domain_and_geometry:
 dataset_and_splits:
   calendar_manifest: "manifests/production_case_calendar.csv"
   calendar_sha256: "68412fa281b37df38178128ee539fd4a77e5c9f5ae888a7c210d7ef320a7b458"
+  availability_audit_ledger: "manifests/splits/cases_availability_audit.csv"
   total_forecast_cycles: 1154
+  total_usable_cases: 1073
+  total_provider_mars_exceptions: 74
+  total_boundary_oob_exceptions: 7
+  cohort_conservation_equation: "1154 scheduled == 1073 usable + 74 mars_exceptions + 7 oob_exceptions"
+  production_training_equation: "945 train_val_scheduled == 871 usable + 74 mars_exceptions"
   partitions:
     train:
       manifest: "manifests/splits/train_cases.csv"
       sha256: "d0aea5558ca6eb24712f2acad83c849002c0ffbc97206966b8bb5456d16e8a59"
-      cycle_count: 735
+      cycle_count_scheduled: 735
+      usable_available_count: 677
+      provider_unavailable_mars_no_data: 58
       years: [2015, 2016, 2017, 2018, 2019, 2020, 2021]
       start_date: "2015-01-01"
       end_date: "2021-12-30"
@@ -40,7 +48,9 @@ dataset_and_splits:
     validation:
       manifest: "manifests/splits/val_cases.csv"
       sha256: "0ab5fbd430d20812f32c7ddce29450e8548d4958254518654f8e651ca5a586b0"
-      cycle_count: 210
+      cycle_count_scheduled: 210
+      usable_available_count: 194
+      provider_unavailable_mars_no_data: 16
       years: [2022, 2023]
       start_date: "2022-01-03"
       end_date: "2023-12-28"
@@ -48,8 +58,8 @@ dataset_and_splits:
     sealed_test:
       manifest: "manifests/splits/test_cases_sealed.csv"
       sha256: "443d5af42bd41a5229b98d94811c0a92ca1a1108702fb61a11c173085d808f88"
-      cycle_count: 209
-      usable_sealed_count: 202
+      cycle_count_scheduled: 209
+      usable_available_count: 202
       target_out_of_bounds_count: 7
       years: [2024, 2025]
       start_date: "2024-01-01"

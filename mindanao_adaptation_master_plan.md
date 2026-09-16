@@ -621,9 +621,15 @@ The artifact registry is an inventory and status index; it must never contradict
     - Gate 1: `[PASS / CERTIFIED: 2026-09-16]` (Validation Atmospheric Pipeline Preflight)
     - Gate 2: `[PASS / CERTIFIED_ON_GPU: 2026-09-17]` (Hardware Profiling & VRAM Feasibility Benchmark)
     - Gate 3: `[PASS / CERTIFIED_ON_GPU: 2026-09-17]` (Production Training Smoke Preflight)
-    - Step 21K.3 Implementation: `[READY]` (`scripts/16_train_a0_production.py`, `scripts/17_build_production_cases.py`, `notebooks/12_mindanao_a0_production_training.ipynb`, `tests/test_15_production_training_contracts.py`, `tests/test_16_production_case_builder.py`)
+    - Step 21K.3 Implementation: `[READY]` (`scripts/16_train_a0_production.py`, `scripts/17_build_production_cases.py`, `notebooks/12_mindanao_a0_production_training.ipynb`, `manifests/splits/cases_availability_audit.csv`, `reproduction_audit/24_s2s_provider_availability_and_cohort_census_audit.md`, `tests/test_15_production_training_contracts.py`, `tests/test_16_production_case_builder.py`)
     - Step 21K.3 Execution: `[PENDING GPU EXECUTION IN COLAB]`
     - Final Model A0 Weights & Results: `[NOT YET AVAILABLE]` (Awaits physical execution on Tesla T4 GPU)
+  * **Authoritative Cohort Accounting & Provider Reconciliation**:
+    - **Theoretical Scheduled Cohort**: 735 Train (2015–2021) + 210 Val (2022–2023) = **945 cases**.
+    - **Provider Physical Limits**: ECMWF MARS archive returned `MarsNoDataError` on 74 candidate slots: 58 Train (56 late-year bi-weekly skips + 2 leap days `2016-02-29` and `2020-02-29`) and 16 Val (late-year bi-weekly skips). These cycles do not physically exist in ECMWF's archive.
+    - **Empirically Usable Active Cohort**: **677 Train** ($92.1\%$) and **194 Val** ($92.4\%$) = **871 cases** total.
+    - **Conservation Equation & Fail-Closed Gate**: $945 \equiv 871 \text{ active} + 74 \text{ audited MARS exceptions} + 0 \text{ unexplained gaps}$. Enforced by `scripts/17_build_production_cases.py`, `scripts/16_train_a0_production.py`, Notebook 12 Section 2.5, and `tests/test_16_production_case_builder.py`.
+    - **Audit Dossier**: [`reproduction_audit/24_s2s_provider_availability_and_cohort_census_audit.md`](reproduction_audit/24_s2s_provider_availability_and_cohort_census_audit.md).
   * **Methodological Dual CRPS Formulation**:
     - **Spatial CRPS Proxy (Parent EX29)**: $\mathcal{L} = \text{MAE}_{\text{eval}} - 0.08 \cdot \bar{\sigma}_{\text{spatial}}$, the custom spread-adjusted loss inherited from Lesinger & Tian (2025), utilized exclusively for backpropagation gradients and minimum-validation checkpoint selection.
     - **Exact Analytical Ensemble CRPS**: $\text{CRPS}(F, y) = \frac{1}{M}\sum_{m=1}^M |x_m - y| - \frac{1}{2M^2}\sum_{m=1}^M\sum_{n=1}^M |x_m - x_n|$, the standard probabilistic scoring rule (Hersbach, 2000; Gneiting & Raftery, 2007) computed over all $M=11$ realizations for thesis-grade evaluation tables.

@@ -21,8 +21,9 @@
       ],
       "purpose": "Model A0 weight optimization and gradient updates",
       "normalization_authority": "Sole source of all scaling parameters",
-      "usable_ready_count": 527,
-      "queued_s2s_count": 208
+      "usable_ready_count": 677,
+      "queued_s2s_count": 0,
+      "provider_unavailable_count": 58
     },
     "VAL": {
       "manifest_file": "val_cases.csv",
@@ -36,8 +37,9 @@
         2023
       ],
       "purpose": "Hyperparameter tuning, early stopping, and checkpoint minimum-CRPS selection",
-      "usable_ready_count": 0,
-      "queued_s2s_count": 210
+      "usable_ready_count": 194,
+      "queued_s2s_count": 0,
+      "provider_unavailable_count": 16
     },
     "SEALED_TEST": {
       "manifest_file": "test_cases_sealed.csv",
@@ -51,9 +53,10 @@
         2025
       ],
       "purpose": "Final thesis evaluation; strictly locked and sealed until Phase 26",
-      "queued_s2s_count": 202,
+      "queued_s2s_count": 0,
       "target_out_of_bounds_count": 7,
-      "quarantine_policy": "STRICT_SEALED_NO_PEEKING"
+      "quarantine_policy": "STRICT_SEALED_NO_PEEKING",
+      "usable_ready_count": 202
     }
   },
   "non_leakage_guarantees": {

@@ -172,14 +172,19 @@ milestones:
       - "scripts/16_train_a0_production.py"
       - "scripts/17_build_production_cases.py"
       - "notebooks/12_mindanao_a0_production_training.ipynb"
+      - "manifests/splits/cases_availability_audit.csv"
+      - "reproduction_audit/24_s2s_provider_availability_and_cohort_census_audit.md"
       - "tests/test_15_production_training_contracts.py"
       - "tests/test_16_production_case_builder.py"
     s2s_dataset_census:
       total_unique_gcs_cycles: 1084
-      sealed_test_2024_2025: "209 / 209 (100.0%)"
-      train_2015_2021: "677 / 735 (92.1% - provider maximum)"
-      val_2022_2023: "194 / 210 (92.4% - provider maximum)"
+      sealed_test_2024_2025: "209 / 209 (100.0% - 202 usable, 7 target OOB)"
+      train_2015_2021: "677 / 735 (92.1% - provider maximum; 58 MARS no data exceptions)"
+      val_2022_2023: "194 / 210 (92.4% - provider maximum; 16 MARS no data exceptions)"
       mars_no_data_verified: 74
+      total_scheduled_train_val: 945
+      total_usable_train_val: 871
+      conservation_equation_verified: "945 scheduled == 871 usable + 74 mars_exceptions (Delta = 0)"
     crps_methodology:
       spatial_crps_proxy: "L = MAE_eval - 0.08 * sigma_spatial (Parent EX29 custom spread-adjusted objective, used for backpropagation and validation checkpoint selection)"
       exact_ensemble_crps: "CRPS(F, y) = 1/M * sum(|x_m - y|) - 1/(2M^2) * sum sum(|x_m - x_n|) (Standard analytical ensemble CRPS under Hersbach 2000 / Gneiting & Raftery 2007, computed across M=11 realizations for thesis-grade evaluation)"
