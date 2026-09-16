@@ -74,6 +74,16 @@ from src.data.tf_dataset import (
 def load_authoritative_eval_mask(require_real: bool = True) -> np.ndarray:
     """Loads authoritative 126-cell binary evaluation mask."""
     mask_path = PROCESSED_DIR / "grid" / "mindanao_eval_mask_025.nc"
+    if not mask_path.exists():
+        mask_path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            import subprocess
+            subprocess.run(
+                ["gcloud", "storage", "cp", "gs://rise-unet-rzsm/processed/grid/mindanao_eval_mask_025.nc", str(mask_path)],
+                check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            )
+        except Exception:
+            pass
     if mask_path.exists():
         import xarray as xr
         with xr.open_dataset(mask_path) as ds:
