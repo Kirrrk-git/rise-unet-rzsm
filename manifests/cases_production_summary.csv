@@ -1,0 +1,6 @@
+case_id,issue_date,status,path,sha256,bytes,split
+CASE_20150101_0001,2015-01-01,SKIPPED_NO_S2S,,,0,train
+CASE_20150104_0002,2015-01-04,SKIPPED_NO_S2S,,,0,train
+CASE_20150108_0003,2015-01-08,SKIPPED_NO_S2S,,,0,train
+CASE_20150111_0004,2015-01-11,SKIPPED_NO_S2S,,,0,train
+CASE_20150115_0005,2015-01-15,EXISTING_VALID,C:\Users\Jensville\Downloads\Rise-UNet\dl_dm_rzsm_subseasonal_forecast\processed\cases\production\CASE_20150115_0005.npz,2825f6b09174f79737fb08f5c7a3c2e95202f5c68e1f1a5a336edbce9da4e203,114261,train

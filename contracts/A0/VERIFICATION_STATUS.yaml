@@ -167,8 +167,19 @@ milestones:
     date_authorized: "2026-09-17"
     implementation_status: "READY"
     execution_status: "PENDING_GPU_EXECUTION"
-    results_status: "NOT_YET_AVAILABLE"
-    details: "Fully authorized for production execution following the formal GPU certification of all three pre-production gates: Pre-Production Gate 1 (Validation Atmospheric Pipeline Preflight), Pre-Production Gate 2 (Hardware Profiling & VRAM Feasibility on Tesla T4), and Pre-Production Gate 3 (Production Training Smoke Preflight across all 4 Leads on Tesla T4). Training engine scripts/16_train_a0_production.py and orchestration notebook notebooks/12_mindanao_a0_production_training.ipynb are implemented and contract-tested. Production execution on physical T4 GPU is pending. Checkpoints and evaluation metrics are not yet available until execution on Colab concludes."
+    details: "Fully authorized for production execution following the formal GPU certification of all three pre-production gates: Pre-Production Gate 1 (Validation Atmospheric Pipeline Preflight), Pre-Production Gate 2 (Hardware Profiling & VRAM Feasibility on Tesla T4), and Pre-Production Gate 3 (Production Training Smoke Preflight across all 4 Leads on Tesla T4). Case assembly engine scripts/17_build_production_cases.py and unit test tests/test_16_production_case_builder.py implemented and verified (101/101 tests pass). S2S raw dataset fully secured in GCS lake (1,084 unique cycles; 209/209 100% sealed test, 677/735 92.1% train, 194/210 92.4% val; exhaustive provider MARS schedule max). Training engine scripts/16_train_a0_production.py and orchestration notebook notebooks/12_mindanao_a0_production_training.ipynb are implemented, case-sync enabled, and contract-tested. Production execution on physical T4 GPU is pending."
+    verified_artifacts:
+      - "scripts/16_train_a0_production.py"
+      - "scripts/17_build_production_cases.py"
+      - "notebooks/12_mindanao_a0_production_training.ipynb"
+      - "tests/test_15_production_training_contracts.py"
+      - "tests/test_16_production_case_builder.py"
+    s2s_dataset_census:
+      total_unique_gcs_cycles: 1084
+      sealed_test_2024_2025: "209 / 209 (100.0%)"
+      train_2015_2021: "677 / 735 (92.1% - provider maximum)"
+      val_2022_2023: "194 / 210 (92.4% - provider maximum)"
+      mars_no_data_verified: 74
     crps_methodology:
       spatial_crps_proxy: "L = MAE_eval - 0.08 * sigma_spatial (Parent EX29 custom spread-adjusted objective, used for backpropagation and validation checkpoint selection)"
       exact_ensemble_crps: "CRPS(F, y) = 1/M * sum(|x_m - y|) - 1/(2M^2) * sum sum(|x_m - x_n|) (Standard analytical ensemble CRPS under Hersbach 2000 / Gneiting & Raftery 2007, computed across M=11 realizations for thesis-grade evaluation)"

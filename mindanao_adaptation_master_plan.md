@@ -621,7 +621,7 @@ The artifact registry is an inventory and status index; it must never contradict
     - Gate 1: `[PASS / CERTIFIED: 2026-09-16]` (Validation Atmospheric Pipeline Preflight)
     - Gate 2: `[PASS / CERTIFIED_ON_GPU: 2026-09-17]` (Hardware Profiling & VRAM Feasibility Benchmark)
     - Gate 3: `[PASS / CERTIFIED_ON_GPU: 2026-09-17]` (Production Training Smoke Preflight)
-    - Step 21K.3 Implementation: `[READY]` (`scripts/16_train_a0_production.py`, `notebooks/12_mindanao_a0_production_training.ipynb`, `tests/test_15_production_training_contracts.py`)
+    - Step 21K.3 Implementation: `[READY]` (`scripts/16_train_a0_production.py`, `scripts/17_build_production_cases.py`, `notebooks/12_mindanao_a0_production_training.ipynb`, `tests/test_15_production_training_contracts.py`, `tests/test_16_production_case_builder.py`)
     - Step 21K.3 Execution: `[PENDING GPU EXECUTION IN COLAB]`
     - Final Model A0 Weights & Results: `[NOT YET AVAILABLE]` (Awaits physical execution on Tesla T4 GPU)
   * **Methodological Dual CRPS Formulation**:

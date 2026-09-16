@@ -192,6 +192,13 @@ optional GPU diagnostics & preflights ───────> 11_profile, 12_tiny
     python scripts/16_train_a0_production.py --seeds 42 123 456 --leads 1 2 3 4 --batch-size 33 --epochs 40 --patience 8 --gcs-sync
     ```
 
+- **[`17_build_production_cases.py`](17_build_production_cases.py)**
+  - **Purpose**: **Step 21K Production Case Assembly Engine**. Assembles, normalizes, validates, and serializes all production forecast case tensors (`processed/cases/production/CASE_*.npz`) across Train (2015–2021) and Validation (2022–2023) splits. Enforces the frozen training normalization contract (`contracts/A0/normalization_parameters.yaml`), strict $[11, 12, 5, 6]$ multi-lead channel topology, 126-cell majority-land evaluation masking, zero ocean buffer filling, on-demand cloud lake synchronization, and SHA-256 manifest registration (`manifests/cases_production_summary.csv`).
+  - **Command**:
+    ```bash
+    python scripts/17_build_production_cases.py --splits train val --gcs-sync
+    ```
+
 ---
 
 ## 3. Script Catalog Quick Reference
@@ -214,3 +221,4 @@ optional GPU diagnostics & preflights ───────> 11_profile, 12_tiny
 | 14 | [`14_run_a0_production_smoke_test.py`](14_run_a0_production_smoke_test.py) | **Step 21K.3-pre Production Preflight** | GPU-capable TensorFlow, Model A0 |
 | 15 | [`15_verify_validation_atmospheric_pipeline.py`](15_verify_validation_atmospheric_pipeline.py) | **Validation Atmospheric Preflight** | Mirrored 2022–2023 atmospheric NetCDFs |
 | 16 | [`16_train_a0_production.py`](16_train_a0_production.py) | **Step 21K.3 Full 3-Seed Model A0 Production Training** | GPU-capable TensorFlow, production cases, Tesla T4 |
+| 17 | [`17_build_production_cases.py`](17_build_production_cases.py) | **Step 21K Production Case Assembly Engine** | RZSM cube, atmospheric NetCDFs, S2S GRIBs, eval mask |
