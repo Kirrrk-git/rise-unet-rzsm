@@ -35,6 +35,7 @@ Thumbs.db
 scratch/
 
 # Raw Downloads & Large Remote Geodatabases (Archived in GCS: gs://rise-unet-rzsm/raw/)
+raw/
 pilot_raw/
 data_cache/
 *.grib
