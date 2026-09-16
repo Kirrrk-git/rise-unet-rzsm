@@ -631,7 +631,14 @@ def execute_21j_benchmark(
             saved_weights = {w.name: w.numpy().copy() for w in m_save.weights}
 
             # Execute real save
-            save_path = save_a0_checkpoint(m_save, lead=1, epoch=0, val_loss=0.1234, checkpoint_dir=test_ckpt_dir)
+            save_path = save_a0_checkpoint(
+                model=m_save,
+                epoch=0,
+                loss=0.1234,
+                checkpoint_dir=test_ckpt_dir,
+                filename_prefix="a0_genuine_unet",
+                metadata={"lead": 1, "batch_size": 11, "lr": 1e-4, "params": m_save.count_params()},
+            )
 
             # Destroy model and clear session
             del m_save
