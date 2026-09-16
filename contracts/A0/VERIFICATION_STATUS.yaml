@@ -165,6 +165,13 @@ milestones:
     status: "AUTHORIZED"
     certification_level: "AUTHORIZED_FOR_PRODUCTION"
     date_authorized: "2026-09-17"
-    details: "Fully authorized for production execution following the formal GPU certification of all three pre-production gates: Pre-Production Gate 1 (2022-2023 Validation Atmospheric Pipeline Preflight, certified 2026-09-16), Pre-Production Gate 2 (Model A0 Hardware Profiling & VRAM Feasibility Benchmark on Tesla T4, certified 2026-09-17), and Pre-Production Gate 3 (Model A0 Production Training Smoke Preflight across all 4 Leads on Tesla T4, certified 2026-09-17). Production training across seeds 42, 123, 456 may proceed immediately."
+    implementation_status: "READY"
+    execution_status: "PENDING_GPU_EXECUTION"
+    results_status: "NOT_YET_AVAILABLE"
+    details: "Fully authorized for production execution following the formal GPU certification of all three pre-production gates: Pre-Production Gate 1 (Validation Atmospheric Pipeline Preflight), Pre-Production Gate 2 (Hardware Profiling & VRAM Feasibility on Tesla T4), and Pre-Production Gate 3 (Production Training Smoke Preflight across all 4 Leads on Tesla T4). Training engine scripts/16_train_a0_production.py and orchestration notebook notebooks/12_mindanao_a0_production_training.ipynb are implemented and contract-tested. Production execution on physical T4 GPU is pending. Checkpoints and evaluation metrics are not yet available until execution on Colab concludes."
+    crps_methodology:
+      spatial_crps_proxy: "L = MAE_eval - 0.08 * sigma_spatial (Parent EX29 custom spread-adjusted objective, used for backpropagation and validation checkpoint selection)"
+      exact_ensemble_crps: "CRPS(F, y) = 1/M * sum(|x_m - y|) - 1/(2M^2) * sum sum(|x_m - x_n|) (Standard analytical ensemble CRPS under Hersbach 2000 / Gneiting & Raftery 2007, computed across M=11 realizations for thesis-grade evaluation)"
+      evaluation_protocol: "Training (2015-2021) -> Val Checkpoint Selection (2022-2023) -> Sealed Test Quarantined (2024-2025)"
 
 

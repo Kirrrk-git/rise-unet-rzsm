@@ -616,11 +616,21 @@ The artifact registry is an inventory and status index; it must never contradict
     - **Stage D**: Strict checkpoint scoping proving model-weight parity ($0.00 \times 10^0$) and full training-state next-step trajectory roundtrip (loss delta = $0.00 \times 10^0$, weight delta = $6.70 \times 10^{-7} < 5 \times 10^{-6}$) using direct variable assignment.
     - **Stage E**: Standalone engine execution (`scripts/14_run_a0_production_smoke_test.py --mode certify`) with exit code 0; telemetry synchronized to `gs://rise-unet-rzsm/reproduction_audit/a0_production_smoke_test.json`.
     - **Audit Dossier**: [`reproduction_audit/23_production_smoke_preflight_audit.md`](reproduction_audit/23_production_smoke_preflight_audit.md).
-- [ ] **Step 21K.3**: Train Model A0 across minimum three predeclared seeds (seeds 42, 123, 456). **`[AUTHORIZED: 2026-09-17]`**
-  * **Prerequisites Status**: All three Pre-Production Gates cleared: (1) 2022–2023 atmospheric mirroring certified under Pre-Production Gate 1 [PASS / CERTIFIED: 2026-09-16], (2) 21J hardware profiling & VRAM benchmark certified on physical Tesla T4 under Pre-Production Gate 2 [PASS / CERTIFIED_ON_GPU: 2026-09-17], and (3) 21K.3-pre certified on physical Tesla T4 under Pre-Production Gate 3 [PASS / CERTIFIED_ON_GPU: 2026-09-17]. Full 3-Seed Model A0 Production Training is hereby **AUTHORIZED FOR IMMEDIATE EXECUTION**.
-  * Checkpoint Selection Rule: Primary checkpoint per seed = minimum validation CRPS, subject to all integrity checks.
-  * Performance Reporting: Report A0 reference performance per-seed, mean across seeds, and standard deviation across seeds.
-  * Storage: `gs://rise-unet-rzsm/checkpoints/A0/`.
+- [ ] **Step 21K.3**: Train Model A0 across minimum three predeclared seeds (seeds 42, 123, 456). **`[IMPLEMENTATION READY / PENDING GPU EXECUTION IN COLAB: 2026-09-17]`**
+  * **Operational Status**:
+    - Gate 1: `[PASS / CERTIFIED: 2026-09-16]` (Validation Atmospheric Pipeline Preflight)
+    - Gate 2: `[PASS / CERTIFIED_ON_GPU: 2026-09-17]` (Hardware Profiling & VRAM Feasibility Benchmark)
+    - Gate 3: `[PASS / CERTIFIED_ON_GPU: 2026-09-17]` (Production Training Smoke Preflight)
+    - Step 21K.3 Implementation: `[READY]` (`scripts/16_train_a0_production.py`, `notebooks/12_mindanao_a0_production_training.ipynb`, `tests/test_15_production_training_contracts.py`)
+    - Step 21K.3 Execution: `[PENDING GPU EXECUTION IN COLAB]`
+    - Final Model A0 Weights & Results: `[NOT YET AVAILABLE]` (Awaits physical execution on Tesla T4 GPU)
+  * **Methodological Dual CRPS Formulation**:
+    - **Spatial CRPS Proxy (Parent EX29)**: $\mathcal{L} = \text{MAE}_{\text{eval}} - 0.08 \cdot \bar{\sigma}_{\text{spatial}}$, the custom spread-adjusted loss inherited from Lesinger & Tian (2025), utilized exclusively for backpropagation gradients and minimum-validation checkpoint selection.
+    - **Exact Analytical Ensemble CRPS**: $\text{CRPS}(F, y) = \frac{1}{M}\sum_{m=1}^M |x_m - y| - \frac{1}{2M^2}\sum_{m=1}^M\sum_{n=1}^M |x_m - x_n|$, the standard probabilistic scoring rule (Hersbach, 2000; Gneiting & Raftery, 2007) computed over all $M=11$ realizations for thesis-grade evaluation tables.
+  * **Strict Partition Boundary Invariant**:
+    - Training (2015–2021) $\to$ Validation Checkpoint Selection (2022–2023) $\to$ Sealed Test Quarantined (2024–2025). Seed 42 is the initial training run, not a de facto model-selection or test set.
+  * **Storage & Parity**:
+    - `gs://rise-unet-rzsm/checkpoints/A0/` and local codebase parity (`checkpoints/A0/`).
 - [ ] **Step 21K.4**: Generate validation predictions and evaluate baseline metrics.
   * Metrics: ACC, MAE, RMSE, CRPS, and categorical drought Brier score (strictly conforming to `contracts/A0/metric_evaluation_contract.yaml`).
   * Storage: `gs://rise-unet-rzsm/predictions/A0/` and `metrics/A0/`.

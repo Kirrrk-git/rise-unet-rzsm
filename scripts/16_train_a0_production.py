@@ -144,6 +144,7 @@ def evaluate_lead_metrics(
     from src.data.tf_dataset import (
         prepare_case_lead_tensors,
         crps2d_numpy,
+        crps_exact_analytical,
         OUTPUT_HEADS,
     )
 
@@ -175,7 +176,14 @@ def evaluate_lead_metrics(
         y_trues_list.append(y_case)
 
     if not y_preds_list:
-        return {"val_crps": 999.0, "val_mae": 999.0, "val_rmse": 999.0, "val_acc": 0.0}
+        return {
+            "val_crps": 999.0,
+            "val_spatial_crps_proxy": 999.0,
+            "val_exact_crps": 999.0,
+            "val_mae": 999.0,
+            "val_rmse": 999.0,
+            "val_acc": 0.0,
+        }
 
     y_pred_all = np.concatenate(y_preds_list, axis=0)  # (N*11, 32, 48, 1)
     y_true_all = np.concatenate(y_trues_list, axis=0)  # (N*11, 32, 48, 1)
@@ -192,8 +200,11 @@ def evaluate_lead_metrics(
     mae = float(np.mean(np.abs(p_active - t_active)))
     rmse = float(np.sqrt(np.mean((p_active - t_active) ** 2)))
 
-    # Spatial CRPS using numpy formulation
-    crps = crps2d_numpy(y_true_all, y_pred_all, factor=0.08)
+    # 1. Spatial CRPS Proxy (Parent EX29 author formulation: MAE - 0.08 * spatial_spread)
+    crps_proxy = float(crps2d_numpy(y_true_all, y_pred_all, factor=0.08))
+
+    # 2. Exact Ensemble CRPS (Standard Gneiting & Raftery 2007 / Hersbach 2000 formulation)
+    crps_exact = float(crps_exact_analytical(y_true_all, y_pred_all))
 
     # Anomaly Correlation Coefficient (ACC)
     p_mean = np.mean(p_active)
@@ -204,10 +215,12 @@ def evaluate_lead_metrics(
     acc = float(np.sum(p_anom * t_anom) / denom) if denom > 1e-12 else 0.0
 
     return {
-        "val_crps": float(crps),
-        "val_mae": float(mae),
-        "val_rmse": float(rmse),
-        "val_acc": float(acc),
+        "val_crps": crps_proxy,                       # Checkpoint selection metric (Parent EX29 objective)
+        "val_spatial_crps_proxy": crps_proxy,        # Spread-adjusted spatial proxy: MAE - 0.08 * std
+        "val_exact_crps": crps_exact,                # Standard analytical ensemble CRPS (Hersbach 2000)
+        "val_mae": mae,
+        "val_rmse": rmse,
+        "val_acc": acc,
     }
 
 
@@ -333,6 +346,8 @@ def train_single_lead(
         "train_loss": [],
         "val_loss": [],
         "val_crps": [],
+        "val_spatial_crps_proxy": [],
+        "val_exact_crps": [],
         "val_mae": [],
         "val_rmse": [],
         "val_acc": [],
@@ -401,6 +416,8 @@ def train_single_lead(
         history["train_loss"].append(mean_train_loss)
         history["val_loss"].append(val_crps)
         history["val_crps"].append(val_crps)
+        history["val_spatial_crps_proxy"].append(val_metrics.get("val_spatial_crps_proxy", val_crps))
+        history["val_exact_crps"].append(val_metrics.get("val_exact_crps", 0.0))
         history["val_mae"].append(val_mae)
         history["val_rmse"].append(val_rmse)
         history["val_acc"].append(val_acc)
@@ -442,7 +459,8 @@ def train_single_lead(
         logger.info(
             f"Epoch {epoch:02d}/{args.epochs:02d} ({epoch_dur:.1f}s) | "
             f"Train Loss: {mean_train_loss:.4f} | "
-            f"Val CRPS: {val_crps:.4f} | "
+            f"Val Proxy CRPS: {val_crps:.4f} | "
+            f"Val Exact CRPS: {val_metrics.get('val_exact_crps', 0.0):.4f} | "
             f"Val MAE: {val_mae:.4f} | "
             f"Val RMSE: {val_rmse:.4f} | "
             f"Val ACC: {val_acc:.4f} | "
@@ -661,10 +679,17 @@ def main():
 
     # Compute mean and std across seeds per lead
     for lead in args.leads:
-        metrics_keys = ["val_crps", "val_mae", "val_rmse", "val_acc"]
+        metrics_keys = [
+            "val_crps",
+            "val_spatial_crps_proxy",
+            "val_exact_crps",
+            "val_mae",
+            "val_rmse",
+            "val_acc",
+        ]
         lead_summary = {}
         for k in metrics_keys:
-            vals = [all_seed_results[s][lead][k] for s in args.seeds if lead in all_seed_results[s]]
+            vals = [all_seed_results[s][lead][k] for s in args.seeds if lead in all_seed_results[s] and k in all_seed_results[s][lead]]
             if vals:
                 lead_summary[f"{k}_mean"] = float(np.mean(vals))
                 lead_summary[f"{k}_std"] = float(np.std(vals))
