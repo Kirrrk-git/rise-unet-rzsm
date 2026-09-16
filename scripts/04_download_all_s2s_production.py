@@ -1,23 +1,27 @@
 #!/usr/bin/env python3
 """
-Dynamic Production ECMWF S2S Reforecast Downloader for Mindanao (2015-2025)
-API: Copernicus Climate Data Store (cdsapi)
-Target: gs://rise-unet-rzsm/raw/ecmwf_s2s/production/
+Dynamic Production ECMWF S2S Downloader for Mindanao (2015-2025)
+API: ECMWF Data Store (ECDS) / Copernicus CDS API (cdsapi)
+Target Options:
+  --target gcs   : Upload to gs://rise-unet-rzsm/raw/ecmwf_s2s/production/ (auto-cleans temp files)
+  --target local : Save to Data/raw_downloads/ECMWF/<cycle>/ (permanent local storage)
+  --target both  : Save locally AND upload to GCS
 
 Key Scientific & Engineering Design:
 1. Dynamic Operational Schedule:
    - Evaluates all operational forecast issuance dates (every Monday and Thursday)
      of the corresponding model version without any hardcoded date skipping.
-   - For hindcast years (hyear <= 2023), ECMWF runs the CY48R1 reforecasts during the
-     2024 operational schedule (105 runs across all 12 months, including late December).
-   - For real-time years (hyear >= 2024), it queries the operational runs of that year.
-2. Smart Resumption & GCS Parity:
-   - Pre-checks GCS bucket (gs://rise-unet-rzsm/raw/ecmwf_s2s/production/<cycle>/).
-   - Skips already-verified cycles in ~0.1s.
-   - Automatically backfills any previously omitted cycles.
-3. Resilient Error Handling:
-   - Never crashes on an isolated server error or unissued cycle.
-   - Logs skipped/failed dates to 's2s_download_errors.log' and proceeds autonomously.
+   - Hindcast years (hyear <= 2023): Queries 's2s-reforecasts' using the 2024 operational
+     schedule and hyear/hmonth/hday parameters.
+   - Real-time years (hyear >= 2024): Queries 's2s-forecasts' (operational real-time runs)
+     with year/month/day parameters directly.
+2. Fast Batch Skip Cache:
+   - Queries GCS once at startup (~3s) to cache all 875+ existing cycles.
+   - Skip checks execute instantaneously (~0.0001s per cycle).
+   - Checks local folder if local storage is enabled.
+3. Cross-Platform Windows & Terminal Resilience:
+   - Uses shutil.which and shell=True on Windows to execute gcloud.CMD without WinError 2.
+   - Resolves paths relative to repository root regardless of current working directory.
 """
 
 import os
@@ -26,6 +30,8 @@ import time
 import argparse
 import datetime
 import subprocess
+import shutil
+from pathlib import Path
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(line_buffering=True)
@@ -53,6 +59,9 @@ LEADTIME_HOURS = [
     "0_24", "24_48", "48_72", "72_96", "96_120", "120_144", "144_168",
     "168_192", "192_216", "216_240", "240_264", "264_288", "288_312", "312_336"
 ]
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+LOG_FILE = REPO_ROOT / "s2s_download_errors.log"
 
 def is_leap_year(year: int) -> bool:
     """Returns True if year is a leap year in the Gregorian calendar."""
@@ -94,34 +103,56 @@ def generate_operational_cycles(start_year: int, end_year: int):
             d += datetime.timedelta(days=1)
     return cycles
 
-def check_gcs_cycle_exists(cycle_date_str: str) -> bool:
-    """Checks if both control and perturbed forecast GRIB files exist in GCS."""
-    try:
-        res = subprocess.run(
-            ["gcloud", "storage", "ls", f"{GCS_BUCKET}/{cycle_date_str}/*.grib"],
-            capture_output=True, text=True, check=False
-        )
-        lines = [l.strip() for l in res.stdout.strip().split("\n") if l.strip()]
-        if len(lines) >= 2:
-            return True
-    except Exception:
-        pass
+def run_cloud_cmd(cmd_args: list) -> subprocess.CompletedProcess:
+    """
+    Executes a gcloud or gsutil command cross-platform.
+    On Windows, uses shutil.which to find .CMD batch files and runs with shell=True.
+    """
+    primary_cmd = cmd_args[0]
+    resolved_cmd = shutil.which(primary_cmd)
+    if resolved_cmd:
+        full_args = [resolved_cmd] + cmd_args[1:]
+    else:
+        full_args = cmd_args
+    is_windows = sys.platform == "win32"
+    return subprocess.run(full_args, capture_output=True, text=True, check=False, shell=is_windows)
 
-    try:
-        res = subprocess.run(
-            ["gsutil", "ls", f"{GCS_BUCKET}/{cycle_date_str}/*.grib"],
-            capture_output=True, text=True, check=False
-        )
-        lines = [l.strip() for l in res.stdout.strip().split("\n") if l.strip()]
-        return len(lines) >= 2
-    except Exception:
+def fetch_existing_gcs_cycles() -> set:
+    """
+    Pre-fetches all existing cycle folders in GCS in a single batch call.
+    Returns a set of cycle date strings (e.g. {'2015-01-01', '2015-01-04', ...}).
+    """
+    res = run_cloud_cmd(["gcloud", "storage", "ls", f"{GCS_BUCKET}/"])
+    if res.returncode != 0:
+        res = run_cloud_cmd(["gsutil", "ls", f"{GCS_BUCKET}/"])
+
+    cycles = set()
+    if res.returncode == 0:
+        for line in res.stdout.splitlines():
+            line = line.strip().rstrip("/")
+            if "/" in line:
+                folder_name = line.split("/")[-1]
+                if len(folder_name) == 10 and folder_name[4] == "-" and folder_name[7] == "-":
+                    cycles.add(folder_name)
+    return cycles
+
+def check_local_cycle_exists(cycle_date_str: str, local_dir: Path) -> bool:
+    """Checks if both control and perturbed forecast GRIB files exist locally with valid size."""
+    if not local_dir:
         return False
+    cf_path = local_dir / cycle_date_str / f"s2s_cf_{cycle_date_str}.grib"
+    pf_path = local_dir / cycle_date_str / f"s2s_pf_{cycle_date_str}.grib"
+    if cf_path.exists() and pf_path.exists():
+        if cf_path.stat().st_size > 1024 and pf_path.stat().st_size > 1024:
+            return True
+    return False
 
 def download_and_sync_cycle(
     client,
     cycle_info: dict,
+    gcs_cache: set = None,
     dry_run: bool = False,
-    local_dir: str = None,
+    local_dir: Path = None,
     upload_gcs: bool = True
 ) -> bool:
     """Retrieves cf and pf GRIB files for a cycle and uploads to GCS or stores locally."""
@@ -136,17 +167,42 @@ def download_and_sync_cycle(
 
     dataset = DATASET_FORECAST if is_realtime else DATASET_HINDCAST
 
+    local_exists = check_local_cycle_exists(cycle_date_str, local_dir) if local_dir else False
+    gcs_exists = (cycle_date_str in gcs_cache) if (upload_gcs and gcs_cache is not None) else False
+
     if dry_run:
-        print(f"[DRY RUN] Cycle: {cycle_date_str} -> Dataset: {dataset} (Model: {model_year}-{model_month}-{model_day})")
+        local_status = "EXISTS" if local_exists else "MISSING"
+        gcs_status = "EXISTS" if gcs_exists else "MISSING"
+        print(f"[DRY RUN] Cycle: {cycle_date_str} -> Dataset: {dataset:<15} | Local: {local_status:<7} | GCS: {gcs_status}")
         return True
 
-    if upload_gcs and check_gcs_cycle_exists(cycle_date_str):
-        print(f"[SKIP] Cycle {cycle_date_str} already verified in GCS bucket.")
-        return True
+    # 1. Smart Skip Checks
+    if local_dir and local_exists:
+        if not upload_gcs:
+            print(f"[SKIP] Cycle {cycle_date_str} already verified on local disk ({local_dir / cycle_date_str}).")
+            return True
+        elif gcs_exists:
+            print(f"[SKIP] Cycle {cycle_date_str} already verified locally and in GCS.")
+            return True
 
+    if upload_gcs and gcs_exists:
+        if not local_dir:
+            print(f"[SKIP] Cycle {cycle_date_str} already verified in GCS bucket.")
+            return True
+
+    # Determine file paths
     cf_filename = f"s2s_cf_{cycle_date_str}.grib"
     pf_filename = f"s2s_pf_{cycle_date_str}.grib"
     gcs_dest = f"{GCS_BUCKET}/{cycle_date_str}/"
+
+    if local_dir:
+        cycle_dir = local_dir / cycle_date_str
+        cycle_dir.mkdir(parents=True, exist_ok=True)
+        cf_target = cycle_dir / cf_filename
+        pf_target = cycle_dir / pf_filename
+    else:
+        cf_target = REPO_ROOT / cf_filename
+        pf_target = REPO_ROOT / pf_filename
 
     print(f"\n========================================================")
     print(f"Retrieving S2S Cycle: {cycle_date_str} (Dataset: {dataset})")
@@ -187,71 +243,119 @@ def download_and_sync_cycle(
         }
 
     try:
-        # 1. Download Control Forecast (Member 0)
+        # Step A: Download Control Forecast (Member 0)
         print(f"[{cycle_date_str}] -> Requesting Control Forecast (Member 0) from {dataset}...")
         cf_request = base_request.copy()
         cf_request["forecast_type"] = "control_forecast"
-        client.retrieve(dataset, cf_request, cf_filename)
+        client.retrieve(dataset, cf_request, str(cf_target))
 
-        # 2. Download Perturbed Forecast (Members 1 to 10)
+        # Step B: Download Perturbed Forecast (Members 1 to 10)
         print(f"[{cycle_date_str}] -> Requesting Perturbed Forecast (Members 1-10) from {dataset}...")
         pf_request = base_request.copy()
         pf_request["forecast_type"] = "perturbed_forecast"
-        client.retrieve(dataset, pf_request, pf_filename)
+        client.retrieve(dataset, pf_request, str(pf_target))
 
-        # 3. Direct upload to GCS bucket if enabled
+        # Step C: Upload to Google Cloud Storage if enabled
         if upload_gcs:
             print(f"[{cycle_date_str}] -> Uploading to {gcs_dest}...")
-            try:
-                subprocess.run(["gcloud", "storage", "cp", cf_filename, pf_filename, gcs_dest], check=True)
-            except Exception:
-                subprocess.run(["gsutil", "cp", cf_filename, pf_filename, gcs_dest], check=True)
+            res_up = run_cloud_cmd(["gcloud", "storage", "cp", str(cf_target), str(pf_target), gcs_dest])
+            if res_up.returncode != 0:
+                res_up2 = run_cloud_cmd(["gsutil", "cp", str(cf_target), str(pf_target), gcs_dest])
+                if res_up2.returncode != 0:
+                    err_msg = res_up.stderr.strip() or res_up2.stderr.strip()
+                    raise RuntimeError(f"GCS upload failed: {err_msg}")
+            if gcs_cache is not None:
+                gcs_cache.add(cycle_date_str)
 
-        # 4. Handle local persistence if requested
-        if local_dir:
-            import shutil
-            from pathlib import Path
-            target_dir = Path(local_dir) / cycle_date_str
-            target_dir.mkdir(parents=True, exist_ok=True)
-            shutil.copy(cf_filename, str(target_dir / cf_filename))
-            shutil.copy(pf_filename, str(target_dir / pf_filename))
-            print(f"[{cycle_date_str}] -> Saved locally to: {target_dir}")
-
-        # Clean up temporary working directory files if uploaded or copied
-        if upload_gcs or local_dir:
-            if os.path.exists(cf_filename): os.remove(cf_filename)
-            if os.path.exists(pf_filename): os.remove(pf_filename)
+        # Step D: Clean up temporary files ONLY if local persistence is not requested
+        if upload_gcs and not local_dir:
+            if cf_target.exists():
+                try: cf_target.unlink()
+                except Exception: pass
+            if pf_target.exists():
+                try: pf_target.unlink()
+                except Exception: pass
+        elif local_dir:
+            print(f"[{cycle_date_str}] -> Verified and saved locally to: {cycle_dir}")
 
         print(f"[{cycle_date_str}] -> SUCCESS! Cycle completed.")
         return True
 
     except Exception as e:
         print(f"[{cycle_date_str}] -> ERROR: {e}")
-        with open("s2s_download_errors.log", "a", encoding="utf-8") as f:
-            f.write(f"{datetime.datetime.utcnow().isoformat()}Z | {cycle_date_str} | Dataset: {dataset} | ERROR: {e}\n")
-        if os.path.exists(cf_filename): os.remove(cf_filename)
-        if os.path.exists(pf_filename): os.remove(pf_filename)
+        try:
+            with open(LOG_FILE, "a", encoding="utf-8") as f:
+                f.write(f"{datetime.datetime.utcnow().isoformat()}Z | {cycle_date_str} | Dataset: {dataset} | ERROR: {e}\n")
+        except Exception:
+            pass
+
+        # If it failed part-way and we are not saving local, clean up partials
+        if not local_dir:
+            if cf_target.exists():
+                try: cf_target.unlink()
+                except Exception: pass
+            if pf_target.exists():
+                try: pf_target.unlink()
+                except Exception: pass
         return False
 
 def main():
-    parser = argparse.ArgumentParser(description="Authoritative ECMWF S2S Production Batch Downloader to GCS & Local Terminal")
+    parser = argparse.ArgumentParser(
+        description="Authoritative ECMWF S2S Production Batch Downloader (Local Terminal & GCS)"
+    )
     parser.add_argument("--start-year", type=int, default=2015, help="Start year (default: 2015)")
     parser.add_argument("--end-year", type=int, default=2025, help="End year (default: 2025)")
-    parser.add_argument("--local-dir", type=str, default=None, help="Optional local directory to store GRIB files")
-    parser.add_argument("--no-gcs-upload", action="store_true", help="Skip uploading to Google Cloud Storage")
-    parser.add_argument("--dry-run", action="store_true", help="Print cycle list without requesting data")
+    parser.add_argument(
+        "--target", choices=["gcs", "local", "both"], default="gcs",
+        help="Storage destination: 'gcs' (default), 'local', or 'both'"
+    )
+    parser.add_argument(
+        "--local-dir", type=str, default="Data/raw_downloads/ECMWF",
+        help="Local directory destination (used when --target is 'local' or 'both', default: Data/raw_downloads/ECMWF)"
+    )
+    parser.add_argument("--dry-run", action="store_true", help="Print cycle list and verify skip cache without requesting data")
     args = parser.parse_args()
+
+    upload_gcs = args.target in ("gcs", "both")
+    save_local = args.target in ("local", "both")
+    local_path = (REPO_ROOT / args.local_dir) if save_local else None
+
+    print("========================================================")
+    print("      ECMWF S2S PRODUCTION BATCH DOWNLOADER")
+    print("========================================================")
+    print(f"Period Target : {args.start_year} to {args.end_year}")
+    print(f"Storage Target: {args.target.upper()}")
+    if save_local:
+        print(f"Local Path    : {local_path.resolve()}")
+    if upload_gcs:
+        print(f"GCS Bucket    : {GCS_BUCKET}")
+        gcloud_bin = shutil.which("gcloud") or shutil.which("gsutil")
+        if gcloud_bin:
+            print(f"Cloud CLI     : [DETECTED] {gcloud_bin}")
+        else:
+            print(f"Cloud CLI     : [WARNING] Neither gcloud nor gsutil detected in PATH.")
+    print("========================================================")
 
     cycles = generate_operational_cycles(args.start_year, args.end_year)
     total = len(cycles)
     print(f"Loaded {total} operational forecast cycles across years {args.start_year} to {args.end_year}.")
-    print(f"Schedule: Fully dynamic (ECDS s2s-reforecasts for <= 2023, s2s-forecasts for >= 2024).")
+    print(f"Schedule: Dynamic ECDS ('s2s-reforecasts' for <= 2023, 's2s-forecasts' for >= 2024).")
 
-    upload_gcs = not args.no_gcs_upload
+    # Fast GCS cache pre-fetch if GCS is enabled
+    gcs_cache = set()
+    if upload_gcs:
+        print("--> Pre-fetching existing cycles from GCS bucket...", end=" ", flush=True)
+        gcs_cache = fetch_existing_gcs_cycles()
+        print(f"Found {len(gcs_cache)} verified cycles in GCS.")
 
     if args.dry_run:
+        print("\n--> Starting DRY RUN cycle verification...")
         for idx, c in enumerate(cycles, 1):
-            download_and_sync_cycle(None, c, dry_run=True, local_dir=args.local_dir, upload_gcs=upload_gcs)
+            download_and_sync_cycle(
+                None, c, gcs_cache=gcs_cache, dry_run=True,
+                local_dir=local_path, upload_gcs=upload_gcs
+            )
+        print("--> DRY RUN complete.")
         return
 
     if cdsapi is None:
@@ -266,6 +370,7 @@ def main():
             client = cdsapi.Client(url=ecds_url, key=ecds_key)
         else:
             client = cdsapi.Client(url=ecds_url)
+        print(f"ECDS Endpoint : Connected to {ecds_url}")
     except Exception as e:
         print(f"[NOTE] ECDS URL client initialization fallback: {e}")
         client = cdsapi.Client()
@@ -278,8 +383,9 @@ def main():
         print(f"\nProgress: {idx}/{total} ({idx/total*100:.1f}%)")
         status = download_and_sync_cycle(
             client, cycle_info,
+            gcs_cache=gcs_cache,
             dry_run=False,
-            local_dir=args.local_dir,
+            local_dir=local_path,
             upload_gcs=upload_gcs
         )
         if status:
@@ -295,3 +401,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
