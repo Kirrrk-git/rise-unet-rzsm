@@ -628,7 +628,7 @@ def execute_21j_benchmark(
             m_save = build_a0_unet(lead=1, height=GRID_HEIGHT, width=GRID_WIDTH)
             x_dummy_ckpt = tf.random.normal((1, GRID_HEIGHT, GRID_WIDTH, LEAD_CHANNELS[1]), dtype=tf.float32)
             y_save = m_save(x_dummy_ckpt, training=False)[-1].numpy()
-            saved_weights = {w.name: w.numpy().copy() for w in m_save.weights}
+            saved_weights = [w.numpy().copy() for w in m_save.weights]
 
             # Execute real save
             save_path = save_a0_checkpoint(
@@ -648,13 +648,12 @@ def execute_21j_benchmark(
             m_restore = build_a0_unet(lead=1, height=GRID_HEIGHT, width=GRID_WIDTH)
             restore_a0_checkpoint(m_restore, save_path)
 
-            # Compare all weights
+            # Compare all weights positionally to avoid Keras 3 non-unique layer weight name collisions
             max_weight_delta = 0.0
-            for w in m_restore.weights:
-                if w.name in saved_weights:
-                    diff = float(np.max(np.abs(w.numpy() - saved_weights[w.name])))
-                    if diff > max_weight_delta:
-                        max_weight_delta = diff
+            for w_orig, w_rest in zip(saved_weights, m_restore.weights):
+                diff = float(np.max(np.abs(w_rest.numpy() - w_orig)))
+                if diff > max_weight_delta:
+                    max_weight_delta = diff
 
             # Compare forward outputs
             y_restored = m_restore(x_dummy_ckpt, training=False)[-1].numpy()
