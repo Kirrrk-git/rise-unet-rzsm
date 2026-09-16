@@ -173,5 +173,11 @@ milestones:
       spatial_crps_proxy: "L = MAE_eval - 0.08 * sigma_spatial (Parent EX29 custom spread-adjusted objective, used for backpropagation and validation checkpoint selection)"
       exact_ensemble_crps: "CRPS(F, y) = 1/M * sum(|x_m - y|) - 1/(2M^2) * sum sum(|x_m - x_n|) (Standard analytical ensemble CRPS under Hersbach 2000 / Gneiting & Raftery 2007, computed across M=11 realizations for thesis-grade evaluation)"
       evaluation_protocol: "Training (2015-2021) -> Val Checkpoint Selection (2022-2023) -> Sealed Test Quarantined (2024-2025)"
-
-
+    post_a0_roadmap:
+      two_track_architecture:
+        track_1: "Immediate Scientific Core: Phase 21 (Model A0) -> Phase 23 (Recursive Degradation Diagnostic) -> Gate 2 (Decision Gate) -> Phase 24 (Model A1: CONDITIONAL UPON GATE 2 GO) -> Phase 25 (Ablations: CONDITIONAL)"
+        track_2: "Parallel Benchmark Baselines: Phase 22 (B0 Climatology, B1 Persistence, B2 Structured XGBoost GBDT) -> feeds directly into Phase 26"
+        synthesis: "Phase 26 (Final Sealed Test Evaluation on 2024-2025 Holdout Cohort N=202)"
+      gate_2_conditionality:
+        go_action: "Activate Phase 24 to build and train Model A1 Lead-Aware Recursive Residual Refinement module"
+        no_go_action: "Halt neural architectural modifications; freeze Model A0 as definitive regional deep learning benchmark; bypass Phase 24/25; proceed directly to Phase 26 comparative evaluation"

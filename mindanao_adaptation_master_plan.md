@@ -137,24 +137,24 @@ The artifact registry is an inventory and status index; it must never contradict
                          │                                          ┌───────────────────────────────┐
                          │                                          │ GATE 2: REFINEMENT GO / NO-GO │
                          │                                          │ Effect size + CI + p < 0.05   │
-                         │                                          └───────────────┬───────────────┘
-                         │                                                          │ (GO)
-                         │                                                          ▼
-                         │                                          ┌───────────────────────────────┐
-                         │                                          │ PHASE 24: MODEL A1 ENHANCEMENT│
-                         │                                          │ Lead-Aware Recursive Residual │
-                         │                                          │ Refinement (Parent UNet frozen│
-                         │                                          │ + lead-conditioned correction)│
-                         │                                          └───────────────┬───────────────┘
-                         │                                                          │
-                         │                                                          ▼
-                         │                                          ┌───────────────────────────────┐
-                         │                                          │ PHASE 25: ABLATION & STABILITY│
-                         │                                          │ Lead-conditioning ablations,  │
-                         │                                          │ error-damping sensitivity     │
-                         │                                          └───────────────┬───────────────┘
-                         │                                                          │
-                         └────────────────────────────┬─────────────────────────────┘
+                         │                                          └───────┬───────────────┬───────┘
+                         │                                           (GO)   │               │ (NO-GO: Halt Neural Refinement)
+                         │                                          ┌───────┘               │ (A0 frozen as regional benchmark)
+                         │                                          ▼                       │
+                         │                          ┌───────────────────────────────┐       │
+                         │                          │ PHASE 24: MODEL A1 (COND'L)   │       │
+                         │                          │ Lead-Aware Recursive Residual │       │
+                         │                          │ Refinement (Parent UNet frozen│       │
+                         │                          │ + lead-conditioned correction)│       │
+                         │                          └───────────────┬───────────────┘       │
+                         │                                          │                       │
+                         │                                          ▼                       │
+                         │                          ┌───────────────────────────────┐       │
+                         │                          │ PHASE 25: ABLATION & STABILITY│       │
+                         │                          │ (Conditional upon Phase 24)   │       │
+                         │                          └───────────────┬───────────────┘       │
+                         │                                          │                       │
+                         └────────────────────────────┬─────────────┴───────────────────────┘
                                                       │
                                                       ▼
                                       ┌───────────────────────────────┐
@@ -639,7 +639,26 @@ The artifact registry is an inventory and status index; it must never contradict
 
 ---
 
-### Phase 22: Reference Comparators Track (B0, B1, B2)
+## Post-A0 Operational Strategy: Two-Track Phased Execution
+
+To maintain relentless focus on the central scientific question of the thesis while ensuring rigorous benchmark comparison, the post-A0 roadmap is structured under a **Two-Track Execution Architecture**:
+
+- **Track 1 (Active Neural Innovation & Scientific Diagnostic Core)**:
+  - **Phase 21**: Model A0 Baseline Production Training & Validation Evaluation
+  - **Phase 23**: Recursive Degradation Diagnostic (Immediate Scientific Investigation of $\Delta E_k = E_k^{\text{recursive}} - E_k^{\text{oracle}}$, Protocols 1–4, and Error Injection $D_k(\epsilon)$)
+  - **Gate 2**: Recursive Refinement GO / NO-GO Decision Gate (Statistical significance $p < 0.05$, effect size, confidence intervals)
+  - **Phase 24 (`[CONDITIONAL UPON GATE 2 GO]`): Model A1 (Lead-Aware Recursive Residual Refinement)**
+    * *GO Outcome*: If Gate 2 confirms practically meaningful and statistically significant recursive drift, Phase 24 is unlocked to build and train the lightweight lead-aware residual refinement module $\mathcal{R}_\theta$.
+    * *NO-GO Outcome*: If recursive drift is negligible, unstable, or not driven by recursive feedback, architectural modifications are **formally halted**. Model A0 is frozen as the definitive regional deep learning benchmark for Mindanao, avoiding unnecessary model complexity. Execution then proceeds directly to Phase 26.
+  - **Phase 25 (`[CONDITIONAL UPON PHASE 24 ACTIVATION]`): Ablation & Robustness Studies**
+- **Track 2 (Parallel Reference Comparators Track)**:
+  - **Phase 22**: Reference Comparators (B0 Climatology, B1 Persistence, B2 Feature-Engineered XGBoost GBDT). Operates independently and feeds into Phase 26 comparative tables.
+- **Synthesis & Final Defense**:
+  - **Phase 26**: Final Sealed Test Evaluation & Explainability (all active models evaluated on untouched 2024–2025 sealed holdout).
+
+---
+
+### Phase 22: Reference Comparators Track (B0, B1, B2) [Track 2: Parallel Benchmark Baselines]
 
 **Objective**: Implement controlled, non-neural reference baselines on the exact same Mindanao cases and evaluation masks to benchmark deep learning skill. Phase 22 executes independently of Phase 23/24/25 and feeds directly into comparative evaluation in Phase 26.
 
@@ -656,9 +675,9 @@ The artifact registry is an inventory and status index; it must never contradict
 
 ---
 
-### Phase 23: Recursive Degradation Diagnostic (Core Scientific Investigation)
+### Phase 23: Recursive Degradation Diagnostic [Track 1: Immediate Scientific Investigation]
 
-**Objective**: Empirically investigate whether Model A0 suffers from systematic error compounding along the autoregressive recursive prediction chain ($W_1 \to W_2 \to W_3 \to W_4$).
+**Objective**: Empirically investigate whether Model A0 suffers from systematic error compounding along the autoregressive recursive prediction chain ($W_1 \to W_2 \to W_3 \to W_4$). Directly follows Model A0 training without waiting for Phase 22.
 
 - [ ] **Step 23.1**: Define parallel diagnostic inference protocols.
   1. **Protocol 1 (Standard Autoregressive Recursion)**:
@@ -683,7 +702,7 @@ The artifact registry is an inventory and status index; it must never contradict
 
 ---
 
-### Gate 2: Recursive Refinement GO / NO-GO Decision Gate
+### Gate 2: Recursive Refinement GO / NO-GO Decision Gate [Track 1: Formal Scientific Gate]
 
 **Objective**: Formal decision gate establishing whether empirical evidence of recursive degradation justifies the introduction of an architectural refinement mechanism.
 
@@ -701,16 +720,16 @@ The artifact registry is an inventory and status index; it must never contradict
     2. Degradation occurs equally under oracle counterfactual state injection.
   * **Predeclared Protocol Action**:
     * If **GO** is confirmed: Proceed to Phase 24 (Model A1 Lead-Aware Recursive Residual Refinement).
-    * If **NO-GO** is confirmed: Formally halt neural architectural modifications; designate Model A0 as the authoritative regional benchmark, document that the tested evidence does not support recursive feedback as a sufficiently material or actionable source of degradation under the tested conditions, and retain A0 as the regional benchmark.
+    * If **NO-GO** is confirmed: Formally halt neural architectural modifications; designate Model A0 as the authoritative regional benchmark, document that the tested evidence does not support recursive feedback as a sufficiently material or actionable source of degradation under the tested conditions, and retain A0 as the regional benchmark (proceeding directly to Phase 26).
 - [ ] **Step G2.2**: Publish formal Gate 2 Decision Dossier.
   * Storage: `reproduction_audit/GATE2_DECISION_DOSSIER.md`.
   * Pass Criterion: Clear empirical justification locked before Phase 24 architecture construction begins.
 
 ---
 
-### Phase 24: Model A1 (Lead-Aware Recursive Residual Refinement)
+### Phase 24: Model A1 (Lead-Aware Recursive Residual Refinement) [Track 1: CONDITIONAL UPON GATE 2 GO]
 
-**Objective**: Implement and train the proposed enhancement architecture: preserving the verified RISE-UNet backbone while introducing a lightweight, lead-conditioned residual correction module to suppress error compounding along the recursive chain.
+**Objective**: *[CONDITIONAL UPON GATE 2 GO]* Implement and train the proposed enhancement architecture: preserving the verified RISE-UNet backbone while introducing a lightweight, lead-conditioned residual correction module to suppress error compounding along the recursive chain. If Gate 2 confirms NO-GO, this phase is bypassed.
 
 - [ ] **Step 24.1**: Design Lead-Aware Recursive Residual Refinement module.
   * Architectural Principle: The verified RISE-UNet backbone remains **unchanged and frozen**; the refinement module is added externally to the recursive state transition.
@@ -730,9 +749,9 @@ The artifact registry is an inventory and status index; it must never contradict
 
 ---
 
-### Phase 25: Ablation & Robustness Studies
+### Phase 25: Ablation & Robustness Studies [Track 1: CONDITIONAL UPON PHASE 24 ACTIVATION]
 
-**Objective**: Verify the specific mechanisms of the proposed refinement module and evaluate operational stability under edge conditions.
+**Objective**: *[CONDITIONAL UPON PHASE 24 ACTIVATION]* Verify the specific mechanisms of the proposed refinement module and evaluate operational stability under edge conditions.
 
 - [ ] **Step 25.1**: Execute Architectural Ablation Study.
   * Variant 1: Refinement module without lead conditioning (static residual).
