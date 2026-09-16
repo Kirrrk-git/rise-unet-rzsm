@@ -1,0 +1,71 @@
+{
+  "step": "21K.3-pre",
+  "mode": "certify",
+  "status": "PASS",
+  "gpu_device": "Tesla T4",
+  "execution_date": "2026-09-17",
+  "cuda_version": "12.5.1",
+  "cudnn_version": "9",
+  "tensorflow_version": "2.20.0",
+  "python_version": "3.13.15",
+  "stages": {
+    "stage_a_four_lead_updates": {
+      "status": "PASS",
+      "eval_mask_cells": 126,
+      "ocean_cells": 1410,
+      "leads": {
+        "lead_1": {
+          "cin": 11,
+          "expected_params": 1627139,
+          "unmasked_mae": 0.0991,
+          "masked_mae": 0.5259,
+          "grad_norm": 1.1738,
+          "delta_w": 0.10432,
+          "status": "PASS"
+        },
+        "lead_2": {
+          "cin": 12,
+          "expected_params": 1630307,
+          "unmasked_mae": 0.3247,
+          "masked_mae": 0.9243,
+          "grad_norm": 6.6146,
+          "delta_w": 0.11812,
+          "status": "PASS"
+        },
+        "lead_3": {
+          "cin": 5,
+          "expected_params": 1608131,
+          "unmasked_mae": 0.1693,
+          "masked_mae": 0.8805,
+          "grad_norm": 5.0646,
+          "delta_w": 0.11058,
+          "status": "PASS"
+        },
+        "lead_4": {
+          "cin": 6,
+          "expected_params": 1611299,
+          "unmasked_mae": 0.2941,
+          "masked_mae": 0.7494,
+          "grad_norm": 4.3178,
+          "delta_w": 0.11524,
+          "status": "PASS"
+        }
+      }
+    },
+    "stage_b_recursive_semantics": {
+      "status": "PASS",
+      "w2_channel_11_verified": true,
+      "w3_channels_3_4_verified": true,
+      "w4_channels_3_4_5_verified": true,
+      "permutation_tamper_caught": true
+    },
+    "stage_d_checkpoint_scoping": {
+      "status": "PASS",
+      "model_weight_parity_delta": 0.0,
+      "training_state_restoration_verified": true,
+      "step2_trajectory_loss_delta": 0.0,
+      "step2_trajectory_weight_delta": 5.02e-07
+    }
+  },
+  "certification_verdict": "CERTIFIED_ON_GPU"
+}
