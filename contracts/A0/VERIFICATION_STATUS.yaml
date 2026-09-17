@@ -241,4 +241,15 @@ milestones:
       - "figures/phase23_recursive_degradation_composite.png"
       - "reproduction_audit/POST_A0_GATE2_DECISION_DOSSIER.md"
 
+  phase_24_model_a1_refinement:
+    name: "Phase 24: Model A1 (Lead-Aware Recursive Residual Refinement)"
+    status: "SPECIFICATION_FROZEN"
+    certification_level: "PRE_IMPLEMENTATION_CONTRACT_FROZEN"
+    date_certified: "2026-09-18"
+    governance_contract: "contracts/A1/PHASE_24_A1_ARCHITECTURE_CONTRACT.yaml"
+    shared_module_specification: "Shared single R_theta(., k) module across W1->W2, W2->W3, W3->W4 transitions with lead conditioning"
+    training_regime: "Direct Supervised Residual Learning (r_k* = y_true_k - y_hat_k) with detached A0 input features"
+    backbone_status: "100% frozen A0 weights (0 weights retrained)"
+    current_step: "Step 24.1 Contract Frozen -> Proceeding to test_18_a1_refinement.py & src/models/a1_refinement.py"
+
 

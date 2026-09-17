@@ -733,36 +733,26 @@ To maintain relentless focus on the central scientific question of the thesis wh
   * **Predeclared Protocol Action**:
     * If **GO** is confirmed: Proceed to Phase 24 (Model A1 Lead-Aware Recursive Residual Refinement). **`[CONFIRMED GO: PHASE 24 ACTIVATED]`**
     * If **NO-GO** is confirmed: Formally halt neural architectural modifications; designate Model A0 as the authoritative regional benchmark, document that the tested evidence does not support recursive feedback as a sufficiently material or actionable source of degradation under the tested conditions, and retain A0 as the regional benchmark (proceeding directly to Phase 26).
-- [x] **Step G2.2**: Publish formal Post-A0 Gate 2 (G2-R) Decision Dossier. `[PASS]`
-  * Storage: `reproduction_audit/POST_A0_GATE2_DECISION_DOSSIER.md`.
-  * Pass Criterion: Clear empirical justification locked before Phase 24 architecture construction begins.atorname{mean}(\Delta e) / \operatorname{sd}(\Delta e) \ge 0.20$ OR relative error reduction $\ge 2.0\%$ under Oracle ($\Delta E_k / E_k^{\text{rec}} \ge 0.02$).
-    3. Replicate consistency: $\Delta E_k > 0$ holds across all three training seeds ($42, 123, 456$).
-    4. Perturbation sensitivity: Downstream divergence $D_k(\epsilon)$ increases monotonically with perturbation magnitude $|\epsilon|$ across realistic forecast error levels, evaluated separately for positive and negative perturbations ($D_k(+0.10) > D_k(+0.05)$ and $D_k(-0.10) > D_k(-0.05)$) in Leads $W_3$ and/or $W_4$. Perturbations at $\pm 0.25$ and $\pm 0.50$ are treated strictly as exploratory boundary stress tests and are not required evidence for the GO decision.
-  * **NO-GO Criteria**:
-    1. Recursive error gap $\Delta E_k \le 0$ or adjusted $p_{\text{boot}} \ge 0.05$ or 95% MBB CI contains zero or effect size $d_z < 0.20$ across downstream leads.
-    2. Degradation occurs equally under Oracle replacement, demonstrating that error growth is driven by residual non-recursive error rather than recursive state feedback.
-    3. Inconsistent direction of $\Delta E_k$ across training seeds.
-  * **Predeclared Protocol Action**:
-    * If **GO** is confirmed: Proceed to Phase 24 (Model A1 Lead-Aware Recursive Residual Refinement).
-    * If **NO-GO** is confirmed: Formally halt neural architectural modifications; designate Model A0 as the authoritative regional benchmark, document that the tested evidence does not support recursive feedback as a sufficiently material or actionable source of degradation under the tested conditions, and retain A0 as the regional benchmark (proceeding directly to Phase 26).
-- [ ] **Step G2.2**: Publish formal Post-A0 Gate 2 (G2-R) Decision Dossier.
-  * Storage: `reproduction_audit/POST_A0_GATE2_DECISION_DOSSIER.md`.
-  * Pass Criterion: Clear empirical justification locked before Phase 24 architecture construction begins.
+- [x] **Step G2.2**: Publish formal Post-A0 Gate 2 (G2-R) Decision Dossier & Thesis Research Gap Synthesis. `[PASS]`
+  * Storage: Decision Dossier [`reproduction_audit/POST_A0_GATE2_DECISION_DOSSIER.md`](reproduction_audit/POST_A0_GATE2_DECISION_DOSSIER.md); Thesis Research Gap Dossier [`reproduction_audit/THESIS_RESEARCH_GAP_EMPIRICAL_EVIDENCES.md`](reproduction_audit/THESIS_RESEARCH_GAP_EMPIRICAL_EVIDENCES.md).
+  * Pass Criterion: Clear empirical justification locked before Phase 24 architecture construction begins. Implementation of enhancement is paused to ensure 100% baseline gap consolidation.
 
 ---
 
-### Phase 24: Model A1 (Lead-Aware Recursive Residual Refinement) [Track 1: CONDITIONAL UPON POST-A0 GATE 2 (G2-R) GO]
+### Phase 24: Model A1 (Lead-Aware Recursive Residual Refinement) [Track 1: ACTIVATED UPON POST-A0 GATE 2 (G2-R) GO]
 
-**Objective**: *[CONDITIONAL UPON POST-A0 GATE 2 (G2-R) GO]* Implement and train the proposed enhancement architecture: preserving the verified RISE-UNet backbone while introducing a lightweight, lead-conditioned residual correction module to suppress error compounding along the recursive chain. If Post-A0 Gate 2 (G2-R) confirms NO-GO, this phase is bypassed.
+**Objective**: Implement and train the proposed enhancement architecture: preserving the verified RISE-UNet backbone while introducing a single, shared lightweight, lead-conditioned residual correction module $\mathcal{R}_\theta(\cdot, k)$ across all recursive transitions to suppress error compounding along the recursive chain.
 
-- [ ] **Step 24.1**: Design Lead-Aware Recursive Residual Refinement module.
-  * Architectural Principle: The verified RISE-UNet backbone remains **unchanged and frozen**; the refinement module is added externally to the recursive state transition.
-  * Formulation: Before passing prediction $\hat{y}_k$ into the input tensor of Lead $k+1$, a lightweight convolutional refinement block estimates a calibrated residual:
-    $$\tilde{y}_k = \hat{y}_k + \mathcal{R}_{\theta}(\hat{y}_k, \hat{y}_{k-1}, k)$$
-  * Input Isolation Rule: The refinement module receives **only information available at the recursive transition**; verifying ground truth observations are used exclusively as training targets and never as transition inputs, preventing disguised teacher-forcing.
-  * Training Regime Safeguard: A1 refinement training must not use teacher-forced intermediate predictions unless that is explicitly its intended training regime and evaluated separately; the refinement module must train under the same recursive transition conditions it receives during multi-week inference.
-  * Lead Conditioning: Compare candidate encodings during development (normalized scalar $k/4$ vs. learned embedding / scale-bias block).
-  * Training Protocol: Model A0 backbone weights remain **frozen**, training exclusively the refinement module $\mathcal{R}_{\theta}$ for clean causal attribution.
+- [ ] **Step 24.1**: Design and Freeze Model A1 Architecture Contract (`contracts/A1/PHASE_24_A1_ARCHITECTURE_CONTRACT.yaml`). `[FROZEN]`
+  * Architectural Principle: The verified RISE-UNet backbone remains **100% frozen** ($0$ weights modified or retrained); the refinement module is added externally at the recursive state transitions.
+  * Shared Parameterization Standard: A single unified convolutional module $\mathcal{R}_\theta(\cdot, k)$ is shared across all three transitions ($W_1 \to W_2$, $W_2 \to W_3$, $W_3 \to W_4$), conditioned explicitly on lead index $k \in \{1, 2, 3\}$. Separately parameterized modules are formally rejected to keep parameter budget small ($< 50\text{k}$ target) and evaluate a general recursive refinement mechanism.
+  * Cascade Architecture:
+    $$\hat{y}_1 \xrightarrow{\mathcal{R}_\theta(\cdot, k=1)} \tilde{y}_1 \to \text{A0}_{W2} \to \hat{y}_2 \xrightarrow{\mathcal{R}_\theta(\cdot, k=2)} \tilde{y}_2 \to \text{A0}_{W3} \to \hat{y}_3 \xrightarrow{\mathcal{R}_\theta(\cdot, k=3)} \tilde{y}_3 \to \text{A0}_{W4}$$
+  * Primary Formulation:
+    $$\tilde{y}_k = \operatorname{clip}\left(\hat{y}_k + \mathcal{R}_{\theta}(\hat{y}_k, \hat{y}_{k-1}, k), 0.0, 1.0\right)$$
+  * Input Isolation Rule: The refinement module receives **only information available at the recursive transition**; verifying ground truth observations $y_k^{\text{true}}$ are used exclusively as supervision training targets and never as transition inputs, preventing disguised teacher-forcing.
+  * Training Regime: **Direct Supervised Residual Learning** ($r_k^* = y_k^{\text{true}} - \hat{y}_k$, $\mathcal{L}_R = \operatorname{MAE}(\mathcal{R}_\theta, r_k^*)$ over 126 active cells). Model A0 predictions are treated as detached input features, avoiding any ambiguity between weight freezing and gradient detachment.
+  * Framework Constraint: **TensorFlow / Keras native** (PyTorch strictly prohibited to maintain zero-overhead checkpoint and runtime parity with Model A0).
 - [ ] **Step 24.2**: Execute A1 pilot ladder (single case $\to$ overfit $\to$ checkpoint verification).
   * Pass Criterion: Refinement module trains stably without numerical divergence; overfit test succeeds.
 - [ ] **Step 24.3**: Production training of Model A1 across identical random seeds (seeds 42, 123, 456).

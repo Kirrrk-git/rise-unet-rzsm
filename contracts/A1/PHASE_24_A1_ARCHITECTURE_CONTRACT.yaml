@@ -1,0 +1,193 @@
+# contracts/A1/PHASE_24_A1_ARCHITECTURE_CONTRACT.yaml
+# --------------------------------------------------------
+# Authoritative Pre-Analysis Specification & Architecture Contract for Model A1.
+# Pre-registers and freezes all architectural constraints, frozen baseline invariants,
+# allowable modification boundaries, parameter budgets, lead-conditioning candidate topologies,
+# loss formulations, training regimes, and checkpoint-selection rules PRIOR to implementation.
+# Single Source of Truth for Phase 24: Model A1 Lead-Aware Recursive Residual Refinement.
+
+contract_version: "v1.0.0-pre-implementation-freeze"
+contract_title: "Mindanao RISE-UNet Phase 24 Model A1 Architecture & Pre-Analysis Specification Contract"
+certification_date: "2026-09-18"
+authority_hierarchy: "contracts/ -> master_plan -> artifact_registry"
+governance_status: "PRE_IMPLEMENTATION_SPECIFICATION_FROZEN"
+thesis_track: "Track B (Mindanao Regional Adaptation & Proposed Enhancements)"
+prerequisite_gate: "Post-A0 Gate 2 (G2-R): Officially Cleared with Unanimous GO Verdict"
+
+objective: >
+  Implement and empirically evaluate Model A1 (Lead-Aware Recursive Residual Refinement),
+  an enhanced forecasting architecture designed to suppress recursive predicted-state
+  error compounding along the autoregressive prediction chain (W1 -> W2 -> W3 -> W4).
+  Model A1 keeps the verified RISE-UNet Model A0 backbone completely frozen to maintain
+  clean causal attribution, introducing an external, lightweight, lead-conditioned
+  refinement module R_theta at the recursive transitions.
+
+governance_and_freeze_invariants:
+  frozen_backbone:
+    architecture: "UNET_RZSM (Kyle Lesinger / Nature Communications EX29 Adaptation)"
+    total_checkpoints: 12
+    replicate_seeds: [42, 123, 456]
+    forecast_leads: [1, 2, 3, 4]
+    checkpoints_directory: "checkpoints/A0/"
+    weights_format: "best_model.weights.h5"
+    freeze_rule: >
+      All 12 Model A0 production checkpoint weights are completely frozen.
+      Zero base U-Net parameters may be retrained, fine-tuned, or modified.
+      Gradient backpropagation through the A0 backbone must stop at the input
+      of A0 or be detached, ensuring all updates apply strictly to R_theta.
+
+  frozen_data_and_splits:
+    calendar_manifest: "manifests/production_case_calendar.csv"
+    train_split_manifest: "manifests/splits/train_cases.csv"
+    val_split_manifest: "manifests/splits/val_cases.csv"
+    sealed_test_manifest: "manifests/splits/test_cases_sealed.csv"
+    training_usable_cases: 677
+    validation_usable_cases: 194
+    sealed_test_usable_cases: 202
+    training_years: "2015-2021"
+    validation_years: "2022-2023"
+    sealed_test_years: "2024-2025"
+    sealed_test_quarantine_rule: >
+      The 2024-2025 Sealed Test Cohort (N=202 usable cases) remains strictly quarantined
+      during Phase 24 and Phase 25. Zero access, evaluation, or hyperparameter tuning
+      against sealed test data is permitted until Phase 26.
+
+  frozen_spatial_domain:
+    reference_grid: "Candidate A (32 x 48, 0.25 deg)"
+    active_evaluation_cells: 126
+    ocean_buffer_cells: 1410
+    evaluation_mask_artifact: "processed/grid/mindanao_eval_mask_025.nc"
+    ocean_buffer_convention: 0.0
+
+  frozen_normalization_contract:
+    contract_file: "contracts/A0/normalization_parameters.yaml"
+    scope: "Training-only active evaluation domain bounds (2015-2021)"
+    rule: "All inputs to A0 and R_theta must consume this frozen normalization contract."
+
+  framework_standard:
+    primary_framework: "TensorFlow 2.x / Keras (Matching Model A0)"
+    rationale: >
+      To ensure seamless weight restoration, gradient isolation, zero cross-framework
+      conversion overhead, and bit-for-bit reproducibility on physical GPU hardware.
+      PyTorch is strictly disallowed for Model A1 to prevent framework fragmentation.
+
+allowable_modifications_scope:
+  refinement_module_definition:
+    symbol: "R_theta"
+    role: "External recursive state refinement block"
+    insertion_points: "Inserted strictly at the inter-lead autoregressive transitions"
+    parameter_sharing_specification: >
+      FROZEN PRIMARY SPECIFICATION: A single, shared convolutional module R_theta(., k)
+      is used across all three recursive transitions (W1->W2, W2->W3, W3->W4).
+      The lead index k in {1, 2, 3} provides explicit conditioning, allowing the unified
+      module to adapt its correction magnitude and spatial dynamics across horizons.
+      Separately parameterized modules (R_theta_1, R_theta_2, R_theta_3) are formally
+      rejected as primary architecture to maintain a strict parameter budget and ensure
+      the experiment tests a unified recursive-refinement mechanism rather than three
+      disconnected regional sub-models.
+    cascade_architecture: >
+      y_hat_1 --[R_theta(., k=1)]--> y_tilde_1 --> A0_W2 --> y_hat_2
+              --[R_theta(., k=2)]--> y_tilde_2 --> A0_W3 --> y_hat_3
+              --[R_theta(., k=3)]--> y_tilde_3 --> A0_W4
+    parameter_budget_maximum: 100000
+    parameter_budget_target: "< 50,000 parameters (< 3.1% of a single Model A0 U-Net instance)"
+    channel_schedule_preservation: >
+      Model A0 expects inputs of shape [B, 32, 48, C_k] where C_1=11, C_2=12, C_3=5, C_4=6.
+      Refined state y_tilde_k replaces y_hat_k at the exact recursive channel indices:
+        - In Lead 2: channel 11 receives y_tilde_1 instead of y_hat_1
+        - In Lead 3: channel 3 receives y_tilde_1, channel 4 receives y_tilde_2
+        - In Lead 4: channel 3 receives y_tilde_1, channel 4 receives y_tilde_2, channel 5 receives y_tilde_3
+
+  candidate_input_topologies:
+    topology_1_local:
+      name: "Local Immediate Transition"
+      formulation: "y_tilde_k = clip(y_hat_k + R_theta(y_hat_k, k), 0.0, 1.0)"
+      description: "Refines lead k using only current predicted state y_hat_k and lead condition k."
+    topology_2_lagged:
+      name: "First-Order Lagged Recursive Transition (Primary Candidate)"
+      formulation: "y_tilde_k = clip(y_hat_k + R_theta(y_hat_k, y_hat_{k-1}, k), 0.0, 1.0)"
+      description: "Refines lead k using current prediction, previous prediction, and lead condition k."
+    anti_teacher_forcing_rule: >
+      Ground truth observations y_true may NEVER be fed into R_theta during multi-lead
+      inference or recursive evaluation. Ground truth is used exclusively as a supervision
+      loss target.
+
+  lead_conditioning_candidates:
+    mechanism_A_film:
+      name: "Feature-wise Linear Modulation (FiLM) - Primary Candidate"
+      formulation: "FiLM(h, k) = gamma(k) * h + beta(k)"
+      description: "A small MLP maps scalar lead k/4 or lead one-hot to affine modulation vectors."
+    mechanism_B_embedding_concat:
+      name: "Learned Lead Embedding Spatial Broadcast"
+      formulation: "Concatenate spatially broadcast learned embedding vector E(k) to feature maps."
+    mechanism_C_scale_bias:
+      name: "Lead-Conditioned Channel Scale and Bias"
+      formulation: "Channel-wise gain and bias parameterized per lead k in {1, 2, 3}."
+
+  domain_bounding_and_masking:
+    soil_moisture_bounds: [0.0, 1.0]
+    bounding_formula: "y_tilde_k = tf.clip_by_value(y_hat_k + Delta_y_k, 0.0, 1.0)"
+    spatial_masking: "y_tilde_k = tf.where(eval_mask, y_tilde_k, 0.0)"
+    space_of_operation: "Normalized feature space [0.0, 1.0]"
+
+training_and_optimization_specification:
+  training_cohort: "Validation Partition (2015-2021 Train, 2022-2023 Validation Checkpoint Selection)"
+  loss_function:
+    primary_loss: "Masked Mean Absolute Error (MAE) on Residual Correction over 126 active cells"
+    residual_target_formula: "r_k_star = y_true_k - y_hat_k"
+    loss_formulation: "L_R(theta) = (1/126) * sum_{c in active} |r_k_star_c - R_theta(y_hat_k, y_hat_{k-1}, k)_c|"
+    regularization: "L2 weight decay 1e-5 on R_theta convolutional kernels"
+
+  training_regimes:
+    primary_regime: "Direct Supervised Residual Learning (Frozen Primary Standard)"
+    primary_description: >
+      Directly supervises R_theta to predict the residual discrepancy r_k* = y_true_k - y_hat_k
+      at each lead transition. A0 predictions y_hat_k are pre-computed or generated with A0
+      treated strictly as detached input feature generators. Zero gradient backpropagation
+      through A0 operators is required, completely eliminating any ambiguity between weight
+      freezing and gradient detachment.
+    primary_gradient_flow: >
+      Frozen A0 prediction (y_hat_k)
+              |
+           [detach]
+              v
+         R_theta(., k)
+              |
+              v
+      residual correction (r_hat_k)
+              |
+              v
+      supervision target (r_k* = y_true_k - y_hat_k)
+    secondary_exploratory_regime: "Unrolled Multi-Lead Cascade Training (Phase 25 Ablation Comparator)"
+    secondary_description: >
+      R_theta weights optimized against downstream multi-lead forecast loss
+      L = sum_{k=2}^4 MAE(y_tilde_k, y_true_k) with A0 weights frozen. Gradients pass
+      through A0 graph nodes to R_theta without altering A0 weights. Reserved for Phase 25.
+
+  optimizer:
+    name: "Adam"
+    learning_rate: 1.0e-4
+    learning_rate_schedule: "ReduceLROnPlateau(factor=0.5, patience=5, min_lr=1e-6)"
+    batch_size: 33  # 3 cases x 11 ensemble members, matching Model A0 production standard
+    max_epochs: 40
+    early_stopping_patience: 10
+
+  checkpoint_selection_rule:
+    metric: "Validation Ensemble CRPS over 126 active evaluation cells across Leads W2-W4"
+    selection_target: "Lowest validation CRPS on 2022-2023 cohort"
+    storage_path: "checkpoints/A1/seed_{seed}/"
+
+success_and_acceptance_criteria:
+  primary_hypothesis: >
+    Model A1 (Frozen A0 + R_theta) statistically significantly reduces subseasonal forecast
+    error (MAE and exact CRPS) on the validation cohort relative to unrefined Model A0
+    in downstream leads (W2, W3, W4), recovering a measurable fraction of the Phase 23
+    recursive-oracle error gap.
+  minimum_effect_threshold: >
+    Relative error reduction (MAE_A0 - MAE_A1) / MAE_A0 >= 2.0% in Leads W3 and/or W4
+    with Moving-Block Bootstrap 95% CI strictly excluding zero (p_boot < 0.05).
+  scientific_humility_clause: >
+    A1 is evaluated as an empirical hypothesis. If A1 does not achieve statistically significant
+    error reduction or if validation performance degrades, Model A0 will be preserved as the
+    authoritative benchmark and the empirical limitations of recursive residual refinement
+    will be documented transparently in the thesis.
