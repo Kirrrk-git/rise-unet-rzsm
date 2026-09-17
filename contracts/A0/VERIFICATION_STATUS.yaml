@@ -162,20 +162,35 @@ milestones:
 
   21K_3_production_training:
     name: "Full Three-Seed Model A0 Production Training"
-    status: "AUTHORIZED"
-    certification_level: "AUTHORIZED_FOR_PRODUCTION"
-    date_authorized: "2026-09-17"
-    implementation_status: "READY"
-    execution_status: "PENDING_GPU_EXECUTION"
-    details: "Fully authorized for production execution following the formal GPU certification of all three pre-production gates: Pre-Production Gate 1 (Validation Atmospheric Pipeline Preflight), Pre-Production Gate 2 (Hardware Profiling & VRAM Feasibility on Tesla T4), and Pre-Production Gate 3 (Production Training Smoke Preflight across all 4 Leads on Tesla T4). Case assembly engine scripts/17_build_production_cases.py and unit test tests/test_16_production_case_builder.py implemented and verified (101/101 tests pass). S2S raw dataset fully secured in GCS lake (1,084 unique cycles; 209/209 100% sealed test, 677/735 92.1% train, 194/210 92.4% val; exhaustive provider MARS schedule max). Training engine scripts/16_train_a0_production.py and orchestration notebook notebooks/12_mindanao_a0_production_training.ipynb are implemented, case-sync enabled, and contract-tested. Production execution on physical T4 GPU is pending."
+    status: "PASS"
+    certification_level: "CERTIFIED_ON_GPU"
+    date_certified: "2026-09-17"
+    execution_mode: "LIVE_GPU"
+    execution_status: "COMPLETED"
+    details: "Formally executed and certified across all 3 independent training replicate seeds (42, 123, 456) and all 4 subseasonal forecast leads (W1 to W4, Days 1-28) on physical NVIDIA Tesla T4 GPU in Google Colab. All 12 model training runs completed across 3 seeds × 4 leads, with selected checkpoints verified bit-for-bit in GCS lake. Batch size was formally amended from nominal freeze B=11 to production B=33 (3 cases × 11 members) to improve production throughput and provide a larger three-case mini-batch for more stable batch statistics while remaining within the certified T4 memory envelope (commits 62500f8 / e2b35d9). Three-seed performance summary (mean ± standard deviation across training replicates) provides a Parent EX29 Contextual Reference Comparison [CONTEXTUAL / REPORTED REFERENCE], demonstrating performance broadly comparable to the reported EX29 contextual benchmark, with higher ACC across all four horizons and mixed RMSE differences: W1 ACC=0.8544±0.0047 (parent ~0.82), RMSE=0.0505±0.0009 (parent ~0.050), Exact CRPS=0.0330±0.0008; W2 ACC=0.6824±0.0096 (parent ~0.65), RMSE=0.0714±0.0015 (parent ~0.070), Exact CRPS=0.0506±0.0020; W3 ACC=0.5629±0.0067 (parent ~0.55), RMSE=0.0800±0.0006 (parent ~0.080), Exact CRPS=0.0582±0.0011; W4 ACC=0.4948±0.0095 (parent ~0.47), RMSE=0.0844±0.0005 (parent ~0.090), Exact CRPS=0.0613±0.0003. Effective usable training and validation sample is 871 cases (677 train + 194 validation, with 74 ECMWF MARS provider exceptions documented). 2024-2025 Sealed Test Cohort (N=202 usable) remains strictly quarantined for final Phase 26 evaluation. Dual synchronization across local repository and gs://rise-unet-rzsm/ lake verified with 100% byte-level integrity. Unlocks Phase 23 and Post-A0 Gate 2 (G2-R)."
+
+
+    hardware_target: "NVIDIA Tesla T4"
+    tensorflow_version: "2.20.0"
+    python_version: "3.12"
+    empirical_metrics:
+      W1: {acc: "0.8544 ± 0.0047", exact_crps: "0.0330 ± 0.0008", rmse: "0.0505 ± 0.0009", mae: "0.0341 ± 0.0007"}
+      W2: {acc: "0.6824 ± 0.0096", exact_crps: "0.0506 ± 0.0020", rmse: "0.0714 ± 0.0015", mae: "0.0528 ± 0.0016"}
+      W3: {acc: "0.5629 ± 0.0067", exact_crps: "0.0582 ± 0.0011", rmse: "0.0800 ± 0.0006", mae: "0.0593 ± 0.0007"}
+      W4: {acc: "0.4948 ± 0.0095", exact_crps: "0.0613 ± 0.0003", rmse: "0.0844 ± 0.0005", mae: "0.0627 ± 0.0002"}
     verified_artifacts:
       - "scripts/16_train_a0_production.py"
       - "scripts/17_build_production_cases.py"
       - "notebooks/12_mindanao_a0_production_training.ipynb"
+      - "logs/a0_production_3seed_summary.json"
+      - "figures/a0_production_benchmark_parity_comparison.png"
+      - "figures/a0_production_spatial_forecast_evaluation.png"
+      - "figures/a0_production_seed42_training_curves.png"
+      - "figures/a0_production_seed123_training_curves.png"
+      - "checkpoints/A0/seed_42/lead_1/best_model.weights.h5"
+      - "checkpoints/A0/seed_123/lead_1/best_model.weights.h5"
+      - "checkpoints/A0/seed_456/lead_1/best_model.weights.h5"
       - "manifests/splits/cases_availability_audit.csv"
-      - "reproduction_audit/24_s2s_provider_availability_and_cohort_census_audit.md"
-      - "tests/test_15_production_training_contracts.py"
-      - "tests/test_16_production_case_builder.py"
     s2s_dataset_census:
       total_unique_gcs_cycles: 1084
       sealed_test_2024_2025: "209 / 209 (100.0% - 202 usable, 7 target OOB)"
@@ -191,9 +206,10 @@ milestones:
       evaluation_protocol: "Training (2015-2021) -> Val Checkpoint Selection (2022-2023) -> Sealed Test Quarantined (2024-2025)"
     post_a0_roadmap:
       two_track_architecture:
-        track_1: "Immediate Scientific Core: Phase 21 (Model A0) -> Phase 23 (Recursive Degradation Diagnostic) -> Gate 2 (Decision Gate) -> Phase 24 (Model A1: CONDITIONAL UPON GATE 2 GO) -> Phase 25 (Ablations: CONDITIONAL)"
+        track_1: "Immediate Scientific Core: Phase 21 (Model A0) -> Phase 23 (Recursive Degradation Diagnostic) -> Post-A0 Gate 2 (G2-R) (Recursive Refinement Decision Gate) -> Phase 24 (Model A1: CONDITIONAL UPON GATE 2 GO) -> Phase 25 (Ablations: CONDITIONAL)"
         track_2: "Parallel Benchmark Baselines: Phase 22 (B0 Climatology, B1 Persistence, B2 Structured XGBoost GBDT) -> feeds directly into Phase 26"
         synthesis: "Phase 26 (Final Sealed Test Evaluation on 2024-2025 Holdout Cohort N=202)"
-      gate_2_conditionality:
+      post_a0_gate_2_g2r_conditionality:
+        disambiguation_note: "Distinct from Pre-Production Gate 2 (Hardware Profiling & VRAM Feasibility). G2-R is the formal scientific decision gate."
         go_action: "Activate Phase 24 to build and train Model A1 Lead-Aware Recursive Residual Refinement module"
         no_go_action: "Halt neural architectural modifications; freeze Model A0 as definitive regional deep learning benchmark; bypass Phase 24/25; proceed directly to Phase 26 comparative evaluation"

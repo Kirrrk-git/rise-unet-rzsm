@@ -1,0 +1,225 @@
+# contracts/A0/PHASE_23_DIAGNOSTIC_CONTRACT.yaml
+# --------------------------------------------------
+# Authoritative Pre-Analysis Specification & Diagnostic Contract for Phase 23.
+# Pre-registers and freezes all diagnostic protocols, exact oracle replacements,
+# perturbation clipping rules, case-level statistical methodology, and Gate 2
+# GO / NO-GO decision criteria PRIOR to viewing Model A0 validation results.
+# Single Source of Truth for Phase 23 Recursive Degradation Diagnostic.
+
+contract_version: "v1.0.0-pre-analysis-freeze"
+contract_title: "Mindanao RISE-UNet Phase 23 Pre-Analysis Specification & Diagnostic Contract"
+certification_date: "2026-09-17"
+authority_hierarchy: "contracts/ -> master_plan -> artifact_registry"
+governance_status: "PRE_ANALYSIS_SPECIFICATION_FROZEN"
+thesis_track: "Track B (Mindanao Regional Adaptation & Proposed Enhancements)"
+
+objective: >
+  Empirically determine whether Model A0 suffers from actionable, statistically
+  significant error compounding along the autoregressive recursive prediction chain
+  (W1 -> W2 -> W3 -> W4) on the 2022-2023 validation cohort, establishing the formal
+  empirical justification for the Gate 2 architectural decision.
+
+evaluation_cohort:
+  partition: "VALIDATION (2022-2023)"
+  scheduled_cases: 210
+  audited_provider_mars_exceptions: 16
+  usable_validation_denominator: 194
+  calendar_manifest: "manifests/splits/val_cases.csv"
+  spatial_domain:
+    grid_shape: [32, 48]
+    total_grid_cells: 1536
+    active_evaluation_cells: 126
+    evaluation_mask_artifact: "processed/grid/mindanao_eval_mask_025.nc"
+    ocean_buffer_convention: 0.0
+  sealed_test_quarantine:
+    status: "STRICTLY_SEALED_UNTIL_PHASE_26"
+    usable_denominator: 202
+    quarantine_rule: "NO_ACCESS_ALLOWED_DURING_PHASE_23"
+
+evaluated_models:
+  baseline_architecture: "UNET_RZSM"
+  replicate_seeds: [42, 123, 456]
+  forecast_leads: [1, 2, 3, 4]
+  total_checkpoints: 12
+  checkpoints_directory: "checkpoints/A0/"
+  weights_format: "best_model.weights.h5"
+
+inference_protocols:
+  protocol_1_recursive:
+    name: "Standard Autoregressive Recursive Inference"
+    description: >
+      Downstream models ingest prior-lead predicted RZSM states along the recursive chain.
+    cascade_schedule:
+      lead_1: "X_W1 (11 ch) -> y_hat_W1"
+      lead_2: "X_W2 (11 ch + y_hat_W1) -> y_hat_W2"
+      lead_3: "X_W3 (3 lags + y_hat_W1 + y_hat_W2) -> y_hat_W3"
+      lead_4: "X_W4 (3 lags + y_hat_W1 + y_hat_W2 + y_hat_W3) -> y_hat_W4"
+    status: "STANDARD_RECURSIVE_BASE"
+
+  protocol_2_oracle:
+    name: "Oracle Counterfactual Diagnostic (Primary Diagnostic)"
+    description: >
+      Downstream models ingest verifying ground truth RZSM states in place of
+      recursive predictions, isolating recursive error accumulation while holding
+      all other inputs, issue dates, and weights bit-for-bit identical.
+    oracle_replacement_table:
+      lead_1:
+        recursive_inputs: []
+        oracle_replacements: []
+        note: "Lead 1 has no recursive inputs; bit-for-bit identical to Protocol 1."
+      lead_2:
+        recursive_inputs: ["y_hat_W1 (Channel 11)"]
+        oracle_replacements: ["y_true_W1"]
+      lead_3:
+        recursive_inputs: ["y_hat_W1 (Channel 3)", "y_hat_W2 (Channel 4)"]
+        oracle_replacements: ["y_true_W1", "y_true_W2"]
+      lead_4:
+        recursive_inputs: ["y_hat_W1 (Channel 3)", "y_hat_W2 (Channel 4)", "y_hat_W3 (Channel 5)"]
+        oracle_replacements: ["y_true_W1", "y_true_W2", "y_true_W3"]
+    invariance_rules:
+      - "Identical forecast issue date t0"
+      - "Identical antecedent RZSM observations [-1, -7, -14]"
+      - "Identical ERA5 surface atmospheric predictors (spfh, tmax, diff_temp, pwat, hgt_pres)"
+      - "Identical 11 ECMWF S2S weather ensemble realizations"
+      - "Identical training normalization bounds"
+      - "Identical model weights (no retraining or weight adjustment)"
+      - "Identical 126 binary evaluation cells"
+    error_taxonomy:
+      oracle_error_label: "Residual non-recursive error / remaining forecast error"
+      forbidden_terminology: "irreducible loss"
+      scientific_rationale: >
+        The oracle counterfactual still contains model structural error, forcing uncertainty,
+        and observational/reference noise; it represents residual non-recursive error /
+        remaining forecast error rather than a theoretical predictability limit.
+
+  protocol_3_direct_comparator:
+    name: "Direct Non-Recursive Architecture Comparator (Complementary Reference)"
+    description: >
+      A separately trained direct/non-recursive comparator architecture evaluated directly
+      from antecedent conditions and S2S forcings without recursive feedback channels.
+    channel_architecture:
+      lead_1: 11
+      lead_2: 11  # Drops recursive y_hat_W1 channel
+      lead_3: 3   # Drops recursive y_hat_W1, y_hat_W2 channels
+      lead_4: 3   # Drops recursive y_hat_W1, y_hat_W2, y_hat_W3 channels
+    training_constraints:
+      cohort: "Identical 677 training cases (2015-2021)"
+      normalization: "Identical frozen normalization contract"
+      evaluation_mask: "Identical 126 active cells"
+      seeds: [42, 123, 456]
+    governance_rule: >
+      Protocol 3 is a complementary architecture comparator and must NOT be used
+      to calculate the primary recursive error accumulation gap Delta E_k.
+
+  protocol_4_error_injection:
+    name: "Controlled Error-Injection & Boundary-Clipped Perturbation Tracking"
+    description: >
+      Controlled perturbations injected into the Lead 1 prediction to measure
+      downstream divergence across Leads 2, 3, and 4 relative to unperturbed inference.
+    perturbation_levels:
+      realistic_forecast_error:
+        - -0.10
+        - -0.05
+        - 0.05
+        - 0.10
+      stress_test_boundary:
+        - -0.50
+        - -0.25
+        - 0.25
+        - 0.50
+    boundary_clipping_rule:
+      formula: "y_prime = clip(y_hat_W1 + epsilon, 0.0, 1.0)"
+      rationale: >
+        Normalized RZSM is bounded to [0, 1]. Unclipped perturbations create artificial
+        out-of-bounds inputs that confound error propagation with boundary saturation.
+      logging_requirements:
+        - "Count of active evaluation cells clipped per case and perturbation level"
+        - "Percentage of active evaluation cells clipped per perturbation level"
+    ensemble_member_application_rule:
+      formula: "y_prime_{W1, m} = clip(y_hat_{W1, m} + epsilon, 0.0, 1.0) for every m in {1..11}"
+      rationale: >
+        Member identity remains intact, applying the identical deterministic perturbation offset
+        to each corresponding ensemble member realization. This preserves ensemble member
+        correspondence; ensemble spread is unchanged on unclipped cells, while any boundary-induced
+        spread changes are explicitly recorded by the clipping census.
+    downstream_divergence_metric:
+      formula: "D_k(epsilon) = RMSE(y_hat_k^(epsilon), y_hat_k^(0))"
+      scope: "Computed across 126 active evaluation cells per case and averaged across cases"
+
+central_diagnostic_formulation:
+  primary_recursive_error_gap:
+    formula: "Delta E_k = E_k^(recursive) - E_k^(oracle)"
+    applicable_leads: [2, 3, 4]
+    lead_1_gap: 0.0  # By definition, Lead 1 has no recursive inputs
+  primary_metric: "Case-level Mean Absolute Error (MAE) and Exact Analytical Ensemble CRPS"
+
+statistical_pre_analysis_specification:
+  statistical_unit: >
+    Case-level paired error difference across the N=194 validation cases.
+    Spatial cells (126 active cells) are averaged within each case to form the case-level
+    observation, explicitly accounting for spatial autocorrelation and preventing pseudoreplication.
+  case_error_formulas:
+    case_mae_rec: "e_i_k_rec = (1/126) * sum_{c=1}^{126} |y_true_i_k_c - y_hat_rec_i_k_c|"
+    case_mae_ora: "e_i_k_ora = (1/126) * sum_{c=1}^{126} |y_true_i_k_c - y_hat_ora_i_k_c|"
+    paired_difference: "delta_e_i_k = e_i_k_rec - e_i_k_ora"
+
+  primary_inferential_procedure:
+    method: "Moving-Block Bootstrap (MBB) Zero-Exclusion & Null-Centered Significance Test"
+    temporal_autocorrelation_handling: >
+      Resamples temporally contiguous blocks to explicitly account for subseasonal atmospheric memory.
+    block_length_cycles: 4  # ~2-month correlation timescale matching subseasonal atmospheric memory
+    bootstrap_replications: 10000
+    confidence_intervals: "95% Percentile Bootstrap CI from uncentered empirical resampling"
+    null_hypothesis_centering: "d_i^(0) = d_i - mean(d) resampled under H0: E[Delta] = 0"
+    bootstrap_p_value_formula: "p_boot = (1/B) * sum(I(|boot_null_mean| >= |obs_mean|))"
+    significance_rule: "Primary significance achieved if 95% MBB CI strictly excludes 0 and Holm-Bonferroni adjusted p_boot < 0.05"
+
+  supplementary_nonparametric_check:
+    method: "Two-sided paired Wilcoxon signed-rank test on case-level differences delta_e_i_k"
+    role: "Supplementary sensitivity check reported alongside primary block bootstrap inference"
+    significance_threshold_alpha: 0.05
+
+  multiple_testing_correction:
+    method: "Holm-Bonferroni step-down correction"
+    family_wise_error_rate: 0.05
+    corrected_hypotheses: ["W2_rec_vs_ora", "W3_rec_vs_ora", "W4_rec_vs_ora"]
+    target_p_values: "Applied to primary Moving-Block Bootstrap p-values (p_boot)"
+
+  replicate_seeds_aggregation:
+    evaluation_rule: "Evaluate all 3 seeds (42, 123, 456) independently"
+    reporting_format: "Seed Mean ± Seed Standard Deviation"
+    consistency_assertion: "Gate 2 (G2-R) GO requires Delta E_k > 0 consistently across all 3 seeds"
+
+gate_2_g2r_predeclared_decision_criteria:
+  gate_title: "Post-A0 Gate 2 (G2-R): Recursive Refinement Decision Gate"
+  disambiguation_note: >
+    Distinct from Pre-Production Gate 2 (Hardware Profiling & VRAM Feasibility).
+    G2-R is the formal scientific decision gate governing Phase 24 architectural activation.
+  go_criteria:
+    - id: "GO-1"
+      description: "Statistically significant recursive degradation under primary Moving-Block Bootstrap (Holm-Bonferroni adjusted p_boot < 0.05, 95% MBB CI strictly excludes zero) in Leads W3 and/or W4, with supplementary Wilcoxon test concordant."
+    - id: "GO-2"
+      description: "Practically meaningful effect size: Standardized effect size (Cohen's d_z = mean(delta_e) / sd(delta_e) >= 0.20) OR relative error reduction >= 2.0% under Oracle (Delta E_k / E_k_rec >= 0.02)."
+    - id: "GO-3"
+      description: "Replicate consistency: Delta E_k > 0 holds across all three training seeds (42, 123, 456)."
+    - id: "GO-4"
+      description: "Perturbation sensitivity: Downstream divergence D_k(epsilon) increases monotonically with perturbation magnitude |epsilon| across realistic forecast error levels, evaluated separately for positive and negative perturbations (D_k(+0.10) > D_k(+0.05) and D_k(-0.10) > D_k(-0.05)) in Leads W3 and/or W4. Perturbations at +/-0.25 and +/-0.50 are treated strictly as exploratory boundary stress tests and are not required evidence for the GO decision."
+  no_go_criteria:
+    - id: "NO-GO-1"
+      description: "Recursive error gap Delta E_k <= 0 or adjusted p_boot >= 0.05 or 95% MBB CI contains zero or effect size d_z < 0.20 across downstream leads."
+    - id: "NO-GO-2"
+      description: "Degradation occurs equally under Oracle replacement, demonstrating that error growth is driven by residual non-recursive error rather than recursive state feedback."
+    - id: "NO-GO-3"
+      description: "Inconsistent direction of Delta E_k across training seeds."
+
+predeclared_protocol_action:
+  on_go: >
+    Phase 24 (Model A1 Lead-Aware Recursive Residual Refinement) is unlocked.
+    A lightweight, lead-conditioned residual correction module R_theta will be built
+    and trained to suppress recursive error compounding while keeping Model A0 backbone frozen.
+  on_no_go: >
+    Neural architectural enhancements are formally halted.
+    Model A0 is designated as the authoritative regional benchmark for Mindanao.
+    The thesis documents that recursive degradation is not an actionable bottleneck
+    under the tested tropical regime, and execution proceeds directly to Phase 26 holdout evaluation.
+

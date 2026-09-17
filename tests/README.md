@@ -3,7 +3,7 @@
 
 This directory contains the automated test suite for the **Mindanao Tropical RISE-UNet Adaptation (Track B)**.
 
-All unit tests are self-contained, execute without requiring external network access or cloud credentials, and validate the physical, mathematical, and algorithmic integrity of the pipeline across 96 tests (93 passed, 3 skipped).
+All unit tests are self-contained, execute without requiring external network access or cloud credentials, and validate the physical, mathematical, and algorithmic integrity of the pipeline across 114 tests (**108 passed, 6 skipped, 0 failed, 0 errors**) across 17 test modules.
 
 To provide clear operational order and verification hierarchy, the test suite is structured into a **4-Tier Verification Ladder**, advancing from low-level coordinate invariants to full deep learning architectures.
 
@@ -11,7 +11,7 @@ To provide clear operational order and verification hierarchy, the test suite is
 
 ## 1. Quick Start: Running Tests
 
-To run the complete test suite (96 tests across 14 test modules):
+To run the complete test suite (114 tests across 17 test modules):
 
 ```bash
 # From repository root (dl_dm_rzsm_subseasonal_forecast/)
@@ -22,16 +22,16 @@ To execute tests by specific verification tier:
 
 ```bash
 # Tier 1: Spatial & Infrastructure Foundation
-python -m unittest tests.test_01_masks tests.test_02_rzsm tests.test_03_temporal
+python -m unittest tests.test_01_cloud_lake tests.test_02_rzsm tests.test_03_temporal
 
 # Tier 2: Observation Decoders & Target Cube Synthesis
 python -m unittest tests.test_04_s2s tests.test_05_compile_cube tests.test_06_target_reconciliation
 
 # Tier 3: Operational Calendar, Partitions & Case Assembly
-python -m unittest tests.test_07_case_calendar tests.test_08_normalization_and_splits tests.test_09_pilot_ladder tests.test_10_case_builder
+python -m unittest tests.test_07_case_calendar tests.test_08_normalization_and_splits tests.test_09_pilot_ladder tests.test_10_case_builder tests.test_16_pilot_ladder_provenance
 
 # Tier 4: TensorFlow Pipeline, Neural Architecture & Preflight Certification
-python -m unittest tests.test_11_tf_dataset tests.test_12_a0_unet tests.test_13_production_smoke_preflight tests.test_14_validation_atmospheric_pipeline
+python -m unittest tests.test_11_tf_dataset tests.test_12_a0_unet tests.test_13_production_smoke_preflight tests.test_14_validation_atmospheric_pipeline tests.test_15_production_training_contracts tests.test_17_recursive_diagnostic
 ```
 
 ---
@@ -42,15 +42,17 @@ python -m unittest tests.test_11_tf_dataset tests.test_12_a0_unet tests.test_13_
   Tier 4: Deep Learning Pipeline, Architecture & Preflight Certification
   ├── test_11_tf_dataset.py                     <── Ensemble grouping (B mod 11 == 0), target broadcasting, checkpoint parity
   ├── test_12_a0_unet.py                        <── Model A0 parameter counts (W1: 1.627M, W2: 1.630M, W3: 1.608M, W4: 1.611M), deep supervision
-  ├── test_13_production_smoke_preflight.py    <── Step 21K.3-pre contracts: 4-lead backward pass, masked loss, training-state trajectory
+  ├── test_13_production_smoke_preflight.py    <── 4-lead backward pass, recursive cascade, masked loss, training-state trajectory
   ├── test_14_validation_atmospheric_pipeline.py <── Validation data flow: 210 cycles, 5 channels, 126 active cells, [0, 1] norm
-  └── test_15_production_training_contracts.py <── Step 21K.3 production training: seeds [42, 123, 456], crps2d_tf loss, masking invariance
+  ├── test_15_production_training_contracts.py <── Production training: seeds [42, 123, 456], crps2d_tf loss, masking invariance
+  └── test_17_recursive_diagnostic.py          <── Phase 23 diagnostic engine: MBB percentile CIs, Holm-Bonferroni, Gate 2 (G2-R)
         ▲
   Tier 3: Calendar, Partitions & Case Assembly
   ├── test_07_case_calendar.py                  <── 1,154 CY48R1 operational cycle schedule, leap days, date math
   ├── test_08_normalization_and_splits.py       <── Train (735), Val (210), Sealed Test (209 census: 202 usable, 7 quarantined)
-  ├── test_09_pilot_ladder.py                   <── Bit-for-bit array integrity & provenance of 8 pilot case npz tensors
-  └── test_10_case_builder.py                   <── Input channel schedules (W1: 11, W2: 12, W3: 5, W4: 6) & anti-tamper invariant
+  ├── test_09_pilot_ladder.py                   <── Pilot case ladder tensor shape, scale bounds, and finite data checks
+  ├── test_10_case_builder.py                   <── Input channel schedules (W1: 11, W2: 12, W3: 5, W4: 6) & anti-tamper invariant
+  └── test_16_pilot_ladder_provenance.py        <── Bit-for-bit array integrity & SHA-256 provenance of 8 pilot case npz tensors
         ▲
   Tier 2: Ingestion & Target Synthesis
   ├── test_04_s2s.py                            <── Pure-Python GRIB2 Section 7 decoding, ensemble M=11, 1.5° -> 0.25° remap
@@ -79,11 +81,13 @@ python -m unittest tests.test_11_tf_dataset tests.test_12_a0_unet tests.test_13_
 | **Tier 3** | **[`test_08_normalization_and_splits.py`](test_08_normalization_and_splits.py)** | Normalization Contract & Splits | • Train (735), Val (210), Sealed Test (209 scheduled census: 202 usable denominator, 7 quarantined).<br>• Verifies target-horizon boundary extension semantics.<br>• Asserts active consumption of `normalization_parameters.yaml`. |
 | **Tier 3** | **[`test_09_pilot_ladder.py`](test_09_pilot_ladder.py)** | Pilot Case Provenance | • Provenance trace of 8 pilot case tensors (`CASE_20150115_W01.npz` to `CASE_20150304_W08.npz`).<br>• Bit-for-bit array integrity and metadata consistency. |
 | **Tier 3** | **[`test_10_case_builder.py`](test_10_case_builder.py)** | Full Forecast Case Construction | • Input channel schedules ($W_1: 11, W_2: 12, W_3: 5, W_4: 6$).<br>• Correct alignment of 1d, 7d, 14d antecedent soil moisture lags.<br>• Anti-tamper permutation test and no-double-normalization invariant. |
+| **Tier 3** | **[`test_16_pilot_ladder_provenance.py`](test_16_pilot_ladder_provenance.py)** | Pilot Case Provenance & Manifest Integrity | • Reconciles 8 pilot case tensors against authoritative manifest `pilot_cases.csv`.<br>• Verifies SHA-256 hashes, array shapes `(11, 32, 48, C_k)`, and zero active NaN/Inf values. |
 | **Tier 4** | **[`test_11_tf_dataset.py`](test_11_tf_dataset.py)** | TensorFlow Data Pipeline | • Ensemble grouping constraint ($B \pmod{11} == 0$).<br>• Target broadcasting: $Y_{Wk} (1, 32, 48, 1) \to (11, 32, 48, 1)$.<br>• Multi-head CRPS loss calculation and checkpoint save/restore parity. |
 | **Tier 4** | **[`test_12_a0_unet.py`](test_12_a0_unet.py)** | Model A0 UNET_RZSM Architecture | • Instantiation across Leads 1, 2, 3, 4 with Candidate A geometry guard ($H, W \pmod{16} == 0$).<br>• Per-lead parameter counts ($W_1$: 1,627,139; $W_2$: 1,630,307; $W_3$: 1,608,131; $W_4$: 1,611,299).<br>• Output shapes `(B, 32, 48, 1)` across 3 deep supervision heads. |
-| **Tier 4** | **[`test_13_production_smoke_preflight.py`](test_13_production_smoke_preflight.py)** | Production Smoke Preflight | • Step 21K.3-pre contracts: 4-lead genuine backward updates ($\Delta w > 0$).<br>• Recursive channel semantics ($W_2$ ch 11, $W_3$ ch 3–4, $W_4$ ch 3–5).<br>• Downstream 126-cell masked loss vs unmasked loss.<br>• Full training-state trajectory roundtrip (optimizer slots, step, epoch, lr). |
+| **Tier 4** | **[`test_13_production_smoke_preflight.py`](test_13_production_smoke_preflight.py)** | Production Smoke Preflight | • 4-lead genuine backward updates ($\Delta w > 0$).<br>• Recursive channel semantics ($W_2$ ch 11, $W_3$ ch 3–4, $W_4$ ch 3–5).<br>• Downstream 126-cell masked loss vs unmasked loss.<br>• Full training-state trajectory roundtrip (optimizer slots, step, epoch, lr). |
 | **Tier 4** | **[`test_14_validation_atmospheric_pipeline.py`](test_14_validation_atmospheric_pipeline.py)** | Validation Atmospheric Preflight | • Complete census of 210 validation cycles (105 in 2022, 105 in 2023) and 730-day daily calendar continuity.<br>• End-to-end flow through production `CaseBuilder` into `CaseTensorHierarchy` with 5 atmospheric channels.<br>• Detection of missing dates, duplicate dates, missing channels, and active domain NaNs.<br>• Three-way normalization diagnostics (finite math, unclipped range & excursions, and contracted post-clipping). |
-| **Tier 4** | **[`test_15_production_training_contracts.py`](test_15_production_training_contracts.py)** | Production Training Contracts | • Step 21K.3 contracts: 4-lead channel schedule ($W_1: 11, W_2: 12, W_3: 5, W_4: 6$) and exact parameter counts.<br>• Graph-differentiable `crps2d_tf` loss calculation under gradient tape.<br>• Active domain 126-cell masking invariance (zero sensitivity to ocean buffer perturbations). |
+| **Tier 4** | **[`test_15_production_training_contracts.py`](test_15_production_training_contracts.py)** | Production Training Contracts | • 4-lead channel schedule ($W_1: 11, W_2: 12, W_3: 5, W_4: 6$) and exact parameter counts.<br>• Graph-differentiable `crps2d_tf` loss calculation under gradient tape.<br>• Active domain 126-cell masking invariance (zero sensitivity to ocean buffer perturbations). |
+| **Tier 4** | **[`test_17_recursive_diagnostic.py`](test_17_recursive_diagnostic.py)** | Recursive Degradation Diagnostic Engine | • Boundary-clipped perturbation injection with clipping census tracking.<br>• Oracle counterfactual prior assembly and case-level error differencing $d_i = e_i^{\text{rec}} - e_i^{\text{ora}}$.<br>• Centered-null Moving-Block Bootstrap (MBB) percentile CIs and p-values.<br>• Holm-Bonferroni multi-lead FWER correction, Cohen's $d_z$ effect sizes.<br>• Post-A0 Gate 2 (G2-R) decision rule evaluation under pre-registered protocol. |
 
 ---
 

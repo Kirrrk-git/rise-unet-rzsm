@@ -222,3 +222,5 @@ optional GPU diagnostics & preflights ───────> 11_profile, 12_tiny
 | 15 | [`15_verify_validation_atmospheric_pipeline.py`](15_verify_validation_atmospheric_pipeline.py) | **Validation Atmospheric Preflight** | Mirrored 2022–2023 atmospheric NetCDFs |
 | 16 | [`16_train_a0_production.py`](16_train_a0_production.py) | **Step 21K.3 Full 3-Seed Model A0 Production Training** | GPU-capable TensorFlow, production cases, Tesla T4 |
 | 17 | [`17_build_production_cases.py`](17_build_production_cases.py) | **Step 21K Production Case Assembly Engine** | RZSM cube, atmospheric NetCDFs, S2S GRIBs, eval mask |
+| 18 | [`18_verify_training_numerics.py`](18_verify_training_numerics.py) | **Preflight Numerical Integrity & Gradient Audit** | TensorFlow, verified gradient stability |
+| 19 | [`19_run_recursive_degradation_diagnostic.py`](19_run_recursive_degradation_diagnostic.py) | **Phase 23 Recursive Degradation Diagnostic Engine** | Model A0 checkpoints, validation cases, eval mask |

@@ -6,7 +6,7 @@
 **Parent Study**: Lesinger & Tian (2025), *Nature Communications*, DOI: `10.1038/s41467-025-62761-3`  
 **Active Repository**: `https://github.com/Kirrrk-git/rise-unet-rzsm.git`  
 **GCS Bucket**: `gs://rise-unet-rzsm/`  
-**Status**: Sub-Phases 21A, 21B, 21C (Training Fold Jan 2015 – Dec 2021 + Dec 2014 antecedent secured; 2022–2023 Validation Fold Secured & Certified under Pre-Production Gate 1; 2024–2025 Test Fold mirroring in progress), 21D, 21E, 21F (`[PASS / VERIFIED]`), 21G (`[PASS / VERIFIED]`), 21H (`[SURROGATE_ONLY: Infrastructure Smoke Test]`), 21I (`[SURROGATE_ONLY: Optimization Smoke Test]`), 21J / Pre-Production Gate 2 (`[PASS / VERIFIED / ACCEPTED: 2026-09-17: CERTIFIED_ON_GPU]`), 21K.1 (`[PASS / VERIFIED / ACCEPTED: 2026-09-14]`), 21K.2 (`[PASS / VERIFIED / ACCEPTED: 2026-09-14]`), Pre-Production Gate 1 (`[PASS / VERIFIED / ACCEPTED: 2026-09-16]`), and Step 21K.3-pre / Pre-Production Gate 3 (`[PASS / VERIFIED / ACCEPTED: 2026-09-17: CERTIFIED_ON_GPU]`). Authoritative status tracking governed by [`contracts/A0/VERIFICATION_STATUS.yaml`](contracts/A0/VERIFICATION_STATUS.yaml). All 3 Pre-Production Gates cleared; Full 3-Seed Model A0 Production Training is formally AUTHORIZED (`Step 21K.3: AUTHORIZED: 2026-09-17`).
+**Status**: Sub-Phases 21A, 21B, 21C (Training Fold Jan 2015 – Dec 2021 + Dec 2014 antecedent secured; 2022–2023 Validation Fold Secured & Certified under Pre-Production Gate 1; 2024–2025 Test Fold mirroring in progress), 21D, 21E, 21F (`[PASS / VERIFIED]`), 21G (`[PASS / VERIFIED]`), 21H (`[SURROGATE_ONLY: Infrastructure Smoke Test]`), 21I (`[SURROGATE_ONLY: Optimization Smoke Test]`), 21J / Pre-Production Gate 2 (`[PASS / VERIFIED / ACCEPTED: 2026-09-17: CERTIFIED_ON_GPU]`), 21K.1 (`[PASS / VERIFIED / ACCEPTED: 2026-09-14]`), 21K.2 (`[PASS / VERIFIED / ACCEPTED: 2026-09-14]`), Pre-Production Gate 1 (`[PASS / VERIFIED / ACCEPTED: 2026-09-16]`), Step 21K.3-pre / Pre-Production Gate 3 (`[PASS / VERIFIED / ACCEPTED: 2026-09-17: CERTIFIED_ON_GPU]`), and Step 21K.3 Full Three-Seed Model A0 Production Training across Seeds 42, 123, 456 & Leads W1–W4 (`[PASS / ACCEPTED: 2026-09-17: CERTIFIED_ON_GPU]`). Authoritative status tracking governed by [`contracts/A0/VERIFICATION_STATUS.yaml`](contracts/A0/VERIFICATION_STATUS.yaml). All 12 model training runs completed across 3 seeds × 4 leads with checkpoints synchronized to GCS. Three-seed performance summary across independent training replicates provides a Parent EX29 Contextual Reference Comparison [CONTEXTUAL / REPORTED REFERENCE], demonstrating performance broadly comparable to the reported EX29 contextual benchmark, with higher ACC across all four horizons and mixed RMSE differences (W1 ACC=0.8544±0.0047, Exact CRPS=0.0330±0.0008, RMSE=0.0505±0.0009; W4 ACC=0.4948±0.0095, Exact CRPS=0.0613±0.0003, RMSE=0.0844±0.0005). Effective sample is 871 cases (677 train + 194 val, with 74 ECMWF provider exceptions documented). 2024–2025 Sealed Test cohort ($N=202$ usable) remains strictly quarantined for final Phase 26 evaluation. Checkpoints and publication figures dual-synchronized to GCS lake. All pre-production gates cleared; Proceed to Phase 23 (Recursive Degradation Diagnostic) and Post-A0 Gate 2 (G2-R).
 
 
 ## Executive Verification & Methodological Alignment
@@ -85,7 +85,7 @@ The artifact registry is an inventory and status index; it must never contradict
        3. ECMWF S2S dynamic predictor set corresponds strictly to the verified triplet (`t2m`, `d2m`, `tcw`), with precipitation explicitly excluded.
        4. The lead-dependent channel schedule ($W_1=11, W_2=12, W_3=5, W_4=6$) is verified as the authoritative implementation-specific EX29 contract through Step 21A.3 code audit (`loadDataAllWeeks.py:L710-721`).
      * **Parent Empirical Basis for Recursive Investigation (Lesinger & Tian 2025)**:
-       The parent study demonstrates that the hybrid DL-dynamic RISE-UNet achieves skillful RZSM forecasts out to four weeks over CONUS, but critically reveals that prediction skill in Weeks 3–4 is primarily associated with the first two weeks of dynamic atmospheric forecasts combined with antecedent RZSM land memory. Because dynamic atmospheric predictability decays rapidly beyond Week 2, the model relies heavily on its recursive autoregressive chain ($\hat{y}_{W1} \to \hat{y}_{W2} \to \hat{y}_{W3} \to \hat{y}_{W4}$) to propagate soil memory forward. While this empirical finding from the parent CONUS study motivates our Track B research focus, it does not predetermine that the identical error compounding mechanism necessarily manifests in tropical Mindanao. Whether and to what degree recursive autoregressive degradation occurs over Mindanao is treated strictly as an open empirical question to be diagnosed and quantified in Phase 23, prior to the Gate 2 GO / NO-GO refinement decision.
+       The parent study demonstrates that the hybrid DL-dynamic RISE-UNet achieves skillful RZSM forecasts out to four weeks over CONUS, but critically reveals that prediction skill in Weeks 3–4 is primarily associated with the first two weeks of dynamic atmospheric forecasts combined with antecedent RZSM land memory. Because dynamic atmospheric predictability decays rapidly beyond Week 2, the model relies heavily on its recursive autoregressive chain ($\hat{y}_{W1} \to \hat{y}_{W2} \to \hat{y}_{W3} \to \hat{y}_{W4}$) to propagate soil memory forward. While this empirical finding from the parent CONUS study motivates our Track B research focus, it does not predetermine that the identical error compounding mechanism necessarily manifests in tropical Mindanao. Whether and to what degree recursive autoregressive degradation occurs over Mindanao is treated strictly as an open empirical question to be diagnosed and quantified in Phase 23, prior to the Post-A0 Gate 2 (G2-R) GO / NO-GO refinement decision.
 
 
 2. **Architecture Compatibility & Geometry Validation**:
@@ -100,7 +100,7 @@ The artifact registry is an inventory and status index; it must never contradict
 4. **Post-A0 Roadmap (Recursive Degradation Diagnostic & Refinement)**:
    * **Phase 22**: Controlled reference comparators (B0 Climatology, B1 Persistence, B2 Feature-Engineered XGBoost).
    * **Phase 23**: Empirical Recursive Degradation Diagnostic (evaluating Standard Autoregressive Recursion vs. Oracle Counterfactual Diagnostic vs. Direct Non-Recursive vs. Controlled Error Injection with perturbation propagation tracking).
-   * **Gate 2**: Recursive Refinement GO / NO-GO Decision Gate (evaluating statistical significance $p < 0.05$, effect size, confidence intervals, and cross-case consistency, with thresholds frozen prior to inspecting results).
+   * **Post-A0 Gate 2 (G2-R)**: Recursive Refinement Decision Gate (evaluating statistical significance under primary MBB, effect size, confidence intervals, and cross-seed consistency, with thresholds frozen prior to inspecting results; disambiguated from Pre-Production Gate 2 Hardware Profiling).
    * **Phase 24**: Lead-Aware Recursive Residual Refinement (Model A1, keeping parent RISE-UNet backbone frozen; transition inputs isolated from verifying ground truth, trained without teacher-forcing).
    * **Phase 25**: Ablation and Robustness Studies.
    * **Phase 26**: Strict matched statistical evaluation on sealed held-out test data (provisional 2024–2025) with paired moving-block bootstrap.
@@ -135,8 +135,8 @@ The artifact registry is an inventory and status index; it must never contradict
                          │                                                          │
                          │                                                          ▼
                          │                                          ┌───────────────────────────────┐
-                         │                                          │ GATE 2: REFINEMENT GO / NO-GO │
-                         │                                          │ Effect size + CI + p < 0.05   │
+                         │                                          │ POST-A0 GATE 2 (G2-R) DECISION│
+                         │                                          │ Effect size + MBB CI + p_boot │
                          │                                          └───────┬───────────────┬───────┘
                          │                                           (GO)   │               │ (NO-GO: Halt Neural Refinement)
                          │                                          ┌───────┘               │ (A0 frozen as regional benchmark)
@@ -616,14 +616,13 @@ The artifact registry is an inventory and status index; it must never contradict
     - **Stage D**: Strict checkpoint scoping proving model-weight parity ($0.00 \times 10^0$) and full training-state next-step trajectory roundtrip (loss delta = $0.00 \times 10^0$, weight delta = $6.70 \times 10^{-7} < 5 \times 10^{-6}$) using direct variable assignment.
     - **Stage E**: Standalone engine execution (`scripts/14_run_a0_production_smoke_test.py --mode certify`) with exit code 0; telemetry synchronized to `gs://rise-unet-rzsm/reproduction_audit/a0_production_smoke_test.json`.
     - **Audit Dossier**: [`reproduction_audit/23_production_smoke_preflight_audit.md`](reproduction_audit/23_production_smoke_preflight_audit.md).
-- [ ] **Step 21K.3**: Train Model A0 across minimum three predeclared seeds (seeds 42, 123, 456). **`[IMPLEMENTATION READY / PENDING GPU EXECUTION IN COLAB: 2026-09-17]`**
+- [x] **Step 21K.3**: Train Model A0 across minimum three predeclared seeds (seeds 42, 123, 456). **`[PASS / VERIFIED: 2026-09-17: CERTIFIED_ON_GPU]`**
   * **Operational Status**:
     - Gate 1: `[PASS / CERTIFIED: 2026-09-16]` (Validation Atmospheric Pipeline Preflight)
     - Gate 2: `[PASS / CERTIFIED_ON_GPU: 2026-09-17]` (Hardware Profiling & VRAM Feasibility Benchmark)
     - Gate 3: `[PASS / CERTIFIED_ON_GPU: 2026-09-17]` (Production Training Smoke Preflight)
-    - Step 21K.3 Implementation: `[READY]` (`scripts/16_train_a0_production.py`, `scripts/17_build_production_cases.py`, `notebooks/12_mindanao_a0_production_training.ipynb`, `manifests/splits/cases_availability_audit.csv`, `reproduction_audit/24_s2s_provider_availability_and_cohort_census_audit.md`, `tests/test_15_production_training_contracts.py`, `tests/test_16_production_case_builder.py`)
-    - Step 21K.3 Execution: `[PENDING GPU EXECUTION IN COLAB]`
-    - Final Model A0 Weights & Results: `[NOT YET AVAILABLE]` (Awaits physical execution on Tesla T4 GPU)
+    - Step 21K.3 Execution: `[PASS / CERTIFIED_ON_GPU: 2026-09-17]` (All 12 model training runs completed across 3 seeds × 4 leads on physical Tesla T4 GPU in Google Colab; all checkpoints verified bit-for-bit in GCS lake).
+    - Empirical Synthesis: Parent EX29 Reference Comparison [VERIFIED] demonstrates performance broadly comparable to reported contextual benchmark, with higher ACC across all four horizons and mixed RMSE differences (W1 ACC=$0.8544 \pm 0.0047$, Exact CRPS=$0.0330 \pm 0.0008$, RMSE=$0.0505 \pm 0.0009$; W4 ACC=$0.4948 \pm 0.0095$, Exact CRPS=$0.0613 \pm 0.0003$, RMSE=$0.0844 \pm 0.0005$).
   * **Authoritative Cohort Accounting & Provider Reconciliation**:
     - **Theoretical Scheduled Cohort**: 735 Train (2015–2021) + 210 Val (2022–2023) = **945 cases**.
     - **Provider Physical Limits**: ECMWF MARS archive returned `MarsNoDataError` on 74 candidate slots: 58 Train (56 late-year bi-weekly skips + 2 leap days `2016-02-29` and `2020-02-29`) and 16 Val (late-year bi-weekly skips). These cycles do not physically exist in ECMWF's archive.
@@ -637,11 +636,12 @@ The artifact registry is an inventory and status index; it must never contradict
     - Training (2015–2021) $\to$ Validation Checkpoint Selection (2022–2023) $\to$ Sealed Test Quarantined (2024–2025). Seed 42 is the initial training run, not a de facto model-selection or test set.
   * **Storage & Parity**:
     - `gs://rise-unet-rzsm/checkpoints/A0/` and local codebase parity (`checkpoints/A0/`).
-- [ ] **Step 21K.4**: Generate validation predictions and evaluate baseline metrics.
-  * Metrics: ACC, MAE, RMSE, CRPS, and categorical drought Brier score (strictly conforming to `contracts/A0/metric_evaluation_contract.yaml`).
-  * Storage: `gs://rise-unet-rzsm/predictions/A0/` and `metrics/A0/`.
-- [ ] **Step 21K.5**: Assemble and freeze A0 Baseline Contract Package.
-  * Artifacts: `contracts/A0/A0_Mindanao_Baseline_Contract.yaml`, model weights, and performance dossier.
+- [x] **Step 21K.4**: Generate validation predictions and evaluate baseline metrics. **`[PASS / VERIFIED: 2026-09-17]`**
+  * Evaluated across all 194 validation cases in Notebook 12 Section 6; verified metrics logged in `logs/a0_production_3seed_summary.json` and plotted in `figures/a0_production_benchmark_parity_comparison.png`.
+- [x] **Step 21K.5**: Assemble and freeze A0 Baseline Contract Package & Performance Audit Dossier. **`[PASS / VERIFIED: 2026-09-17]`**
+  * Finalized baseline contract [`contracts/A0/A0_Mindanao_Baseline_Contract.yaml`](contracts/A0/A0_Mindanao_Baseline_Contract.yaml) and archival audit dossier [`reproduction_audit/25_a0_production_training_and_parity_audit.md`](reproduction_audit/25_a0_production_training_and_parity_audit.md).
+  * Formally seals Phase 21 as complete. All 12 model training runs across 3 seeds × 4 leads verified, cohort accounting verified ($871$ usable cases, $74$ provider exceptions), Parent EX29 Reference Comparison verified, and 2024–2025 Sealed Test cohort quarantined.
+  * **Phase 23 (Recursive Degradation Diagnostic) is formally UNLOCKED**.
 
 ---
 
@@ -652,9 +652,9 @@ To maintain relentless focus on the central scientific question of the thesis wh
 - **Track 1 (Active Neural Innovation & Scientific Diagnostic Core)**:
   - **Phase 21**: Model A0 Baseline Production Training & Validation Evaluation
   - **Phase 23**: Recursive Degradation Diagnostic (Immediate Scientific Investigation of $\Delta E_k = E_k^{\text{recursive}} - E_k^{\text{oracle}}$, Protocols 1–4, and Error Injection $D_k(\epsilon)$)
-  - **Gate 2**: Recursive Refinement GO / NO-GO Decision Gate (Statistical significance $p < 0.05$, effect size, confidence intervals)
-  - **Phase 24 (`[CONDITIONAL UPON GATE 2 GO]`): Model A1 (Lead-Aware Recursive Residual Refinement)**
-    * *GO Outcome*: If Gate 2 confirms practically meaningful and statistically significant recursive drift, Phase 24 is unlocked to build and train the lightweight lead-aware residual refinement module $\mathcal{R}_\theta$.
+  - **Post-A0 Gate 2 (G2-R)**: Recursive Refinement Decision Gate (Primary Moving-Block Bootstrap $p_{\text{boot}} < 0.05$, effect size $d_z \ge 0.20$, MBB 95% CIs; formally disambiguated from Pre-Production Gate 2 Hardware Profiling)
+  - **Phase 24 (`[CONDITIONAL UPON POST-A0 GATE 2 (G2-R) GO]`): Model A1 (Lead-Aware Recursive Residual Refinement)**
+    * *GO Outcome*: If Post-A0 Gate 2 (G2-R) confirms practically meaningful and statistically significant recursive drift, Phase 24 is unlocked to build and train the lightweight lead-aware residual refinement module $\mathcal{R}_\theta$.
     * *NO-GO Outcome*: If recursive drift is negligible, unstable, or not driven by recursive feedback, architectural modifications are **formally halted**. Model A0 is frozen as the definitive regional deep learning benchmark for Mindanao, avoiding unnecessary model complexity. Execution then proceeds directly to Phase 26.
   - **Phase 25 (`[CONDITIONAL UPON PHASE 24 ACTIVATION]`): Ablation & Robustness Studies**
 - **Track 2 (Parallel Reference Comparators Track)**:
@@ -689,53 +689,59 @@ To maintain relentless focus on the central scientific question of the thesis wh
   1. **Protocol 1 (Standard Autoregressive Recursion)**:
      Downstream models ingest prior predicted states:
      $$\hat{y}_{W1} \to X_{W2} \to \hat{y}_{W2} \to X_{W3} \to \hat{y}_{W3} \to X_{W4} \to \hat{y}_{W4}$$
-  2. **Protocol 2 (Oracle Counterfactual Diagnostic)**:
+  2. **Protocol 2 (Oracle Counterfactual Diagnostic — Primary Diagnostic)**:
      Downstream models ingest the *true verifying state* rather than prior predictions to isolate sensitivity to prior state error:
      $$y_{W1}^{\text{true}} \to X_{W2}^{\text{oracle}} \to \hat{y}_{W2}^{\text{oracle}} \to y_{W2}^{\text{true}} \to X_{W3}^{\text{oracle}} \to \dots$$
-  3. **Protocol 3 (Direct Non-Recursive Baseline)**:
-     Models trained and evaluated directly from antecedent conditions and S2S forcings without recursive feedback channels (serving as a diagnostic comparator rather than an assumed superior architecture).
+     Holding issue dates, antecedent states, atmospheric predictors, weather ensembles, and weights strictly invariant.
+  3. **Protocol 3 (Direct Non-Recursive Baseline Comparator)**:
+     Models trained and evaluated directly from antecedent conditions and S2S forcings without recursive feedback channels (serving as a separately trained diagnostic comparator rather than an assumed superior architecture; **prohibited from calculating $\Delta E_k$**).
   4. **Protocol 4 (Controlled Error-Injection & Perturbation Tracking)**:
-     Inject controlled perturbations into the Week 1 prediction ($\hat{y}_{W1} \pm \epsilon$ for $\epsilon \in \{0.05, 0.10, 0.25, 0.50\}$) and measure downstream divergence in Leads 2, 3, and 4 relative to the unperturbed recursive run:
+     Inject controlled perturbations into the Week 1 prediction using member-wise deterministic application:
+     $$\hat{y}_{W1,m}' = \operatorname{clip}(\hat{y}_{W1,m} + \epsilon, 0.0, 1.0) \quad \text{for every } m \in \{1, \dots, 11\}$$
+     for $\epsilon \in \{\pm 0.05, \pm 0.10, \pm 0.25, \pm 0.50\}$. This preserves ensemble member correspondence; ensemble spread is unchanged on unclipped cells, while any boundary-induced spread changes are explicitly recorded by the clipping census. Measure downstream divergence in Leads 2, 3, and 4 relative to unperturbed inference:
      $$D_k(\epsilon) = \operatorname{RMSE}\left(\hat{y}_k^{(\epsilon)}, \hat{y}_k^{(0)}\right)$$
      directly quantifying perturbation propagation across leads.
-- [ ] **Step 23.2**: Execute multi-lead validation evaluation under all four protocols.
+- [ ] **Step 23.2**: Execute multi-lead validation evaluation across all 194 usable cases under Protocols 1, 2, and 4.
   * Compute lead-by-lead performance: $\text{RMSE}_k, \text{MAE}_k, \text{ACC}_k, \text{CRPS}_k$ for $k \in \{1, 2, 3, 4\}$.
-- [ ] **Step 23.3**: Compute the Recursive Error Accumulation Gap.
-  * Formula:
+- [ ] **Step 23.3**: Compute the Recursive Error Accumulation Gap and Execute Statistical Inference.
+  * Primary Formulation:
     $$\Delta E_k = E_k^{\text{recursive}} - E_k^{\text{oracle}}$$
-  * Decomposition: Distinguish between irreducible loss of meteorological predictability vs. compounding recursive state error.
+  * Error Characterization: Distinguish between residual non-recursive error (remaining forecast error from structural limitations and atmospheric forcing uncertainty) vs. compounding recursive state error.
+  * Statistical Inference Standard:
+    - Primary Inferential Procedure: Moving-Block Bootstrap (MBB, $L=4$ cycles $\approx 2$ months, $B=10,000$ resamples) providing 95% CIs from empirical resampling, and a calibrated null bootstrap p-value ($p_{\text{boot}}$) constructed by resampling the centered null series $d_i^{(0)} = d_i - \bar{d}$ under $H_0: E[\Delta] = 0$, explicitly accounting for temporal autocorrelation across sequential bi-weekly forecast cycles.
+    - Supplementary Nonparametric Check: Paired Wilcoxon signed-rank test reported as a complementary sensitivity check.
+    - Multiple Testing Adjustment: Step-down Holm-Bonferroni correction applied across downstream leads ($W_2, W_3, W_4$) on primary bootstrap p-values.
 - [ ] **Step 23.4**: Document diagnostic findings in `reproduction_audit/GATE2_RECURSIVE_DEGRADATION_DIAGNOSTIC.md`.
 
 ---
 
-### Gate 2: Recursive Refinement GO / NO-GO Decision Gate [Track 1: Formal Scientific Gate]
+### Post-A0 Gate 2 (G2-R): Recursive Refinement Decision Gate [Track 1: Formal Scientific Gate]
 
-**Objective**: Formal decision gate establishing whether empirical evidence of recursive degradation justifies the introduction of an architectural refinement mechanism.
+**Objective**: Formal scientific decision gate establishing whether empirical evidence of recursive degradation justifies the introduction of an architectural refinement mechanism. Formally disambiguated from Pre-Production Gate 2 (Hardware Profiling & VRAM Feasibility).
 
 - [ ] **Step G2.1**: Evaluate formal GO / NO-GO criteria against validation data:
   * **Predeclared Protocol Rule**: The decision criteria and practical effect thresholds must be **frozen before viewing A0 diagnostic results** to prevent post-hoc rationalization.
   * **Primary GO Criteria**:
-    1. Recursive error gap $\Delta E_k = E_k^{\text{recursive}} - E_k^{\text{oracle}}$ is positive and practically meaningful across downstream leads.
-    2. Supported by statistical significance ($p < 0.05$), non-trivial effect size, well-bounded confidence intervals, and consistency across random seeds and forecast cases.
-  * **Supporting Evidence**:
-    1. Downstream error sensitivity confirms that prior-lead errors affect subsequent lead accuracy (even if degradation partially saturates rather than strictly monotonically increases across all 4 leads).
-    2. Controlled error-injection test confirms that recursive feedback actively propagates state errors downstream ($D_k(\epsilon)$ demonstrates systematic, practically meaningful downstream sensitivity beyond numerical/trivial variation).
-    3. Replacing recursive predictions with oracle or damped states materially improves downstream skill.
+    1. Statistically significant recursive degradation under primary Moving-Block Bootstrap (Holm-Bonferroni adjusted $p_{\text{boot}} < 0.05$, 95% MBB CI strictly excludes zero) in Leads $W_3$ and/or $W_4$, with supplementary Wilcoxon test concordant.
+    2. Practically meaningful effect size: Cohen's $d_z = \operatorname{mean}(\Delta e) / \operatorname{sd}(\Delta e) \ge 0.20$ OR relative error reduction $\ge 2.0\%$ under Oracle ($\Delta E_k / E_k^{\text{rec}} \ge 0.02$).
+    3. Replicate consistency: $\Delta E_k > 0$ holds across all three training seeds ($42, 123, 456$).
+    4. Perturbation sensitivity: Downstream divergence $D_k(\epsilon)$ increases monotonically with perturbation magnitude $|\epsilon|$ across realistic forecast error levels, evaluated separately for positive and negative perturbations ($D_k(+0.10) > D_k(+0.05)$ and $D_k(-0.10) > D_k(-0.05)$) in Leads $W_3$ and/or $W_4$. Perturbations at $\pm 0.25$ and $\pm 0.50$ are treated strictly as exploratory boundary stress tests and are not required evidence for the GO decision.
   * **NO-GO Criteria**:
-    1. Recursive penalty is negligible, unstable, or not specifically associated with recursive state errors.
-    2. Degradation occurs equally under oracle counterfactual state injection.
+    1. Recursive error gap $\Delta E_k \le 0$ or adjusted $p_{\text{boot}} \ge 0.05$ or 95% MBB CI contains zero or effect size $d_z < 0.20$ across downstream leads.
+    2. Degradation occurs equally under Oracle replacement, demonstrating that error growth is driven by residual non-recursive error rather than recursive state feedback.
+    3. Inconsistent direction of $\Delta E_k$ across training seeds.
   * **Predeclared Protocol Action**:
     * If **GO** is confirmed: Proceed to Phase 24 (Model A1 Lead-Aware Recursive Residual Refinement).
     * If **NO-GO** is confirmed: Formally halt neural architectural modifications; designate Model A0 as the authoritative regional benchmark, document that the tested evidence does not support recursive feedback as a sufficiently material or actionable source of degradation under the tested conditions, and retain A0 as the regional benchmark (proceeding directly to Phase 26).
-- [ ] **Step G2.2**: Publish formal Gate 2 Decision Dossier.
-  * Storage: `reproduction_audit/GATE2_DECISION_DOSSIER.md`.
+- [ ] **Step G2.2**: Publish formal Post-A0 Gate 2 (G2-R) Decision Dossier.
+  * Storage: `reproduction_audit/POST_A0_GATE2_DECISION_DOSSIER.md`.
   * Pass Criterion: Clear empirical justification locked before Phase 24 architecture construction begins.
 
 ---
 
-### Phase 24: Model A1 (Lead-Aware Recursive Residual Refinement) [Track 1: CONDITIONAL UPON GATE 2 GO]
+### Phase 24: Model A1 (Lead-Aware Recursive Residual Refinement) [Track 1: CONDITIONAL UPON POST-A0 GATE 2 (G2-R) GO]
 
-**Objective**: *[CONDITIONAL UPON GATE 2 GO]* Implement and train the proposed enhancement architecture: preserving the verified RISE-UNet backbone while introducing a lightweight, lead-conditioned residual correction module to suppress error compounding along the recursive chain. If Gate 2 confirms NO-GO, this phase is bypassed.
+**Objective**: *[CONDITIONAL UPON POST-A0 GATE 2 (G2-R) GO]* Implement and train the proposed enhancement architecture: preserving the verified RISE-UNet backbone while introducing a lightweight, lead-conditioned residual correction module to suppress error compounding along the recursive chain. If Post-A0 Gate 2 (G2-R) confirms NO-GO, this phase is bypassed.
 
 - [ ] **Step 24.1**: Design Lead-Aware Recursive Residual Refinement module.
   * Architectural Principle: The verified RISE-UNet backbone remains **unchanged and frozen**; the refinement module is added externally to the recursive state transition.

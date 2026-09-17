@@ -1,0 +1,171 @@
+# contracts/A0/A0_Mindanao_Baseline_Contract.yaml
+# -----------------------------------------------
+# Authoritative Post-Training Baseline Specification & Certification Contract for Model A0.
+# Formally seals Phase 21 (Model A0 Production Training) and defines baseline parameters.
+# Single Source of Truth for Model A0 checkpoints, empirical metrics, and governance bounds.
+
+contract_version: "v2.0.0-certified"
+contract_title: "Mindanao RISE-UNet Model A0 Certified Production Baseline Contract"
+certification_date: "2026-09-17"
+certification_tier: "[PASS / ACCEPTED: CERTIFIED_ON_GPU]"
+thesis_track: "Track B (Mindanao Regional Adaptation & Proposed Enhancements)"
+parent_citation: "Lesinger & Tian (2025), Nature Communications, DOI: 10.1038/s41467-025-62761-3"
+taxonomy_scope:
+  pass_definition: "Software, mathematical, and numerical assertions pass with zero failures and zero errors."
+  verified_definition: "Direct mathematical and programmatic parity established with the parent EX29 implementation/source code."
+  accepted_definition: "Deliberate, scientifically documented regional adaptation for Mindanao (grid, atmospheric variables, reforecast pipeline, ERA5-Land RZSM target)."
+
+
+governance:
+  status: "POST_TRAINING_CERTIFIED_BASELINE"
+  authority_hierarchy: "contracts/ -> master_plan -> artifact_registry"
+  phase_status: "PHASE_21_SEALED_COMPLETE"
+  next_phase: "PHASE_23_RECURSIVE_DEGRADATION_DIAGNOSTIC_AND_POST_A0_GATE_2"
+
+
+domain_and_geometry:
+  region: "Mindanao, Philippines"
+  bounding_box:
+    lat_max_north: 11.75
+    lon_min_west: 116.0
+    lat_min_south: 4.0
+    lon_max_east: 127.75
+  grid_resolution_deg: 0.25
+  grid_shape: [32, 48]
+  total_cells: 1536
+  active_evaluation_cells: 126
+  evaluation_mask_artifact: "processed/grid/mindanao_eval_mask_025.nc"
+  ocean_buffer_convention: 0.0
+
+cohort_accounting_ledger:
+  calendar_manifest: "manifests/production_case_calendar.csv"
+  availability_audit_ledger: "manifests/splits/cases_availability_audit.csv"
+  total_scheduled_cycles: 1154
+  total_usable_cases: 1073
+  total_provider_mars_exceptions: 74
+  total_boundary_oob_exceptions: 7
+  scheduled_train_val_cohort: 945
+  effective_usable_train_val: 871
+  conservation_identity: "945 scheduled == 871 usable (677 Train + 194 Val) + 74 ECMWF provider MARS exceptions (Delta = 0)"
+  training_partition:
+    years: [2015, 2016, 2017, 2018, 2019, 2020, 2021]
+    scheduled_count: 735
+    usable_count: 677
+    mars_unavailable_count: 58
+  validation_partition:
+    years: [2022, 2023]
+    scheduled_count: 210
+    usable_count: 194
+    mars_unavailable_count: 16
+  sealed_test_partition:
+    years: [2024, 2025]
+    scheduled_count: 209
+    usable_evaluation_denominator: 202
+    target_out_of_bounds_count: 7
+    quarantine_status: "STRICTLY_SEALED_UNTIL_PHASE_26"
+
+channel_schedule:
+  ensemble_members_per_case: 11
+  lead_channels:
+    lead_1: 11  # 3 antecedent RZSM lags + 5 ERA5 surface + 3 ECMWF S2S W1
+    lead_2: 12  # 3 antecedent RZSM lags + 5 ERA5 surface + 3 ECMWF S2S W2 + 1 recursive y_hat_W1
+    lead_3: 5   # 3 antecedent RZSM lags + 2 recursive (y_hat_W1, y_hat_W2)
+    lead_4: 6   # 3 antecedent RZSM lags + 3 recursive (y_hat_W1, y_hat_W2, y_hat_W3)
+
+architecture_and_training:
+  backbone: "UNET_RZSM"
+  deep_supervision_heads: ["RZSM_output_1", "RZSM_output_2", "RZSM_output_3"]
+  deep_supervision_loss_weights: [0.2, 0.3, 0.5]
+  parameter_counts:
+    W1: 1627139
+    W2: 1630307
+    W3: 1608131
+    W4: 1611299
+  batch_size:
+    nominal_pre_production_freeze: 11  # 1 case x 11 members (initial minimum configuration)
+    production_execution_amendment: 33  # 3 cases x 11 members
+    amendment_date: "2026-09-17"
+    amendment_commit: "62500f8 (engine implementation) / e2b35d9 (training execution & evaluation)"
+    amendment_rationale: "Improved production throughput and provided a larger three-case mini-batch for more stable batch statistics while remaining within the certified T4 memory envelope (peak 5.6 GB VRAM vs. 15.4 GB capacity)."
+
+    effect_on_scientific_interpretation: "Documented as an authoritative production-training hyperparameter. Ingesting 3 cases (33 members) provides sample diversity for BatchNorm statistics across 3 distinct meteorological events per gradient step while strictly preserving 11-member ensemble realization ordering and loss broadcasting invariance."
+
+  optimizer: "Adam (lr=1e-4, beta1=0.9, beta2=0.999, eps=1e-7)"
+  lr_schedule: "ReduceLROnPlateau (factor=0.5, patience=3, min_lr=1e-6)"
+  early_stopping: "patience=8, restore_best_weights=True"
+  loss_objective: "spatial_crps_loss (MAE_eval - 0.08 * sigma_spatial)"
+  training_hardware: "NVIDIA Tesla T4 (15,360 MB VRAM) on Google Colab"
+  tensorflow_version: "2.20.0"
+
+production_checkpoints_manifest:
+  seeds: [42, 123, 456]
+  leads: [1, 2, 3, 4]
+  total_checkpoints: 12
+  cloud_lake_uri: "gs://rise-unet-rzsm/checkpoints/A0/"
+  local_directory: "checkpoints/A0/"
+  checkpoint_files:
+    seed_42:
+      lead_1: "checkpoints/A0/seed_42/lead_1/best_model.weights.h5"
+      lead_2: "checkpoints/A0/seed_42/lead_2/best_model.weights.h5"
+      lead_3: "checkpoints/A0/seed_42/lead_3/best_model.weights.h5"
+      lead_4: "checkpoints/A0/seed_42/lead_4/best_model.weights.h5"
+    seed_123:
+      lead_1: "checkpoints/A0/seed_123/lead_1/best_model.weights.h5"
+      lead_2: "checkpoints/A0/seed_123/lead_2/best_model.weights.h5"
+      lead_3: "checkpoints/A0/seed_123/lead_3/best_model.weights.h5"
+      lead_4: "checkpoints/A0/seed_123/lead_4/best_model.weights.h5"
+    seed_456:
+      lead_1: "checkpoints/A0/seed_456/lead_1/best_model.weights.h5"
+      lead_2: "checkpoints/A0/seed_456/lead_2/best_model.weights.h5"
+      lead_3: "checkpoints/A0/seed_456/lead_3/best_model.weights.h5"
+      lead_4: "checkpoints/A0/seed_456/lead_4/best_model.weights.h5"
+
+empirical_performance_replicates_summary:
+  evaluation_cohort: "Validation Set 2022-2023 (194 usable cases)"
+  evaluation_domain: "126 active land evaluation cells"
+  evaluation_methodology:
+    replicate_robustness: "Mean ± Standard Deviation across 3 independent training replicate seeds (42, 123, 456)"
+    probabilistic_score: "Exact Analytical Ensemble CRPS (Hersbach 2000) evaluated across M=11 ECMWF weather forecast realizations"
+  lead_metrics:
+    W1:
+      lead_days: "Days 1-7"
+      val_acc: "0.8544 ± 0.0047"
+      exact_crps: "0.0330 ± 0.0008"
+      val_rmse: "0.0505 ± 0.0009"
+      val_mae: "0.0341 ± 0.0007"
+      spatial_crps_proxy: "0.0339 ± 0.0007"
+    W2:
+      lead_days: "Days 8-14"
+      val_acc: "0.6824 ± 0.0096"
+      exact_crps: "0.0506 ± 0.0020"
+      val_rmse: "0.0714 ± 0.0015"
+      val_mae: "0.0528 ± 0.0016"
+      spatial_crps_proxy: "0.0525 ± 0.0016"
+    W3:
+      lead_days: "Days 15-21"
+      val_acc: "0.5629 ± 0.0067"
+      exact_crps: "0.0582 ± 0.0011"
+      val_rmse: "0.0800 ± 0.0006"
+      val_mae: "0.0593 ± 0.0007"
+      spatial_crps_proxy: "0.0592 ± 0.0008"
+    W4:
+      lead_days: "Days 22-28"
+      val_acc: "0.4948 ± 0.0095"
+      exact_crps: "0.0613 ± 0.0003"
+      val_rmse: "0.0844 ± 0.0005"
+      val_mae: "0.0627 ± 0.0002"
+      spatial_crps_proxy: "0.0625 ± 0.0002"
+
+parent_ex29_contextual_reference_comparison:
+  title: "Parent EX29 Contextual Reference Comparison — CONTEXTUAL / REPORTED REFERENCE"
+  status: "CONTEXTUAL / REPORTED REFERENCE"
+  certification_classification: "CONTEXTUAL_REPORTED_REFERENCE"
+  taxonomy_distinction: "[VERIFIED] is strictly retained for programmatic/architectural parity with parent EX29 source code. Empirical metric comparison against CONUS literature numbers is classified as a contextual reference comparison, preventing conflation of cross-regime empirical results with source code verification."
+  scientific_characterization: "Parent EX29 Contextual Reference Comparison demonstrates performance broadly comparable to reported contextual benchmark, with higher ACC across all four horizons and mixed RMSE differences."
+  contextual_benchmark_comparison:
+    W1: {mindanao_acc: 0.8544, parent_reported_acc: 0.82, mindanao_rmse: 0.0505, parent_reported_rmse: 0.050}
+    W2: {mindanao_acc: 0.6824, parent_reported_acc: 0.65, mindanao_rmse: 0.0714, parent_reported_rmse: 0.070}
+    W3: {mindanao_acc: 0.5629, parent_reported_acc: 0.55, mindanao_rmse: 0.0800, parent_reported_rmse: 0.080}
+    W4: {mindanao_acc: 0.4948, parent_reported_acc: 0.47, mindanao_rmse: 0.0844, parent_reported_rmse: 0.090}
+  caveat: "Parent values are approximate and derived under CONUS temperate climatology; Mindanao represents a tropical maritime regime."
+
