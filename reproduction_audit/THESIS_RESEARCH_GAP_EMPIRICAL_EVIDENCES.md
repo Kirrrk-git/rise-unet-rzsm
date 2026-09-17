@@ -3,37 +3,54 @@
 
 **Document Identifier**: `reproduction_audit/THESIS_RESEARCH_GAP_EMPIRICAL_EVIDENCES.md`  
 **Working Paper Title**: *Empirical Identification of Recursive Predicted-State Error Propagation in a Mindanao Adaptation of RISE-UNet for Subseasonal Root-Zone Soil-Moisture Forecasting*  
-**Proposed Future Enhancement Track**: *Lead-Aware Recursive Residual Refinement (Model A1: $\mathcal{R}_\theta$)*  
+**Proposed Candidate Enhancement**: *Lead-Aware Recursive Residual Refinement (Model A1: $\mathcal{R}_\theta$)*  
 **Thesis Track**: Track B (Mindanao Regional Adaptation & Proposed Enhancements)  
 **Parent Foundation**: Lesinger & Tian (2025), *Nature Communications*, DOI: `10.1038/s41467-025-62761-3`  
-**Certification Status**: `[PASS / CERTIFIED_ON_GPU / FORMALLY PROVEN]`  
+**Certification Status**: `[PASS / CERTIFIED_ON_GPU / EMPIRICALLY VERIFIED]`  
 **Date of Empirical Certification**: September 17, 2026 (Execution Commit `b64970f`, Post-Execution Provenance `3bb3eb0`)  
 **Hardware & Environment**: NVIDIA Tesla T4 GPU (15,360 MB VRAM, CUDA 12.5.1, cuDNN 9, TensorFlow 2.20.0, Python 3.12)  
 **Evaluated Sample Size**: $N = 194$ validation forecast cycles (2022–2023) across 126 active Mindanao land cells ($86,418.83\text{ km}^2$)  
 **Replicate Seeds Evaluated**: Three independent stochastic initializations (Seeds 42, 123, 456; 12 production checkpoints total)  
-**Primary Verification Outcome**: **CONFIRMED & FORMALLY SEALED AS THE CORE THESIS RESEARCH GAP**
+**Primary Verification Outcome**: **EMPIRICALLY IDENTIFIED AND QUANTITATIVELY EVALUATED AS A REGIONAL RESEARCH PROBLEM**
 
 ---
 
 ## 1. Executive Summary & Thesis Problem Declaration
 
-### 1.1 The Fundamental Research Gap
-Subseasonal drought forecasting (1 to 4 weeks lead time) bridges the gap between medium-range weather forecasting and seasonal climate projections. In root-zone soil moisture ($\text{RZSM}$) prediction, the hybrid deep learning / dynamic model framework **RISE-UNet** (Lesinger & Tian, 2025) achieved state-of-the-art skill over the contiguous United States (CONUS) by autoregressively conditioning predictions for Lead $k$ on the model's own prior-lead outputs ($\hat{y}_{1}, \dots, \hat{y}_{k-1}$).
+### 1.1 Conceptual Chain: Problem, Empirical Research Gap, and Proposed Solution
+To maintain rigorous scientific clarity, we establish a strict conceptual hierarchy separating the demonstrated physical limitation, the empirical research gap, and the proposed candidate solution:
 
-However, a fundamental theoretical and operational question remained unaddressed in the literature:
-> **Does the autoregressive substitution of imperfectly predicted antecedent soil moisture states trigger compounding error propagation that dominates subseasonal forecast degradation, or is skill decay in Weeks 3–4 purely an inevitable consequence of chaotic atmospheric predictability loss?**
+$$\boxed{ \textbf{Demonstrated Problem} \longrightarrow \textbf{Empirical Research Gap} \longrightarrow \textbf{Proposed Candidate Solution} }$$
 
-In this thesis, we conducted an exhaustive, pre-registered empirical investigation over Mindanao, Philippines. By executing a controlled **Oracle Counterfactual Decomposition** and a **Boundary-Clipped State Perturbation Analysis** across 194 validation cases and 3 independent model training replicates, we provide conclusive, mathematically certified proof that:
-1. **Recursive error compounding is not negligible; it is the dominant contributor to forecast degradation at extended subseasonal horizons.**
-   - Under the oracle counterfactual protocol, substituting predicted intermediate states with verifying ground truth eliminates **$35.38\%$ of total forecast MAE in Week 3** ($0.0719 \to 0.0465$) and **$44.12\%$ of total forecast MAE in Week 4** ($0.0898 \to 0.0502$).
-2. **The gap is statistically irrefutable.**
-   - A 10,000-resample Moving-Block Bootstrap (MBB, $L=4$ cycles) yields $p_{\text{boot}} < 0.0001$, with 95% confidence intervals strictly excluding zero ($[+0.0216, +0.0301]$ in W3, $[+0.0328, +0.0470]$ in W4). Non-parametric paired Wilcoxon tests confirm extreme significance ($p < 10^{-28}$).
-3. **The effect size is massive.**
-   - Standardized paired effect sizes reach Cohen's $d_z = +1.201$ in Lead 3 and $d_z = +1.269$ in Lead 4, exceeding conventional benchmarks for "large" effects ($d_z \ge 0.80$) by over 50%.
-4. **The neural graph exhibits strict, monotonic sensitivity to state perturbations.**
-   - Injecting controlled perturbations into intermediate state channels produces downstream divergence that doubles when perturbation magnitude doubles ($D_k(0.10) \approx 2 \times D_k(0.05)$) with negligible boundary clipping ($\le 0.27\%$).
+1. **The Demonstrated Problem (Limitation)**:
+   - **Primary Term**: **Recursive Predicted-State Error Propagation and Compounding**  
+     *(Compact alternative: **Recursive Predicted-State Error Compounding**)*
+   - **Secondary Descriptive Synonym**: **Autoregressive Cascaded Error Accumulation**
+   - **Decoupling from "Exposure Bias"**: In autoregressive sequence modeling, *exposure bias* (Bengio et al., 2015) specifically designates a training/inference discrepancy where training relies on ground-truth previous states (teacher forcing) while inference consumes model-generated predictions. While recursive error propagation in subseasonal forecasting exhibits symptoms analogous to exposure bias, we do not assert exposure bias as an established synonym for Model A0, as confirming that condition requires detailed training-pipeline analysis. Our empirical finding rests directly on the demonstrated error compounding resulting from recursive predicted-state propagation under counterfactual evaluation.
 
-This establishes **the definitive empirical research gap** for this thesis: recursive state conditioning in RISE-UNet acts as an uncontrolled error amplifier in tropical subseasonal regimes. This finding provides the strict scientific justification for developing an external, lead-aware residual refinement mechanism.
+2. **The Empirical Research Gap**:
+   > **The recursive forecasting pathway of the finalized Mindanao RISE-UNet baseline exhibits a substantial predicted-state error penalty at later leads ($\Delta E_{W3} = +0.0254$ MAE, $\Delta E_{W4} = +0.0396$ MAE, representing $35.38\%$ and $44.12\%$ of total forecast error under the specified counterfactual protocol), yet the parent-compatible forecasting pathway does not contain a dedicated mechanism specifically designed to correct these recursively generated states before they are propagated downstream.**
+
+3. **Distinction Between Empirical Findings and Literature-Level Novelty Claims**:
+   - The empirical counterfactual experiments conducted here isolate and quantify recursive predicted-state error compounding specifically within the RISE-UNet architecture adapted to Mindanao.
+   - We explicitly distinguish this empirical finding from any sweeping literature-level claim (e.g., asserting that "this gap has not been addressed in the literature"). Autoregressive error growth is a recognized topic in numerical weather prediction, dynamical systems, and sequence modeling.
+   - Establishing whether, where, and how analogous error-compounding mechanisms have been addressed across the broader meteorological and hydrological literature requires an independent, formal literature review.
+   - This dossier provides verified empirical evidence, methodology, and quantitative diagnostic results from the Mindanao adaptation—it does not substitute for a literature review.
+
+4. **The Proposed Candidate Solution**:
+   - **Lead-Aware Recursive Residual Refinement (Model A1: $\mathcal{R}_\theta$)**: A proposed candidate architectural module designed to filter and adjust intermediate predicted states conditioned on lead horizon $k$.
+   - *Explicit Scientific Status*: Model A1 is a designated **proposed future intervention**, not an empirically claimed or validated result at the current baseline stage.
+
+### 1.2 Core Empirical Findings
+By executing a controlled **Oracle Counterfactual Decomposition** and a **Boundary-Clipped State Perturbation Analysis** across 194 validation cases and 3 independent model training replicates over Mindanao, Philippines, we demonstrate that:
+1. **Predicted-state error propagation introduces a substantial forecast error penalty at extended subseasonal horizons.**
+   - Under the oracle counterfactual protocol, substituting predicted intermediate states with verifying ground truth reduces forecast error by **$35.38\%$ of total forecast MAE in Week 3** ($0.0719 \to 0.0465$) and **$44.12\%$ of total forecast MAE in Week 4** ($0.0898 \to 0.0502$).
+2. **The observed error gap is statistically significant.**
+   - A 10,000-resample Moving-Block Bootstrap (MBB, $L=4$ cycles) yields $p_{\text{boot}} < 0.0001$, with 95% confidence intervals strictly excluding zero ($[+0.0216, +0.0301]$ in W3, $[+0.0328, +0.0470]$ in W4). Non-parametric paired Wilcoxon tests confirm concordance ($p < 10^{-28}$).
+3. **The standardized effect size is large.**
+   - Standardized paired effect sizes reach Cohen's $d_z = +1.201$ in Lead 3 and $d_z = +1.269$ in Lead 4, exceeding conventional benchmarks for large effects ($d_z \ge 0.80$).
+4. **The neural graph exhibits measurable downstream sensitivity to state perturbations.**
+   - Injecting controlled perturbations into intermediate state channels produces downstream divergence with realistic-magnitude monotonicity at Leads W3 and W4 ($D_k(0.10) > D_k(0.05)$) and negligible boundary clipping ($\le 0.27\%$), while the broader perturbation range reflects complex, nonlinear inter-lead neural dynamics.
 
 ---
 
@@ -42,7 +59,7 @@ This establishes **the definitive empirical research gap** for this thesis: recu
 ### 2.1 The RISE-UNet Autoregressive Prediction Chain
 The RISE-UNet architecture operates across four weekly forecast leads ($W_1, W_2, W_3, W_4$) on a Candidate A spatial grid ($H=32, W=48$ at $0.25^\circ$ resolution). The system consumes initial land memory $S_0$ (three antecedent 7-day trailing weekly lags of RZSM at offsets $[-1, -7, -14]$ days), static physiographic features (soil clay fraction, sand fraction, bulk density), and dynamic atmospheric reforecasts $X_k^{\text{atm}}$ (ECMWF S2S triplet: $2\text{m}$ temperature, $2\text{m}$ dewpoint temperature, total column water).
 
-Because atmospheric predictability decays rapidly beyond Day 14, later leads are forced to rely heavily on recursive land memory:
+Because atmospheric predictability decays rapidly beyond Day 14, later leads rely heavily on recursive land memory:
 
 $$\begin{aligned}
 \hat{y}_{W1} &= f_{\theta_1}\left(X_{W1}^{\text{atm}}, S_0\right) \quad && [C_1 = 11 \text{ channels}] \\
@@ -70,7 +87,7 @@ We define the **Empirical Recursive Degradation Gap** $\Delta E_k$ as the differ
 
 $$\Delta E_k = \operatorname{MAE}\left(e_k^{\text{rec}}\right) - \operatorname{MAE}\left(e_k^{\text{ora}}\right) = \frac{1}{|\Omega|} \sum_{s \in \Omega} \left| \hat{y}_{k, s}^{\text{rec}} - y_{k, s}^{\text{true}} \right| - \frac{1}{|\Omega|} \sum_{s \in \Omega} \left| \hat{y}_{k, s}^{\text{ora}} - y_{k, s}^{\text{true}} \right|$$
 
-And the **Relative Error Fraction** $\Phi_k$ attributable to recursive state compounding:
+And the **Relative Error Fraction** $\Phi_k$ attributable to recursive state compounding under this counterfactual:
 
 $$\Phi_k = \frac{\Delta E_k}{\operatorname{MAE}\left(e_k^{\text{rec}}\right)} \times 100\%$$
 
@@ -78,7 +95,7 @@ $$\Phi_k = \frac{\Delta E_k}{\operatorname{MAE}\left(e_k^{\text{rec}}\right)} \t
 
 ## 3. The Controlled Diagnostic Protocols
 
-To isolate the problem from potential confounders (e.g., sample variance, atmospheric chaos, boundary effects, random weight initialization), four strict protocols were pre-registered in [`contracts/A0/PHASE_23_DIAGNOSTIC_CONTRACT.yaml`](contracts/A0/PHASE_23_DIAGNOSTIC_CONTRACT.yaml):
+To isolate the problem from potential confounders (e.g., sample variance, boundary effects, random weight initialization), four strict protocols were pre-registered in [`contracts/A0/PHASE_23_DIAGNOSTIC_CONTRACT.yaml`](contracts/A0/PHASE_23_DIAGNOSTIC_CONTRACT.yaml):
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
@@ -105,10 +122,10 @@ To isolate the problem from potential confounders (e.g., sample variance, atmosp
 Evaluates the model exactly as deployed operationally. Predictions from Lead 1 are inserted into channel 11 of Lead 2; predictions from Leads 1 and 2 are inserted into channels 3 and 4 of Lead 3; predictions from Leads 1, 2, and 3 are inserted into channels 3, 4, and 5 of Lead 4.
 
 ### Protocol 2: Oracle Counterfactual Replacement
-Evaluates the exact same trained model weights, but replaces predicted input channels with true ground truth $y_k^{\text{true}}$ broadcast across all 11 ensemble members. Because $X_k^{\text{atm}}$, static parameters, model weights, and the evaluation targets are 100% identical between Protocol 1 and Protocol 2, **any difference in performance $\Delta E_k$ is mathematically isolated to the error in the recursive input states**.
+Evaluates the exact same trained model weights, but replaces predicted input channels with true ground truth $y_k^{\text{true}}$ broadcast across all 11 ensemble members. Because $X_k^{\text{atm}}$, static parameters, model weights, and the evaluation targets are identical between Protocol 1 and Protocol 2, the difference in performance $\Delta E_k$ isolates the error attributable to predicted input states under this counterfactual.
 
 ### Protocol 4: Controlled Error Injection & Boundary-Clipped Tracking
-To prove that the U-Net computational graph is dynamically responsive to recursive state errors (and that errors do not simply get damped or ignored by the convolutional layers), deterministic perturbation offsets $\epsilon \in \{-0.50, -0.25, -0.10, -0.05, +0.05, +0.10, +0.25, +0.50\}$ were injected into $\hat{y}_{W1}$:
+To evaluate how the U-Net computational graph responds to intermediate state perturbations, deterministic perturbation offsets $\epsilon \in \{-0.50, -0.25, -0.10, -0.05, +0.05, +0.10, +0.25, +0.50\}$ were injected into $\hat{y}_{W1}$:
 
 $$\hat{y}_{W1, m}' = \operatorname{clip}\left(\hat{y}_{W1, m} + \epsilon, 0.0, 1.0\right) \quad \forall m \in \{1, \dots, 11\}$$
 
@@ -116,14 +133,14 @@ Downstream divergence $D_k(\epsilon)$ in Leads 2, 3, and 4 was measured as Root 
 
 $$D_k(\epsilon) = \sqrt{ \frac{1}{|\Omega|} \sum_{s \in \Omega} \left( \hat{y}_{k, s}'(\epsilon) - \hat{y}_{k, s} \right)^2 }$$
 
-To ensure that results were not an artifact of values being clipped at the $[0, 1]$ bounds, an exhaustive **cell-clipping census** tracked every evaluation.
+To ensure that results were not an artifact of boundary truncation, an exhaustive cell-clipping census tracked every evaluation.
 
 ---
 
 ## 4. Empirical Evidence & Proof Matrix
 
 ### 4.1 Primary Error Decomposition (Protocols 1 & 2)
-The table below presents the authoritative empirical results obtained from evaluating the full 194-case validation partition across all 3 independent training replicates (Seeds 42, 123, 456) in Google Colab on an NVIDIA Tesla T4 GPU.
+The table below presents the empirical results obtained from evaluating the full 194-case validation partition across all 3 independent training replicates (Seeds 42, 123, 456) in Google Colab on an NVIDIA Tesla T4 GPU.
 
 | Forecast Horizon | Protocol 1: Recursive MAE | Protocol 2: Oracle MAE | Recursive Error Gap $\Delta \text{MAE}$ [95% MBB CI] | Relative Error Fraction $\Phi_k$ | Cohen's $d_z$ Effect Size | Primary Bootstrap $p_{\text{boot}}$ ($B=10,000$) | Holm-Bonferroni Adjusted $p$ | Supplementary Wilcoxon $p$ |
 | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
@@ -145,20 +162,20 @@ Lead W2 (Day 8-14) | [█████████████████░░�
 Lead W3 (Day 15-21)| [██████████████████░░░░░░░░░░] 0.0719  (35.4% gap: Δ = +0.0254)
 Lead W4 (Day 22-28)| [██████████████████░░░░░░░░░░░░░░] 0.0898  (44.1% gap: Δ = +0.0396)
 ----------------------------------------------------------------------------------------
-Legend: [███] Oracle Error (Atmospheric/Inherent)  |  [░░░] Compounded Recursive Error Gap
+Legend: [███] Oracle Error (Inherent / Forcing)  |  [░░░] Compounded Recursive Error Gap
 ========================================================================================
 ```
 
 ### 4.2 Key Findings from the Error Decomposition
-1. **Accelerating Error Compounding**:
-   In Lead 1, error is purely atmospheric and antecedent ($0.0340$). In Lead 2, introducing $\hat{y}_{W1}$ adds $+0.0076$ MAE ($14.52\%$ of total error). By Lead 3, the compounding error expands to $+0.0254$ MAE (**$35.38\%$ of total error**). By Lead 4, the gap reaches $+0.0396$ MAE (**$44.12\%$ of total error**).
-2. **Oracle Stability vs. Recursive Degradation**:
+1. **Error Compounding Across Horizons**:
+   In Lead 1, no recursive predictions are used, with error reflecting baseline atmospheric and antecedent memory uncertainty ($0.0340$). In Lead 2, introducing $\hat{y}_{W1}$ adds $+0.0076$ MAE ($14.52\%$ of total error). By Lead 3, the compounding error expands to $+0.0254$ MAE (**$35.38\%$ of total error**). By Lead 4, the gap reaches $+0.0396$ MAE (**$44.12\%$ of total error**).
+2. **Oracle Trajectory vs. Operational Recursive Degradation**:
    Notice the contrast in trajectories between the operational recursive pathway and the Oracle Counterfactual:
    - Oracle MAE grows modestly: $0.0340 \to 0.0450 \to 0.0465 \to 0.0502$ (+47.6% over 4 weeks).
    - Recursive MAE increases substantially: $0.0340 \to 0.0526 \to 0.0719 \to 0.0898$ (+164.1% over 4 weeks).
-   **This demonstrates that a substantial portion of later-lead error degradation ($35.38\%$ in W3 and $44.12\%$ in W4) is attributable to predicted-state error propagation rather than purely atmospheric unpredictability, although natural atmospheric predictability decay, forcing uncertainty, and observation noise remain contributing factors.**
-3. **Statistical Decisiveness**:
-   Under the primary Moving-Block Bootstrap ($B=10,000$, block length $L=4$ cycles / 28 days to preserve temporal autocorrelation), not a single bootstrap resample under the centered null produced a test statistic as extreme as the observed gap ($p_{\text{boot}} < 0.0001$). The 95% confidence intervals are tightly bounded away from zero ($[+0.0216, +0.0301]$ for W3 and $[+0.0328, +0.0470]$ for W4).
+   **This indicates that a substantial portion of later-lead error ($35.38\%$ in W3 and $44.12\%$ in W4) is attributable to predicted-state error propagation under this counterfactual evaluation, while natural atmospheric predictability decay, dynamic forcing error, and observation noise remain contributing factors.**
+3. **Statistical Significance**:
+   Under the primary Moving-Block Bootstrap ($B=10,000$, block length $L=4$ cycles / 28 days to preserve temporal autocorrelation), zero bootstrap resamples under the centered null produced a test statistic as extreme as the observed gap ($p_{\text{boot}} < 0.0001$). The 95% confidence intervals strictly exclude zero ($[+0.0216, +0.0301]$ for W3 and $[+0.0328, +0.0470]$ for W4).
 
 ---
 
@@ -177,7 +194,7 @@ $$\begin{aligned}
 \text{Step 3 (Lead W2)}: \quad & p_{(3)} = p_{\text{boot}, W2} < 0.0001 \le \frac{0.05}{1} = 0.0500 \implies \mathbf{Reject \; \mathcal{H}_{0, W2}}
 \end{aligned}$$
 
-All null hypotheses are rejected with extreme confidence ($p_{\text{adj}} < 0.0001$).
+All null hypotheses are rejected with high statistical confidence ($p_{\text{adj}} < 0.0001$).
 
 ### 5.2 Effect Size Quantification (Cohen's $d_z$)
 For paired, repeated-measures subseasonal evaluations, Cohen's $d_z$ quantifies the standardized mean difference:
@@ -185,13 +202,13 @@ For paired, repeated-measures subseasonal evaluations, Cohen's $d_z$ quantifies 
 $$d_z = \frac{\mu_D}{\sigma_D} = \frac{\frac{1}{N} \sum_{i=1}^N \left(\text{MAE}_{i}^{\text{rec}} - \text{MAE}_{i}^{\text{ora}}\right)}{\sqrt{\frac{1}{N-1} \sum_{i=1}^N \left( D_i - \mu_D \right)^2}}$$
 
 - **Lead W2**: $d_z = +0.642$ (Medium-to-large effect)
-- **Lead W3**: $d_z = +1.201$ (Very large effect, exceeding the required gate threshold $d_z \ge 0.20$ by a factor of 6.0)
-- **Lead W4**: $d_z = +1.269$ (Very large effect, exceeding the gate threshold by a factor of 6.3)
+- **Lead W3**: $d_z = +1.201$ (Large effect, well above $d_z \ge 0.80$)
+- **Lead W4**: $d_z = +1.269$ (Large effect, well above $d_z \ge 0.80$)
 
 ### 5.3 Replicate Consistency Across Training Seeds
-A common vulnerability in deep learning research is claiming a finding that only holds for a single "lucky" random seed. In this study, the Model A0 baseline was independently trained from scratch across three distinct random seeds: Seed 42, Seed 123, and Seed 456.
+To verify that this outcome is not an artifact of random seed initialization, the Model A0 baseline was independently trained from scratch across three distinct random seeds: Seed 42, Seed 123, and Seed 456.
 
-The recursive degradation gap $\Delta E_k > 0$ held strictly across **100% of individual seeds**:
+The recursive degradation gap $\Delta E_k > 0$ held consistently across all individual seeds:
 - **Seed 42**: $\Delta E_{W2} = +0.0081$, $\Delta E_{W3} = +0.0261$, $\Delta E_{W4} = +0.0410$
 - **Seed 123**: $\Delta E_{W2} = +0.0072$, $\Delta E_{W3} = +0.0248$, $\Delta E_{W4} = +0.0385$
 - **Seed 456**: $\Delta E_{W2} = +0.0076$, $\Delta E_{W3} = +0.0254$, $\Delta E_{W4} = +0.0393$
@@ -200,12 +217,9 @@ This demonstrates that recursive error compounding is a **robust, reproducible c
 
 ---
 
-## 6. Graph Sensitivity & Boundary Clipping Proof (Protocol 4)
+## 6. Graph Sensitivity & Boundary Clipping (Protocol 4)
 
-A critical counter-argument that a skeptical reviewer could raise is:
-> *"How do you know the U-Net is actually reacting to recursive input errors? Perhaps the intermediate channel weights are saturated, or perhaps the observed divergence is merely an artifact of clipping out-of-bounds soil moisture values to $[0, 1]$?"*
-
-Protocol 4 was specifically engineered to dismantle this objection:
+To evaluate whether the U-Net computational graph actively propagates intermediate state variations or dampens them, Protocol 4 was analyzed:
 
 ### 6.1 Downstream Divergence & Clipping Census Table
 
@@ -220,58 +234,57 @@ Protocol 4 was specifically engineered to dismantle this objection:
 | $\epsilon = +0.25$ | Exploratory boundary stress test | $6.42\%$ | $0.1353$ | $0.2096$ | $0.2119$ |
 | $\epsilon = +0.50$ | Exploratory boundary stress test | $83.48\%$ | $0.1905$ | $0.3942$ | $0.3613$ |
 
-### 6.2 The Three Empirical Proofs from Protocol 4
-1. **Zero Clipping Distortion in the Operational Range**:
-   For all negative perturbations down to $\epsilon = -0.25$, exactly **$0.00\%$** of active land evaluations were clipped. For positive operational errors ($\epsilon = +0.05$ and $+0.10$), clipping occurred in less than **$0.27\%$** of evaluations. Therefore, the downstream errors are **100% genuine neural propagation through the convolutional kernels**, not mathematical boundary artifacts.
-2. **Strict Monotonic Sensitivity ($D_k(0.10) > D_k(0.05)$)**:
-   When perturbation magnitude doubles from $0.05 \to 0.10$, downstream divergence doubles with almost exact linearity across all three downstream leads:
-   - Lead 2: $0.0242 \to 0.0498$ ($+105.8\%$ increase)
-   - Lead 3: $0.0373 \to 0.0765$ ($+105.1\%$ increase)
-   - Lead 4: $0.0192 \to 0.0395$ ($+105.7\%$ increase)
-   This confirms that the U-Net does not damp or attenuate errors; it preserves and propagates them downstream.
+### 6.2 Empirical Observations from Protocol 4
+1. **Low Clipping in the Operational Range**:
+   For all negative perturbations down to $\epsilon = -0.25$, exactly **$0.00\%$** of active land evaluations were clipped. For positive operational errors ($\epsilon = +0.05$ and $+0.10$), clipping occurred in less than **$0.27\%$** of evaluations. Therefore, the observed downstream divergence reflects genuine propagation through the convolutional layers rather than boundary truncation artifacts.
+2. **Realistic-Magnitude Monotonic Sensitivity ($D_k(0.10) > D_k(0.05)$)**:
+   Across realistic operational error magnitudes ($0.05 \to 0.10$), downstream divergence increases monotonically in Leads 2, 3, and 4.
 3. **Nonlinear Inter-Lead State Dynamics**:
-   Notice that the perturbation does not propagate as a simple linear scalar addition across leads ($W_2=0.0498 \to W_3=0.0765 \to W_4=0.0395$). Instead, the deep convolutional layers interact with dynamic atmospheric inputs at each horizon, producing complex spatiotemporal responses. This indicates that a static linear bias correction will fail; an adaptive, lead-conditioned neural refinement module is required.
+   The downstream divergence across horizons ($W_2=0.0498 \to W_3=0.0765 \to W_4=0.0395$) does not follow a simple linear escalation, reflecting nonlinear interactions between dynamic atmospheric forcing and recursive inputs at each horizon.
 
 ---
 
-## 7. Regional Hydroclimatic Context: Why Mindanao Amplifies This Gap
+## 7. Regional Hydroclimatic Context: Mindanao Domain Factors
 
-Why does this recursive degradation gap manifest so acutely in Mindanao compared to temperate mid-latitude domains like CONUS?
+Several physical factors in the tropical maritime setting of Mindanao may contribute to the prominence of this recursive degradation:
 
 1. **Tropical Convective Regime & Rapid Predictability Decay**:
-   Mindanao ($4^\circ\text{N}$ to $10^\circ\text{N}$) is located in the equatorial Western Pacific warm pool, governed by the Intertropical Convergence Zone (ITCZ), monsoon surges, and local convective cloud clusters. Unlike mid-latitude baroclinic systems where synoptic waves provide atmospheric predictability out to 10–14 days, tropical convective predictability decays sharply within 3 to 5 days.
+   Mindanao ($4^\circ\text{N}$ to $10^\circ\text{N}$) is located in the equatorial Western Pacific warm pool, governed by the Intertropical Convergence Zone (ITCZ), monsoon surges, and localized convection. In contrast to mid-latitude baroclinic systems where synoptic waves provide predictability out to 10–14 days, tropical convective predictability decays sharply within 3 to 5 days.
 2. **Heavy Reliance on Land Surface Memory**:
-   Because ECMWF S2S dynamic forecasts offer minimal atmospheric skill in Weeks 3 and 4 over tropical islands, the neural network is forced to rely almost entirely on the antecedent soil moisture channels. If the model's own predictions in Week 1 and Week 2 contain spatial bias, the network has no reliable atmospheric signal to correct course, leading to runaway recursive drift.
+   Because dynamic atmospheric forecast skill diminishes rapidly in Weeks 3 and 4 over tropical islands, the neural network relies heavily on antecedent soil moisture channels. If intermediate predicted states carry spatial errors, downstream stages lack strong atmospheric constraints to counterbalance them.
 3. **Complex Topography & Heterogeneous Soil Regimes**:
-   Mindanao features extreme elevation gradients (from sea level to Mount Apo at 2,954 m) and sharp microclimate transitions (Type II vs. Type IV climate zones). A small error in intermediate soil moisture disrupts the simulated local soil-moisture–precipitation feedback, distorting subsequent predictions across river basins (e.g., Agusan, Rio Grande de Mindanao).
+   Mindanao features pronounced elevation gradients and microclimate transitions. Uncorrected errors in intermediate soil moisture fields can influence the simulated land-atmosphere moisture exchange, affecting downstream predictions.
 
 ---
 
-## 8. The Formal Thesis Verdict
+## 8. Summary of Findings
 
-Based on the totality of empirical evidence, mathematical testing, and physical validation, we state the following **authoritative thesis verdict**:
+Based on empirical testing and validation, we summarize the findings as follows:
 
 ```text
 ========================================================================================
-                               FORMAL THESIS VERDICT
+                                 SUMMARY OF EMPIRICAL FINDINGS
 ========================================================================================
 
-1. RESEARCH GAP CONFIRMATION:
-   Recursive predicted-state degradation is CONFIRMED as a statistically significant,
-   practically massive, and structurally reproducible research gap in subseasonal
-   deep-learning RZSM forecasting over Mindanao (Gate 2: GO).
+1. RESEARCH PROBLEM DEMONSTRATION:
+   Recursive predicted-state error propagation is confirmed as a statistically significant,
+   practically meaningful, and reproducible empirical limitation in subseasonal
+   deep-learning RZSM forecasting over Mindanao.
 
-2. EMPIRICAL MAGNITUDE:
-   Recursive error compounding accounts for 35.38% of total Week 3 forecast error and
-   44.12% of total Week 4 forecast error under the oracle counterfactual protocol.
+2. COUNTERFACTUAL ERROR ATTRIBUTION:
+   Recursive predicted-state substitution accounts for an additional 35.38% of Week 3 MAE
+   and 44.12% of Week 4 MAE relative to the oracle counterfactual baseline under the
+   specified evaluation protocol.
 
 3. STATISTICAL RESOLUTION:
    Primary Moving-Block Bootstrap p_boot < 0.0001; 95% CIs strictly exclude zero;
    Cohen's d_z exceeds 1.20 across all three training replicate seeds.
 
-4. SCOPE OF VALIDATION:
-   The problem is sealed. All further architectural enhancements are directed at
-   mitigating this specific, quantified failure mode.
+4. SCOPE & FUTURE IMPLICATION:
+   This empirical finding defines the research gap for this thesis, providing the
+   rationale for investigating targeted recursive residual refinement mechanisms.
+   Broad claims of novelty across the general literature are left to a dedicated
+   literature review.
 
 ========================================================================================
 ```
@@ -280,16 +293,16 @@ Based on the totality of empirical evidence, mathematical testing, and physical 
 
 ## 9. Architectural Implications for Proposed Innovations (Future Goal)
 
-Having solidified and sealed the problem identification, the architectural requirements for the future innovation (Model A1) are now strictly defined by the empirical data:
+Having empirically quantified the recursive error compounding phenomenon, the architectural considerations for candidate enhancements (Model A1) include:
 
-1. **Keep the Backbone Frozen**:
-   The Model A0 U-Net already possesses high skill in Lead 1 ($0.0340$ MAE) and strong feature extraction capacity. Retraining the backbone would risk catastrophic forgetting and destroy the clean causal attribution of the experiment.
-2. **Shared Lead-Conditioned Refinement ($\mathcal{R}_\theta(\cdot, k)$)**:
-   Because the error doubles monotonically with perturbation magnitude (Section 6.2) and shifts nonlinearly across horizons, a single, shared convolutional module conditioned on lead $k \in \{1, 2, 3\}$ is the mathematically optimal formulation.
-3. **Direct Residual Supervision**:
-   The module should be trained directly on the residual discrepancy $r_k^* = y_k^{\text{true}} - \hat{y}_k$ with detached A0 inputs, targeting the exact $+0.0254$ (W3) and $+0.0396$ (W4) error gaps discovered in this audit.
-4. **Deferred Implementation Commitment**:
-   In accordance with research hygiene, model enhancement remains a designated future goal. The current research stage is formally paused and dedicated exclusively to establishing the baseline truth.
+1. **Retaining the Frozen Backbone**:
+   The Model A0 U-Net demonstrates established skill at Lead 1 ($0.0340$ MAE). Keeping the base U-Net frozen avoids catastrophic forgetting and ensures clean experimental attribution.
+2. **Lead-Conditioned Refinement ($\mathcal{R}_\theta(\cdot, k)$)**:
+   Because error compounding varies across lead horizons, any candidate correction module should be conditioned on lead $k \in \{1, 2, 3\}$.
+3. **Targeting Residual Discrepancies**:
+   Refinement modules should target the residual discrepancy $r_k^* = y_k^{\text{true}} - \hat{y}_k$ with detached A0 inputs, addressing the $+0.0254$ (W3) and $+0.0396$ (W4) error gaps observed in this diagnostic.
+4. **Designated Future Work**:
+   Model A1 remains a designated future enhancement track. The present thesis phase is dedicated to establishing and validating the baseline empirical evidence.
 
 ---
 
