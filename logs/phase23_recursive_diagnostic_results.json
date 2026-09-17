@@ -1,0 +1,171 @@
+{
+  "timestamp": "2026-09-17T18:29:12Z",
+  "validation_cases_count": 194,
+  "evaluation_cells_count": 126,
+  "seeds": [
+    42,
+    123,
+    456
+  ],
+  "perturbations_evaluated": [
+    -0.5,
+    -0.25,
+    -0.1,
+    -0.05,
+    0.05,
+    0.1,
+    0.25,
+    0.5
+  ],
+  "clipping_census": {
+    "-0.5": 16.517903631305696,
+    "-0.25": 0.0,
+    "-0.1": 0.0,
+    "-0.05": 0.0,
+    "0.05": 0.07847250115291353,
+    "0.1": 0.2688891864149596,
+    "0.25": 6.415405899941983,
+    "0.5": 83.4820963686943
+  },
+  "divergence_by_lead_eps": {
+    "2": {
+      "-0.5": 0.28899693489074707,
+      "-0.25": 0.1363813728094101,
+      "-0.1": 0.04980074614286423,
+      "-0.05": 0.024188227951526642,
+      "0.05": 0.024051213636994362,
+      "0.1": 0.04977067932486534,
+      "0.25": 0.13532376289367676,
+      "0.5": 0.19053992629051208
+    },
+    "3": {
+      "-0.5": 0.29792168736457825,
+      "-0.25": 0.18189726769924164,
+      "-0.1": 0.07648175209760666,
+      "-0.05": 0.03726876154541969,
+      "0.05": 0.03439375385642052,
+      "0.1": 0.06993638724088669,
+      "0.25": 0.20963039994239807,
+      "0.5": 0.39419251680374146
+    },
+    "4": {
+      "-0.5": 0.15663406252861023,
+      "-0.25": 0.09612642228603363,
+      "-0.1": 0.03949059545993805,
+      "-0.05": 0.019178492948412895,
+      "0.05": 0.02738095261156559,
+      "0.1": 0.05256462097167969,
+      "0.25": 0.21187855303287506,
+      "0.5": 0.36127370595932007
+    }
+  },
+  "lead_summary": {
+    "1": {
+      "rec_mae_mean": 0.034035685064212874,
+      "rec_mae_sd": 0.0007100813252775086,
+      "ora_mae_mean": 0.034035685064212874,
+      "ora_mae_sd": 0.0007100813252775086,
+      "delta_mae_mean": 0.0,
+      "delta_mae_ci_lower": 0.0,
+      "delta_mae_ci_upper": 0.0,
+      "relative_gap_pct": 0.0,
+      "cohens_d_z": 0.0,
+      "p_boot": 1.0,
+      "raw_p": 1.0,
+      "supp_wilcoxon_p": 1.0
+    },
+    "2": {
+      "rec_mae_mean": 0.052647689540789154,
+      "rec_mae_sd": 0.0016232420002629028,
+      "ora_mae_mean": 0.04500176499142609,
+      "ora_mae_sd": 0.003098046975782973,
+      "delta_mae_mean": 0.007645924549363075,
+      "delta_mae_ci_lower": 0.005878060469672598,
+      "delta_mae_ci_upper": 0.009753255163160049,
+      "relative_gap_pct": 14.522811192767241,
+      "cohens_d_z": 0.6415546482449607,
+      "p_boot": 0.0,
+      "raw_p": 0.0,
+      "supp_wilcoxon_p": 4.708699206234893e-23,
+      "adj_p": 0.0,
+      "rejected": true
+    },
+    "3": {
+      "rec_mae_mean": 0.07191558922323762,
+      "rec_mae_sd": 0.016819983850683513,
+      "ora_mae_mean": 0.04647527948555902,
+      "ora_mae_sd": 0.0031310509316096113,
+      "delta_mae_mean": 0.025440309737678607,
+      "delta_mae_ci_lower": 0.02156275310025138,
+      "delta_mae_ci_upper": 0.03005393107445803,
+      "relative_gap_pct": 35.37523645771402,
+      "cohens_d_z": 1.2013971358745263,
+      "p_boot": 0.0,
+      "raw_p": 0.0,
+      "supp_wilcoxon_p": 2.4106419741339778e-29,
+      "adj_p": 0.0,
+      "rejected": true
+    },
+    "4": {
+      "rec_mae_mean": 0.08981094107698029,
+      "rec_mae_sd": 0.028812831208172837,
+      "ora_mae_mean": 0.05018971190616502,
+      "ora_mae_sd": 0.0021351524364863978,
+      "delta_mae_mean": 0.03962122917081526,
+      "delta_mae_ci_lower": 0.0328115332410182,
+      "delta_mae_ci_upper": 0.04701697883842903,
+      "relative_gap_pct": 44.116260998595294,
+      "cohens_d_z": 1.2691589565531978,
+      "p_boot": 0.0,
+      "raw_p": 0.0,
+      "supp_wilcoxon_p": 1.560939909679773e-28,
+      "adj_p": 0.0,
+      "rejected": true
+    }
+  },
+  "gate2_decision": {
+    "verdict": "GO",
+    "criteria": {
+      "GO-1_statistical_significance": {
+        "passed": true,
+        "w3_rejected": true,
+        "w4_rejected": true
+      },
+      "GO-2_practical_effect_size": {
+        "passed": true,
+        "w3_cohens_d_z": 1.2013971358745263,
+        "w4_cohens_d_z": 1.2691589565531978,
+        "w3_relative_gap_pct": 35.37523645771402,
+        "w4_relative_gap_pct": 44.116260998595294
+      },
+      "GO-3_replicate_consistency": {
+        "passed": true
+      },
+      "GO-4_perturbation_sensitivity": {
+        "passed": true,
+        "details": {
+          "lead_3": {
+            "d_pos_05": 0.03439375385642052,
+            "d_pos_10": 0.06993638724088669,
+            "positive_monotonic": true,
+            "d_neg_05": 0.03726876154541969,
+            "d_neg_10": 0.07648175209760666,
+            "negative_monotonic": true,
+            "passed": true
+          },
+          "lead_4": {
+            "d_pos_05": 0.02738095261156559,
+            "d_pos_10": 0.05256462097167969,
+            "positive_monotonic": true,
+            "d_neg_05": 0.019178492948412895,
+            "d_neg_10": 0.03949059545993805,
+            "negative_monotonic": true,
+            "passed": true
+          }
+        },
+        "specification": "D_k(+0.10) > D_k(+0.05) and D_k(-0.10) > D_k(-0.05) evaluated separately across magnitude |eps| in downstream leads; +/-0.25 and +/-0.50 are exploratory boundary stress tests"
+      }
+    },
+    "action": "Proceed to Phase 24 (Model A1 Lead-Aware Recursive Residual Refinement)"
+  }
+}

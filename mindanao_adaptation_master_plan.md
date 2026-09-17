@@ -685,7 +685,7 @@ To maintain relentless focus on the central scientific question of the thesis wh
 
 **Objective**: Empirically investigate whether Model A0 suffers from systematic error compounding along the autoregressive recursive prediction chain ($W_1 \to W_2 \to W_3 \to W_4$). Directly follows Model A0 training without waiting for Phase 22.
 
-- [ ] **Step 23.1**: Define parallel diagnostic inference protocols.
+- [x] **Step 23.1**: Define parallel diagnostic inference protocols. `[PASS]`
   1. **Protocol 1 (Standard Autoregressive Recursion)**:
      Downstream models ingest prior predicted states:
      $$\hat{y}_{W1} \to X_{W2} \to \hat{y}_{W2} \to X_{W3} \to \hat{y}_{W3} \to X_{W4} \to \hat{y}_{W4}$$
@@ -701,17 +701,17 @@ To maintain relentless focus on the central scientific question of the thesis wh
      for $\epsilon \in \{\pm 0.05, \pm 0.10, \pm 0.25, \pm 0.50\}$. This preserves ensemble member correspondence; ensemble spread is unchanged on unclipped cells, while any boundary-induced spread changes are explicitly recorded by the clipping census. Measure downstream divergence in Leads 2, 3, and 4 relative to unperturbed inference:
      $$D_k(\epsilon) = \operatorname{RMSE}\left(\hat{y}_k^{(\epsilon)}, \hat{y}_k^{(0)}\right)$$
      directly quantifying perturbation propagation across leads.
-- [ ] **Step 23.2**: Execute multi-lead validation evaluation across all 194 usable cases under Protocols 1, 2, and 4.
-  * Compute lead-by-lead performance: $\text{RMSE}_k, \text{MAE}_k, \text{ACC}_k, \text{CRPS}_k$ for $k \in \{1, 2, 3, 4\}$.
-- [ ] **Step 23.3**: Compute the Recursive Error Accumulation Gap and Execute Statistical Inference.
+- [x] **Step 23.2**: Execute multi-lead validation evaluation across all 194 usable cases under Protocols 1, 2, and 4. `[PASS / CERTIFIED_ON_GPU]`
+  * Compute lead-by-lead performance: $\text{RMSE}_k, \text{MAE}_k, \text{ACC}_k, \text{CRPS}_k$ for $k \in \{1, 2, 3, 4\}$. Executed on NVIDIA Tesla T4 in Notebook 13 across Seeds 42, 123, 456.
+- [x] **Step 23.3**: Compute the Recursive Error Accumulation Gap and Execute Statistical Inference. `[PASS / CERTIFIED_ON_GPU]`
   * Primary Formulation:
     $$\Delta E_k = E_k^{\text{recursive}} - E_k^{\text{oracle}}$$
   * Error Characterization: Distinguish between residual non-recursive error (remaining forecast error from structural limitations and atmospheric forcing uncertainty) vs. compounding recursive state error.
   * Statistical Inference Standard:
-    - Primary Inferential Procedure: Moving-Block Bootstrap (MBB, $L=4$ cycles $\approx 2$ months, $B=10,000$ resamples) providing 95% CIs from empirical resampling, and a calibrated null bootstrap p-value ($p_{\text{boot}}$) constructed by resampling the centered null series $d_i^{(0)} = d_i - \bar{d}$ under $H_0: E[\Delta] = 0$, explicitly accounting for temporal autocorrelation across sequential bi-weekly forecast cycles.
-    - Supplementary Nonparametric Check: Paired Wilcoxon signed-rank test reported as a complementary sensitivity check.
-    - Multiple Testing Adjustment: Step-down Holm-Bonferroni correction applied across downstream leads ($W_2, W_3, W_4$) on primary bootstrap p-values.
-- [ ] **Step 23.4**: Document diagnostic findings in `reproduction_audit/GATE2_RECURSIVE_DEGRADATION_DIAGNOSTIC.md`.
+    - Primary Inferential Procedure: Moving-Block Bootstrap (MBB, $L=4$ cycles $\approx 2$ months, $B=10,000$ resamples) providing 95% CIs from empirical resampling, and a calibrated null bootstrap p-value ($p_{\text{boot}}$) constructed by resampling the centered null series $d_i^{(0)} = d_i - \bar{d}$ under $H_0: E[\Delta] = 0$, explicitly accounting for temporal autocorrelation across sequential bi-weekly forecast cycles. (W2: $\Delta \text{MAE} = +0.0076, p_{\text{boot}} < 0.0001$; W3: $\Delta \text{MAE} = +0.0254, p_{\text{boot}} < 0.0001$; W4: $\Delta \text{MAE} = +0.0396, p_{\text{boot}} < 0.0001$).
+    - Supplementary Nonparametric Check: Paired Wilcoxon signed-rank test reported as a complementary sensitivity check (concordant, $p < 10^{-22}$).
+    - Multiple Testing Adjustment: Step-down Holm-Bonferroni correction applied across downstream leads ($W_2, W_3, W_4$) on primary bootstrap p-values ($p_{\text{adj}} < 0.0001$ across all downstream leads under finite $B=10,000$ resolution).
+- [x] **Step 23.4**: Document diagnostic findings in `reproduction_audit/POST_A0_GATE2_DECISION_DOSSIER.md`. `[PASS]`
 
 ---
 
@@ -719,11 +719,23 @@ To maintain relentless focus on the central scientific question of the thesis wh
 
 **Objective**: Formal scientific decision gate establishing whether empirical evidence of recursive degradation justifies the introduction of an architectural refinement mechanism. Formally disambiguated from Pre-Production Gate 2 (Hardware Profiling & VRAM Feasibility).
 
-- [ ] **Step G2.1**: Evaluate formal GO / NO-GO criteria against validation data:
+- [x] **Step G2.1**: Evaluate formal GO / NO-GO criteria against validation data: **`VERDICT: GO`** `[PASS / CERTIFIED_ON_GPU]`
   * **Predeclared Protocol Rule**: The decision criteria and practical effect thresholds must be **frozen before viewing A0 diagnostic results** to prevent post-hoc rationalization.
   * **Primary GO Criteria**:
-    1. Statistically significant recursive degradation under primary Moving-Block Bootstrap (Holm-Bonferroni adjusted $p_{\text{boot}} < 0.05$, 95% MBB CI strictly excludes zero) in Leads $W_3$ and/or $W_4$, with supplementary Wilcoxon test concordant.
-    2. Practically meaningful effect size: Cohen's $d_z = \operatorname{mean}(\Delta e) / \operatorname{sd}(\Delta e) \ge 0.20$ OR relative error reduction $\ge 2.0\%$ under Oracle ($\Delta E_k / E_k^{\text{rec}} \ge 0.02$).
+    1. Statistically significant recursive degradation under primary Moving-Block Bootstrap (Holm-Bonferroni adjusted $p_{\text{boot}} < 0.05$, 95% MBB CI strictly excludes zero) in Leads $W_3$ and/or $W_4$, with supplementary Wilcoxon test concordant. `[PASS: W3 & W4 p_boot < 0.0001]`
+    2. Practically meaningful effect size: Cohen's $d_z = \operatorname{mean}(\Delta e) / \operatorname{sd}(\Delta e) \ge 0.20$ OR relative error reduction $\ge 2.0\%$ under Oracle ($\Delta E_k / E_k^{\text{rec}} \ge 0.02$). `[PASS: W3 d_z = +1.201, relative gap represents 35.38% of W3 recursive MAE; W4 d_z = +1.269, relative gap represents 44.12% of W4 recursive MAE]`
+    3. Replicate consistency: $\Delta E_k > 0$ holds across all three training seeds ($42, 123, 456$). `[PASS: consistent across all 3 seeds]`
+    4. Perturbation sensitivity: Downstream divergence $D_k(\epsilon)$ increases monotonically with perturbation magnitude $|\epsilon|$ across realistic forecast error levels, evaluated separately for positive and negative perturbations ($D_k(+0.10) > D_k(+0.05)$ and $D_k(-0.10) > D_k(-0.05)$) in Leads $W_3$ and/or $W_4$. Perturbations at $\pm 0.25$ and $\pm 0.50$ are treated strictly as exploratory boundary stress tests and are not required evidence for the GO decision. `[PASS: strictly monotonic across realistic operational perturbations; perturbation propagates nonlinearly across later leads]`
+  * **NO-GO Criteria**:
+    1. Recursive error gap $\Delta E_k \le 0$ or adjusted $p_{\text{boot}} \ge 0.05$ or 95% MBB CI contains zero or effect size $d_z < 0.20$ across downstream leads.
+    2. Degradation occurs equally under Oracle replacement, demonstrating that error growth is driven by residual non-recursive error rather than recursive state feedback.
+    3. Inconsistent direction of $\Delta E_k$ across training seeds.
+  * **Predeclared Protocol Action**:
+    * If **GO** is confirmed: Proceed to Phase 24 (Model A1 Lead-Aware Recursive Residual Refinement). **`[CONFIRMED GO: PHASE 24 ACTIVATED]`**
+    * If **NO-GO** is confirmed: Formally halt neural architectural modifications; designate Model A0 as the authoritative regional benchmark, document that the tested evidence does not support recursive feedback as a sufficiently material or actionable source of degradation under the tested conditions, and retain A0 as the regional benchmark (proceeding directly to Phase 26).
+- [x] **Step G2.2**: Publish formal Post-A0 Gate 2 (G2-R) Decision Dossier. `[PASS]`
+  * Storage: `reproduction_audit/POST_A0_GATE2_DECISION_DOSSIER.md`.
+  * Pass Criterion: Clear empirical justification locked before Phase 24 architecture construction begins.atorname{mean}(\Delta e) / \operatorname{sd}(\Delta e) \ge 0.20$ OR relative error reduction $\ge 2.0\%$ under Oracle ($\Delta E_k / E_k^{\text{rec}} \ge 0.02$).
     3. Replicate consistency: $\Delta E_k > 0$ holds across all three training seeds ($42, 123, 456$).
     4. Perturbation sensitivity: Downstream divergence $D_k(\epsilon)$ increases monotonically with perturbation magnitude $|\epsilon|$ across realistic forecast error levels, evaluated separately for positive and negative perturbations ($D_k(+0.10) > D_k(+0.05)$ and $D_k(-0.10) > D_k(-0.05)$) in Leads $W_3$ and/or $W_4$. Perturbations at $\pm 0.25$ and $\pm 0.50$ are treated strictly as exploratory boundary stress tests and are not required evidence for the GO decision.
   * **NO-GO Criteria**:

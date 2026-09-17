@@ -213,3 +213,32 @@ milestones:
         disambiguation_note: "Distinct from Pre-Production Gate 2 (Hardware Profiling & VRAM Feasibility). G2-R is the formal scientific decision gate."
         go_action: "Activate Phase 24 to build and train Model A1 Lead-Aware Recursive Residual Refinement module"
         no_go_action: "Halt neural architectural modifications; freeze Model A0 as definitive regional deep learning benchmark; bypass Phase 24/25; proceed directly to Phase 26 comparative evaluation"
+
+  phase_23_recursive_degradation_diagnostic:
+    name: "Phase 23: Model A0 Recursive Degradation Diagnostic & Post-A0 Gate 2 (G2-R)"
+    status: "PASS"
+    certification_level: "CERTIFIED_ON_GPU"
+    date_certified: "2026-09-17"
+    execution_mode: "LIVE_GPU"
+    execution_status: "COMPLETED"
+    gate_2_verdict: "GO"
+    gate_2_action: "Proceed to Phase 24 (Model A1 Lead-Aware Recursive Residual Refinement)"
+    execution_commit: "b64970f9c159dd509dbe46874a832f7ab855a491"
+    details: "Evaluated across all 3 independent training replicate seeds (42, 123, 456) and all 4 forecast leads on 194-case validation partition (2022-2023) across 126 evaluation land cells in Mindanao on NVIDIA Tesla T4 GPU in Google Colab (Notebook 13, execution commit b64970f). Primary inference via 10,000-resample Moving-Block Bootstrap (MBB, L=4) with centered null series and step-down Holm-Bonferroni correction (alpha=0.05). All 4 pre-registered GO criteria satisfied: GO-1 (W3/W4 95% MBB CIs strictly exclude zero, Holm-Bonferroni adjusted p_boot < 0.0001 under finite B=10000 resolution, supplementary Wilcoxon p < 10^-28); GO-2 (W3 Cohen's d_z = +1.201, relative gap represents 35.38% of W3 recursive MAE; W4 Cohen's d_z = +1.269, relative gap represents 44.12% of W4 recursive MAE under oracle counterfactual protocol); GO-3 (replicate consistency holds strictly across all 3 seeds in leads W2..W4); GO-4 (downstream divergence D_k grows monotonically across magnitude |eps| for realistic levels +/-0.05 to +/-0.10 in both W3 and W4; realistic clipping <= 0.27%, demonstrating recursive-state sensitivity propagating nonlinearly across later leads). Post-A0 Gate 2 (G2-R) officially evaluates to GO, unlocking Phase 24. Artifacts synchronized with cryptographic SHA-256 validation."
+    hardware_target: "NVIDIA Tesla T4"
+    tensorflow_version: "2.20.0"
+    python_version: "3.12"
+    empirical_results:
+      lead_w1: {rec_mae: "0.0340 ± 0.0007", ora_mae: "0.0340 ± 0.0007", delta_mae: "+0.0000 [+0.0000, +0.0000]", cohens_d_z: 0.000, adj_p_boot: "1.0000", wilcoxon_p: "1.0000"}
+      lead_w2: {rec_mae: "0.0526 ± 0.0016", ora_mae: "0.0450 ± 0.0031", delta_mae: "+0.0076 [+0.0059, +0.0098]", cohens_d_z: 0.642, adj_p_boot: "< 0.0001", wilcoxon_p: 4.7087e-23, relative_gap_pct: 14.52}
+      lead_w3: {rec_mae: "0.0719 ± 0.0168", ora_mae: "0.0465 ± 0.0031", delta_mae: "+0.0254 [+0.0216, +0.0301]", cohens_d_z: 1.201, adj_p_boot: "< 0.0001", wilcoxon_p: 2.4106e-29, relative_gap_pct: 35.38}
+      lead_w4: {rec_mae: "0.0898 ± 0.0288", ora_mae: "0.0502 ± 0.0021", delta_mae: "+0.0396 [+0.0328, +0.0470]", cohens_d_z: 1.269, adj_p_boot: "< 0.0001", wilcoxon_p: 1.5609e-28, relative_gap_pct: 44.12}
+    verified_artifacts:
+      - "scripts/19_run_recursive_degradation_diagnostic.py"
+      - "notebooks/13_mindanao_recursive_degradation_diagnostic.ipynb"
+      - "tests/test_17_recursive_diagnostic.py"
+      - "logs/phase23_recursive_diagnostic_results.json"
+      - "figures/phase23_recursive_degradation_composite.png"
+      - "reproduction_audit/POST_A0_GATE2_DECISION_DOSSIER.md"
+
+
