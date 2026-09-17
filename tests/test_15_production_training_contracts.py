@@ -80,6 +80,35 @@ class TestProductionTrainingContracts(unittest.TestCase):
 
         self.assertAlmostEqual(loss1, loss2, places=6)
 
+    @unittest.skipUnless(TF_AVAILABLE, "Requires TensorFlow")
+    def test_zero_variance_ocean_cells_gradient_stability(self):
+        """
+        Explicitly tests that zero variance across ensemble members (e.g. 1,410 ocean cells zeroed out)
+        produces strictly finite loss and finite gradients with no NaNs.
+        """
+        batch_size = 33  # 3 cases x 11 members
+        eval_mask = np.zeros((32, 48), dtype=bool)
+        eval_mask[10:16, 15:36] = True  # 126 active cells
+
+        y_true = np.random.uniform(0.1, 0.9, size=(batch_size, 32, 48, 1)).astype(np.float32)
+        y_true[:, ~eval_mask, :] = 0.0
+
+        # y_pred with zero spread on ocean cells
+        y_pred_arr = np.random.uniform(0.1, 0.9, size=(batch_size, 32, 48, 1)).astype(np.float32)
+        y_pred_arr[:, ~eval_mask, :] = 0.0
+        y_pred = tf.Variable(y_pred_arr)
+
+        with tf.GradientTape() as tape:
+            loss = crps2d_tf(y_true, y_pred, factor=0.08, eval_mask=eval_mask)
+
+        self.assertTrue(tf.math.is_finite(loss), "Loss must be finite with zero ocean spread")
+        grad = tape.gradient(loss, y_pred)
+        self.assertIsNotNone(grad)
+        self.assertTrue(
+            tf.reduce_all(tf.math.is_finite(grad)),
+            "Gradients must be strictly finite across all cells including zero-variance ocean cells",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -132,6 +132,7 @@ def evaluate_lead_metrics(
     y_hat_prev: Optional[Dict[str, Dict[int, np.ndarray]]] = None,
     eval_mask: Optional[np.ndarray] = None,
     batch_size: int = 11,
+    preloaded_tensors: Optional[Tuple[List[np.ndarray], List[np.ndarray]]] = None,
 ) -> Dict[str, float]:
     """
     Evaluates validation partition metrics for a given lead:
@@ -148,32 +149,39 @@ def evaluate_lead_metrics(
         OUTPUT_HEADS,
     )
 
-    y_preds_list = []
-    y_trues_list = []
+    if preloaded_tensors is not None:
+        val_x_list, val_y_list = preloaded_tensors
+        val_x_all = np.concatenate(val_x_list, axis=0)
+        preds_raw = model.predict(val_x_all, batch_size=batch_size, verbose=0)
+        p_head3 = preds_raw[2] if isinstance(preds_raw, (list, tuple)) else preds_raw
+        y_preds_list = [p_head3]
+        y_trues_list = val_y_list
+    else:
+        y_preds_list = []
+        y_trues_list = []
 
-    for path in case_paths:
-        if not path.exists():
-            continue
-        with np.load(path) as data:
-            case_data = {k: data[k] for k in data.files}
+        for path in case_paths:
+            if not path.exists():
+                continue
+            with np.load(path) as data:
+                case_data = {k: data[k] for k in data.files}
 
-        cid = path.stem.replace("CASE_", "")
-        prev_preds = None
-        if y_hat_prev is not None and cid in y_hat_prev:
-            prev_preds = y_hat_prev[cid]
+            cid = path.stem.replace("CASE_", "")
+            prev_preds = None
+            if y_hat_prev is not None and cid in y_hat_prev:
+                prev_preds = y_hat_prev[cid]
 
-        x_case, y_case = prepare_case_lead_tensors(
-            case_data=case_data,
-            lead=lead,
-            y_hat_prev=prev_preds,
-        )
+            x_case, y_case = prepare_case_lead_tensors(
+                case_data=case_data,
+                lead=lead,
+                y_hat_prev=prev_preds,
+            )
 
-        preds = model(x_case, training=False)
-        # Primary output is Head 3 (RZSM_output_3)
-        p_head3 = preds[2].numpy() if hasattr(preds[2], "numpy") else preds[2]
+            preds = model(x_case, training=False)
+            p_head3 = preds[2].numpy() if hasattr(preds[2], "numpy") else preds[2]
 
-        y_preds_list.append(p_head3)
-        y_trues_list.append(y_case)
+            y_preds_list.append(p_head3)
+            y_trues_list.append(y_case)
 
     if not y_preds_list:
         return {
@@ -201,10 +209,10 @@ def evaluate_lead_metrics(
     rmse = float(np.sqrt(np.mean((p_active - t_active) ** 2)))
 
     # 1. Spatial CRPS Proxy (Parent EX29 author formulation: MAE - 0.08 * spatial_spread)
-    crps_proxy = float(crps2d_numpy(y_true_all, y_pred_all, factor=0.08))
+    crps_proxy = float(crps2d_numpy(y_true_all, y_pred_all, factor=0.08, eval_mask=eval_mask))
 
     # 2. Exact Ensemble CRPS (Standard Gneiting & Raftery 2007 / Hersbach 2000 formulation)
-    crps_exact = float(crps_exact_analytical(y_true_all, y_pred_all))
+    crps_exact = float(crps_exact_analytical(y_true_all, y_pred_all, eval_mask=eval_mask))
 
     # Anomaly Correlation Coefficient (ACC)
     p_mean = np.mean(p_active)
@@ -230,14 +238,17 @@ def generate_lead_predictions(
     lead: int,
     y_hat_prev: Optional[Dict[str, Dict[int, np.ndarray]]] = None,
     eval_mask: Optional[np.ndarray] = None,
+    batch_size: int = 33,
 ) -> Dict[str, np.ndarray]:
     """
     Generates and returns frozen model predictions (M=11, 32, 48, 1) for a set of cases
     to serve as recursive input features for subsequent leads.
+    Employs batched inference for maximum GPU throughput.
     """
     from src.data.tf_dataset import prepare_case_lead_tensors
 
-    preds_dict = {}
+    cid_list = []
+    x_list = []
     for path in case_paths:
         if not path.exists():
             continue
@@ -254,16 +265,25 @@ def generate_lead_predictions(
             lead=lead,
             y_hat_prev=prev_preds,
         )
+        cid_list.append(cid)
+        x_list.append(x_case)
 
-        preds = model(x_case, training=False)
-        # Primary output is Head 3
-        p3 = preds[2].numpy() if hasattr(preds[2], "numpy") else preds[2]
+    if not x_list:
+        return {}
 
-        # Enforce ocean buffer zero-filling on stored recursive predictions
-        if eval_mask is not None:
-            p3[:, ~eval_mask, :] = 0.0
+    all_x = np.concatenate(x_list, axis=0)  # (N*11, 32, 48, C)
+    preds = model.predict(all_x, batch_size=batch_size, verbose=0)
+    p3 = preds[2] if isinstance(preds, (list, tuple)) else preds
 
-        preds_dict[cid] = p3.astype(np.float32)
+    # Enforce ocean buffer zero-filling on stored recursive predictions
+    if eval_mask is not None:
+        p3[:, ~eval_mask, :] = 0.0
+
+    preds_dict = {}
+    for i, cid in enumerate(cid_list):
+        start = i * ENSEMBLE_MEMBERS
+        end = start + ENSEMBLE_MEMBERS
+        preds_dict[cid] = p3[start:end].astype(np.float32)
 
     return preds_dict
 
@@ -340,6 +360,38 @@ def train_single_lead(
     assert num_train_cases > 0, "No training cases available!"
     logger.info(f"Loaded {num_train_cases} training cases.")
 
+    val_x_list, val_y_list = [], []
+    for path in val_paths:
+        if not path.exists():
+            continue
+        with np.load(path) as d:
+            case_data = {k: d[k] for k in d.files}
+        cid = path.stem.replace("CASE_", "")
+        prev_preds = y_hat_val_prev.get(cid) if y_hat_val_prev else None
+        x_c, y_c = prepare_case_lead_tensors(case_data, lead=lead, y_hat_prev=prev_preds)
+        val_x_list.append(x_c)
+        val_y_list.append(y_c)
+    logger.info(f"Loaded {len(val_x_list)} validation cases.")
+
+    # Compile training step graph for high-throughput CUDA execution
+    eval_mask_tf = tf.constant(eval_mask, dtype=tf.float32)
+
+    @tf.function
+    def train_step_fn(bx: tf.Tensor, by: tf.Tensor) -> tf.Tensor:
+        with tf.GradientTape() as tape:
+            preds = model(bx, training=True)
+            loss1 = crps2d_tf(by, preds[0], factor=0.08, eval_mask=eval_mask_tf)
+            loss2 = crps2d_tf(by, preds[1], factor=0.08, eval_mask=eval_mask_tf)
+            loss3 = crps2d_tf(by, preds[2], factor=0.08, eval_mask=eval_mask_tf)
+
+            # Deep supervision weights [0.2, 0.3, 0.5]
+            w = DEFAULT_DEEP_SUPERVISION_WEIGHTS
+            total_loss = w[0] * loss1 + w[1] * loss2 + w[2] * loss3
+
+        grads = tape.gradient(total_loss, model.trainable_variables)
+        optimizer.apply_gradients(zip(grads, model.trainable_variables))
+        return total_loss
+
     # Training state trackers
     history: Dict[str, List[float]] = {
         "epoch": [],
@@ -376,22 +428,16 @@ def train_single_lead(
             if len(b_cases) < cases_per_batch:
                 continue  # Drop remainder to strictly enforce ensemble multiple B
 
-            batch_x = np.concatenate([train_x_list[i] for i in b_cases], axis=0)  # (B, 32, 48, Cin)
-            batch_y = np.concatenate([train_y_list[i] for i in b_cases], axis=0)  # (B, 32, 48, 1)
+            batch_x = tf.constant(np.concatenate([train_x_list[i] for i in b_cases], axis=0))  # (B, 32, 48, Cin)
+            batch_y = tf.constant(np.concatenate([train_y_list[i] for i in b_cases], axis=0))  # (B, 32, 48, 1)
 
-            with tf.GradientTape() as tape:
-                preds = model(batch_x, training=True)
-                loss1 = crps2d_tf(batch_y, preds[0], factor=0.08, eval_mask=eval_mask)
-                loss2 = crps2d_tf(batch_y, preds[1], factor=0.08, eval_mask=eval_mask)
-                loss3 = crps2d_tf(batch_y, preds[2], factor=0.08, eval_mask=eval_mask)
-
-                # Deep supervision weights [0.2, 0.3, 0.5]
-                w = DEFAULT_DEEP_SUPERVISION_WEIGHTS
-                total_loss = w[0] * loss1 + w[1] * loss2 + w[2] * loss3
-
-            grads = tape.gradient(total_loss, model.trainable_variables)
-            optimizer.apply_gradients(zip(grads, model.trainable_variables))
-            train_losses.append(float(total_loss.numpy()))
+            step_loss = train_step_fn(batch_x, batch_y)
+            loss_val = float(step_loss.numpy())
+            if not np.isfinite(loss_val):
+                raise FloatingPointError(
+                    f"Epoch {epoch}, batch {b_idx // cases_per_batch} produced non-finite loss: {loss_val}"
+                )
+            train_losses.append(loss_val)
 
         mean_train_loss = float(np.mean(train_losses)) if train_losses else 0.0
 
@@ -403,6 +449,7 @@ def train_single_lead(
             y_hat_prev=y_hat_val_prev,
             eval_mask=eval_mask,
             batch_size=args.batch_size,
+            preloaded_tensors=(val_x_list, val_y_list),
         )
 
         val_crps = val_metrics["val_crps"]

@@ -216,6 +216,7 @@ class A0CaseBatchGenerator:
 def crps_exact_analytical(
     y_true: np.ndarray,
     y_pred: np.ndarray,
+    eval_mask: Optional[np.ndarray] = None,
 ) -> float:
     """
     Independent reference implementation of the standard continuous ranked probability score (CRPS)
@@ -224,6 +225,7 @@ def crps_exact_analytical(
         CRPS(F, y) = 1/M * sum_{m=1}^M |x_m - y| - 1/(2*M^2) * sum_{m=1}^M sum_{n=1}^M |x_m - x_n|
 
     Evaluates across groups of M=11 ensemble members and averages across spatial pixels and cases.
+    If eval_mask is provided, evaluates strictly over active land cells.
     """
     y_t = np.squeeze(np.asarray(y_true, dtype=np.float32))
     y_p = np.squeeze(np.asarray(y_pred, dtype=np.float32))
@@ -257,15 +259,20 @@ def crps_exact_analytical(
         case_yt = y_t[start_idx:end_idx]  # (11, H, W)
         case_yp = y_p[start_idx:end_idx]  # (11, H, W)
 
-        # MAE per pixel, then averaged
-        mae = np.mean(np.abs(case_yp - case_yt))
-
-        # Pairwise diff per pixel: (11, 11, H, W)
-        diff = np.abs(case_yp[:, np.newaxis, :, :] - case_yp[np.newaxis, :, :, :])
-        pairwise = np.sum(diff, axis=(0, 1)) / (2.0 * ENSEMBLE_MEMBERS * ENSEMBLE_MEMBERS)
-        mean_pairwise = float(np.nanmean(pairwise))
-
-        total_crps += (mae - mean_pairwise)
+        if eval_mask is not None:
+            case_yt_eval = case_yt[:, eval_mask]  # (11, 126)
+            case_yp_eval = case_yp[:, eval_mask]  # (11, 126)
+            mae = float(np.mean(np.abs(case_yp_eval - case_yt_eval)))
+            diff = np.abs(case_yp_eval[:, np.newaxis, :] - case_yp_eval[np.newaxis, :, :])
+            pairwise = np.sum(diff, axis=(0, 1)) / (2.0 * ENSEMBLE_MEMBERS * ENSEMBLE_MEMBERS)
+            mean_pairwise = float(np.nanmean(pairwise))
+            total_crps += (mae - mean_pairwise)
+        else:
+            mae = np.mean(np.abs(case_yp - case_yt))
+            diff = np.abs(case_yp[:, np.newaxis, :, :] - case_yp[np.newaxis, :, :, :])
+            pairwise = np.sum(diff, axis=(0, 1)) / (2.0 * ENSEMBLE_MEMBERS * ENSEMBLE_MEMBERS)
+            mean_pairwise = float(np.nanmean(pairwise))
+            total_crps += (mae - mean_pairwise)
 
     return float(total_crps / num_cases)
 
@@ -274,12 +281,14 @@ def crps2d_numpy(
     y_true: np.ndarray,
     y_pred: np.ndarray,
     factor: float = DEFAULT_FACTOR,
+    eval_mask: Optional[np.ndarray] = None,
 ) -> float:
     """
     Pure NumPy implementation of the author's spatial CRPS loss function (crps2d_tf).
 
     CRPS_exp = MAE - factor * std_ensemble
     Evaluates groups of 11 ensemble members independently and returns the mean score across cases.
+    If eval_mask is provided, evaluates strictly over active land cells.
 
     Supports both:
     1. Single target per case: shape (1, H, W, 1) or (K, H, W, 1)
@@ -322,13 +331,16 @@ def crps2d_numpy(
         case_yt = y_t[start_idx:end_idx]  # shape: (11, 32, 48)
         case_yp = y_p[start_idx:end_idx]  # shape: (11, 32, 48)
 
-        # 1. Mean Absolute Error across all 11 ensemble realizations
-        mae = float(np.mean(np.abs(case_yp - case_yt)))
-
-        # 2. Spatial mean of ensemble standard deviation
-        # Axis 0 is ensemble members; std over members -> (32, 48); then mean over space -> scalar
-        member_std = np.nanstd(case_yp, axis=0)
-        dist = float(np.nanmean(member_std))
+        if eval_mask is not None:
+            case_yt_eval = case_yt[:, eval_mask]  # (11, 126)
+            case_yp_eval = case_yp[:, eval_mask]  # (11, 126)
+            mae = float(np.mean(np.abs(case_yp_eval - case_yt_eval)))
+            member_std = np.nanstd(case_yp_eval, axis=0)
+            dist = float(np.nanmean(member_std))
+        else:
+            mae = float(np.mean(np.abs(case_yp - case_yt)))
+            member_std = np.nanstd(case_yp, axis=0)
+            dist = float(np.nanmean(member_std))
 
         case_crps = mae - factor * dist
         total_crps += case_crps
@@ -730,11 +742,10 @@ def crps2d_tf(
         mask = tf.cast(eval_mask, tf.float32)
         if len(mask.shape) == 2:
             mask = tf.expand_dims(tf.expand_dims(mask, 0), -1)  # (1, 32, 48, 1)
-        y_t = y_t * mask
-        y_p = y_p * mask
+        diff = tf.abs(y_p - y_t) * mask
         num_eval_cells = tf.reduce_sum(mask)
         denom = num_eval_cells * tf.cast(tf.shape(y_t)[0], tf.float32)
-        mae = tf.reduce_sum(tf.abs(y_p - y_t)) / tf.maximum(denom, 1.0)
+        mae = tf.reduce_sum(diff) / tf.maximum(denom, 1.0)
     else:
         mae = tf.reduce_mean(tf.abs(y_p - y_t))
 
@@ -747,7 +758,9 @@ def crps2d_tf(
     c = tf.shape(y_p)[3]
 
     y_p_cases = tf.reshape(y_p[: num_cases * ENSEMBLE_MEMBERS], (num_cases, ENSEMBLE_MEMBERS, h, w, c))
-    ens_std = tf.math.reduce_std(y_p_cases, axis=1)  # (num_cases, H, W, C)
+    # Numerically stable standard deviation: sqrt(var + eps) prevents NaN gradients at zero spread
+    ens_var = tf.math.reduce_variance(y_p_cases, axis=1)  # (num_cases, H, W, C)
+    ens_std = tf.sqrt(ens_var + 1e-7)
 
     if eval_mask is not None:
         mask_cases = tf.tile(mask, [num_cases, 1, 1, 1])
