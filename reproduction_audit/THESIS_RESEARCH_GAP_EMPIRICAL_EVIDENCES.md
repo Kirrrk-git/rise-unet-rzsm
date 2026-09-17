@@ -1,8 +1,9 @@
 <!-- markdownlint-disable -->
-# Thesis Research Gap Dossier: Empirical Identification & Mathematical Validation of the Recursive Predicted-State Degradation Gap
+# Thesis Research Gap Dossier: Empirical Identification & Quantitative Validation of Recursive Predicted-State Error Propagation
 
 **Document Identifier**: `reproduction_audit/THESIS_RESEARCH_GAP_EMPIRICAL_EVIDENCES.md`  
-**Thesis Title**: *Enhanced RISE-UNet with Lead-Aware Recursive Residual Refinement for Subseasonal Root-Zone Soil-Moisture Drought Forecasting in Mindanao*  
+**Working Paper Title**: *Empirical Identification of Recursive Predicted-State Error Propagation in a Mindanao Adaptation of RISE-UNet for Subseasonal Root-Zone Soil-Moisture Forecasting*  
+**Proposed Future Enhancement Track**: *Lead-Aware Recursive Residual Refinement (Model A1: $\mathcal{R}_\theta$)*  
 **Thesis Track**: Track B (Mindanao Regional Adaptation & Proposed Enhancements)  
 **Parent Foundation**: Lesinger & Tian (2025), *Nature Communications*, DOI: `10.1038/s41467-025-62761-3`  
 **Certification Status**: `[PASS / CERTIFIED_ON_GPU / FORMALLY PROVEN]`  
@@ -152,10 +153,10 @@ Legend: [███] Oracle Error (Atmospheric/Inherent)  |  [░░░] Compound
 1. **Accelerating Error Compounding**:
    In Lead 1, error is purely atmospheric and antecedent ($0.0340$). In Lead 2, introducing $\hat{y}_{W1}$ adds $+0.0076$ MAE ($14.52\%$ of total error). By Lead 3, the compounding error expands to $+0.0254$ MAE (**$35.38\%$ of total error**). By Lead 4, the gap reaches $+0.0396$ MAE (**$44.12\%$ of total error**).
 2. **Oracle Stability vs. Recursive Degradation**:
-   Notice the remarkable trajectory of the Oracle Counterfactual:
-   - Oracle MAE grows very slowly: $0.0340 \to 0.0450 \to 0.0465 \to 0.0502$ (+47.6% over 4 weeks).
-   - Recursive MAE explodes: $0.0340 \to 0.0526 \to 0.0719 \to 0.0898$ (+164.1% over 4 weeks).
-   **This proves that the steep degradation curve observed in RISE-UNet is NOT primarily due to lost atmospheric predictability; it is driven by feeding flawed prior predictions into subsequent U-Net stages.**
+   Notice the contrast in trajectories between the operational recursive pathway and the Oracle Counterfactual:
+   - Oracle MAE grows modestly: $0.0340 \to 0.0450 \to 0.0465 \to 0.0502$ (+47.6% over 4 weeks).
+   - Recursive MAE increases substantially: $0.0340 \to 0.0526 \to 0.0719 \to 0.0898$ (+164.1% over 4 weeks).
+   **This demonstrates that a substantial portion of later-lead error degradation ($35.38\%$ in W3 and $44.12\%$ in W4) is attributable to predicted-state error propagation rather than purely atmospheric unpredictability, although natural atmospheric predictability decay, forcing uncertainty, and observation noise remain contributing factors.**
 3. **Statistical Decisiveness**:
    Under the primary Moving-Block Bootstrap ($B=10,000$, block length $L=4$ cycles / 28 days to preserve temporal autocorrelation), not a single bootstrap resample under the centered null produced a test statistic as extreme as the observed gap ($p_{\text{boot}} < 0.0001$). The 95% confidence intervals are tightly bounded away from zero ($[+0.0216, +0.0301]$ for W3 and $[+0.0328, +0.0470]$ for W4).
 
@@ -195,7 +196,7 @@ The recursive degradation gap $\Delta E_k > 0$ held strictly across **100% of in
 - **Seed 123**: $\Delta E_{W2} = +0.0072$, $\Delta E_{W3} = +0.0248$, $\Delta E_{W4} = +0.0385$
 - **Seed 456**: $\Delta E_{W2} = +0.0076$, $\Delta E_{W3} = +0.0254$, $\Delta E_{W4} = +0.0393$
 
-This proves that recursive degradation is an **intrinsic architectural property** of RISE-UNet in this regional domain, completely invariant to stochastic weight initialization.
+This demonstrates that recursive error compounding is a **robust, reproducible characteristic** of the recursive forecasting pipeline under the tested configuration across independent training initializations.
 
 ---
 
