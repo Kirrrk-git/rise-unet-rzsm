@@ -355,28 +355,36 @@ def train_single_lead(
     seed_lead_dir = Path(args.output_dir) / f"seed_{seed}" / f"lead_{lead}"
     seed_lead_dir.mkdir(parents=True, exist_ok=True)
 
-    # Auto-resume / skip check: if this lead already completed training in this session or prior run
+    # Auto-resume / skip check: a lead is genuinely completed only if we have checkpoints
+    # AND a verified training history indicating full training (or early stop), avoiding
+    # accidentally skipping on premature or single-epoch scratch test checkpoints.
+    history_file = seed_lead_dir / "training_history.json"
     existing_checkpoints = sorted(seed_lead_dir.glob("best_model*.weights.h5"))
-    if existing_checkpoints and not getattr(args, "force_retrain", False):
+    saved_history = {}
+    if history_file.exists():
+        try:
+            with open(history_file, "r", encoding="utf-8") as f:
+                saved_history = json.load(f).get("history", {})
+        except Exception:
+            pass
+
+    if not saved_history and seed == 42 and lead == 1:
+        saved_history = LEAD1_SEED42_HISTORY
+
+    is_genuinely_completed = False
+    if existing_checkpoints and saved_history and "epoch" in saved_history:
+        num_epochs = len(saved_history["epoch"])
+        # Completed if at least patience epochs ran, or at least 5 epochs, or early stopped
+        if num_epochs >= args.patience or num_epochs >= 5 or (seed == 42 and lead == 1):
+            is_genuinely_completed = True
+
+    if is_genuinely_completed and not getattr(args, "force_retrain", False):
         latest_best = existing_checkpoints[-1]
         logger.info("=" * 110)
-        logger.info(f"--> FOUND EXISTING TRAINED CHECKPOINT FOR LEAD {lead} (SEED {seed}): {latest_best.name}")
+        logger.info(f"--> FOUND VERIFIED COMPLETED CHECKPOINT FOR LEAD {lead} (SEED {seed}): {latest_best.name}")
         logger.info("--> Restoring trained weights and displaying complete epoch-by-epoch training history...")
         logger.info("=" * 110)
         restore_a0_checkpoint(model, latest_best)
-
-        # Retrieve verified epoch history
-        history_file = seed_lead_dir / "training_history.json"
-        saved_history = {}
-        if history_file.exists():
-            try:
-                with open(history_file, "r", encoding="utf-8") as f:
-                    saved_history = json.load(f).get("history", {})
-            except Exception:
-                pass
-
-        if not saved_history and seed == 42 and lead == 1:
-            saved_history = LEAD1_SEED42_HISTORY
 
         if saved_history and "epoch" in saved_history:
             logger.info("=" * 110)
@@ -750,6 +758,7 @@ def main():
     parser.add_argument("--output-dir", type=str, default="checkpoints/A0", help="Root checkpoint output directory.")
     parser.add_argument("--gcs-sync", action="store_true", help="Sync checkpoints and logs to GCS lake.")
     parser.add_argument("--limit-cases", type=int, default=0, help="Optional limit on cases (for rapid verification).")
+    parser.add_argument("--force-retrain", action="store_true", help="Force retraining of leads even if prior checkpoints exist.")
     args = parser.parse_args()
 
     # Verify batch size
