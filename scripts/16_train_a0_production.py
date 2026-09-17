@@ -895,6 +895,27 @@ def main():
         json.dump(summary_report, f, indent=2)
     logger.info(f"Production 3-Seed summary exported to {summary_path}")
 
+    # Display formatted multi-lead summary table
+    logger.info("=" * 105)
+    logger.info("                  MODEL A0 PRODUCTION PERFORMANCE SUMMARY ACROSS FORECAST LEADS")
+    logger.info("=" * 105)
+    logger.info(f"{'Seed':^6} | {'Lead':^6} | {'Val Proxy CRPS':^16} | {'Val Exact CRPS':^16} | {'Val MAE':^10} | {'Val RMSE':^10} | {'Val ACC':^10}")
+    logger.info("-" * 105)
+    for s in args.seeds:
+        if s not in all_seed_results:
+            continue
+        for l in args.leads:
+            if l not in all_seed_results[s]:
+                continue
+            m = all_seed_results[s][l]
+            v_crps = m.get("val_crps", 0.0)
+            v_exact = m.get("val_exact_crps", v_crps)
+            v_mae = m.get("val_mae", 0.0)
+            v_rmse = m.get("val_rmse", 0.0)
+            v_acc = m.get("val_acc", 0.0)
+            logger.info(f"{s:^6} | W{l:<5} | {v_crps:16.4f} | {v_exact:16.4f} | {v_mae:10.4f} | {v_rmse:10.4f} | {v_acc:10.4f}")
+    logger.info("=" * 105)
+
     # GCS sync of final summary
     if args.gcs_sync:
         try:
