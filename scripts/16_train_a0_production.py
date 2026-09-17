@@ -342,6 +342,25 @@ def train_single_lead(
     seed_lead_dir = Path(args.output_dir) / f"seed_{seed}" / f"lead_{lead}"
     seed_lead_dir.mkdir(parents=True, exist_ok=True)
 
+    # Auto-resume / skip check: if this lead already completed training in this session or prior run
+    existing_checkpoints = sorted(seed_lead_dir.glob("best_model*.weights.h5"))
+    if existing_checkpoints and not getattr(args, "force_retrain", False):
+        latest_best = existing_checkpoints[-1]
+        logger.info("=" * 80)
+        logger.info(f"--> FOUND EXISTING TRAINED CHECKPOINT FOR LEAD {lead} (SEED {seed}): {latest_best.name}")
+        logger.info("--> Skipping re-training and loading existing weights to preserve completed work!")
+        logger.info("=" * 80)
+        restore_a0_checkpoint(model, latest_best)
+        final_metrics = evaluate_lead_metrics(
+            model=model,
+            case_paths=val_paths,
+            lead=lead,
+            y_hat_prev=y_hat_val_prev,
+            eval_mask=eval_mask,
+            batch_size=args.batch_size,
+        )
+        return model, {}, final_metrics
+
     # Pre-load normalized training and validation tensors into memory for maximum GPU throughput
     logger.info(f"Pre-loading tensors for {len(train_paths)} train cases and {len(val_paths)} val cases...")
     train_x_list, train_y_list = [], []
@@ -479,7 +498,7 @@ def train_single_lead(
             improved_flag = " [BEST CHECKPOINT SAVED]"
 
             # Save primary best model weights
-            save_a0_checkpoint(
+            best_weights_path = save_a0_checkpoint(
                 model=model,
                 epoch=epoch,
                 loss=val_crps,

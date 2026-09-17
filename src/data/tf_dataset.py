@@ -437,14 +437,25 @@ def save_a0_checkpoint(
 
     weights_path = checkpoint_dir / f"{filename_prefix}_epoch{epoch:03d}.weights.h5"
     meta_path = checkpoint_dir / f"{filename_prefix}_epoch{epoch:03d}_meta.json"
+    canonical_weights = checkpoint_dir / f"{filename_prefix}.weights.h5"
 
     # Save model weights
     if hasattr(model, "save_weights"):
         model.save_weights(str(weights_path))
+        try:
+            import shutil
+            shutil.copy2(str(weights_path), str(canonical_weights))
+        except Exception:
+            pass
     else:
         # Fallback dictionary for testing mock models
         weights_dict = {f"layer_{i}": w for i, w in enumerate(model.get_weights())}
         np.savez_compressed(weights_path.with_suffix(".npz"), **weights_dict)
+        try:
+            import shutil
+            shutil.copy2(str(weights_path.with_suffix(".npz")), str(canonical_weights.with_suffix(".npz")))
+        except Exception:
+            pass
 
     # Save metadata
     meta = {
@@ -466,6 +477,7 @@ def restore_a0_checkpoint(
 ) -> None:
     """
     Restores model weights from saved checkpoint file.
+    Supports canonical weights, npz format, or epoch-stamped checkpoints.
     """
     weights_path = Path(weights_path)
     if not weights_path.exists():
@@ -474,7 +486,16 @@ def restore_a0_checkpoint(
         if npz_alt.exists():
             weights_path = npz_alt
         else:
-            raise FileNotFoundError(f"Checkpoint weights not found: {weights_path}")
+            # Look for epoch-stamped weights e.g. best_model_epoch*.weights.h5
+            parent_dir = weights_path.parent
+            prefix = weights_path.name.split(".")[0].split("_epoch")[0]
+            epoch_h5 = sorted(parent_dir.glob(f"{prefix}_epoch*.weights.h5"))
+            epoch_npz = sorted(parent_dir.glob(f"{prefix}_epoch*.weights.npz"))
+            candidates = epoch_h5 + epoch_npz
+            if candidates:
+                weights_path = candidates[-1]
+            else:
+                raise FileNotFoundError(f"Checkpoint weights not found: {weights_path}")
 
     if str(weights_path).endswith(".npz"):
         with np.load(weights_path) as data:
