@@ -38,6 +38,14 @@ from src.evaluation.recursive_diagnostic import (
     compute_cohens_d_z,
     check_perturbation_monotonicity,
     evaluate_gate2_rules,
+    assign_philippine_monsoon_regime,
+    assign_meteorological_quarter,
+    compute_season_stratified_breakdown,
+    compute_monsoon_spatial_error_maps,
+    generate_seasonality_diagnostic_plots,
+    generate_seasonality_presentation_slide,
+    generate_recursive_gap_presentation_slide,
+    generate_divided_seasonality_figures,
 )
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -261,10 +269,10 @@ class TestRecursiveDiagnosticFramework(unittest.TestCase):
 
     def test_contract_reconciliation_phase23_vs_a0_baseline(self):
         """Cross-checks PHASE_23_DIAGNOSTIC_CONTRACT against A0_Mindanao_Baseline_Contract."""
-        p23_path = REPO_ROOT / "contracts" / "A0" / "PHASE_23_DIAGNOSTIC_CONTRACT.yaml"
+        p23_path = REPO_ROOT / "contracts" / "A0" / "recursive_degradation_diagnostic_contract.yaml"
         a0_path = REPO_ROOT / "contracts" / "A0" / "A0_Mindanao_Baseline_Contract.yaml"
 
-        self.assertTrue(p23_path.is_file(), "PHASE_23_DIAGNOSTIC_CONTRACT.yaml must exist.")
+        self.assertTrue(p23_path.is_file(), "recursive_degradation_diagnostic_contract.yaml must exist.")
         self.assertTrue(a0_path.is_file(), "A0_Mindanao_Baseline_Contract.yaml must exist.")
 
         with open(p23_path, "r", encoding="utf-8") as f:
@@ -299,6 +307,128 @@ class TestRecursiveDiagnosticFramework(unittest.TestCase):
             sorted(ca0["production_checkpoints_manifest"]["seeds"]),
         )
         self.assertEqual(c23["evaluated_models"]["replicate_seeds"], [42, 123, 456])
+
+    def test_assign_philippine_monsoon_regime(self):
+        """Validates Philippine monsoon regime assignment across calendar months."""
+        # Amihan: Nov, Dec, Jan, Feb, Mar, Apr
+        for m in (11, 12, 1, 2, 3, 4):
+            self.assertEqual(assign_philippine_monsoon_regime(m), "Amihan")
+            self.assertEqual(assign_philippine_monsoon_regime(f"CASE_2022{m:02d}15_001"), "Amihan")
+
+        # Habagat: Jun, Jul, Aug, Sep, Oct
+        for m in (6, 7, 8, 9, 10):
+            self.assertEqual(assign_philippine_monsoon_regime(m), "Habagat")
+            self.assertEqual(assign_philippine_monsoon_regime(f"CASE_2022{m:02d}15_001"), "Habagat")
+
+        # Transition: May (5)
+        self.assertEqual(assign_philippine_monsoon_regime(5), "Transition")
+        self.assertEqual(assign_philippine_monsoon_regime("CASE_20220515_001"), "Transition")
+
+    def test_assign_meteorological_quarter(self):
+        """Validates meteorological quarter assignment."""
+        self.assertEqual(assign_meteorological_quarter("CASE_20220115_001"), "DJF")
+        self.assertEqual(assign_meteorological_quarter("CASE_20220415_001"), "MAM")
+        self.assertEqual(assign_meteorological_quarter("CASE_20220715_001"), "JJA")
+        self.assertEqual(assign_meteorological_quarter("CASE_20221015_001"), "SON")
+
+    def test_compute_season_stratified_breakdown(self):
+        """Validates stratified breakdown calculations across simulated cases."""
+        mock_cids = [
+            "CASE_20220115_001", "CASE_20220215_002",  # Amihan
+            "CASE_20220515_003",                      # Transition
+            "CASE_20220715_004", "CASE_20220815_005",  # Habagat
+        ]
+        diffs_w3 = np.array([0.02, 0.03, 0.01, 0.05, 0.04])
+        res = compute_season_stratified_breakdown(
+            case_ids=mock_cids,
+            case_diffs_by_lead={3: diffs_w3},
+            regime_type="monsoon",
+            n_boot=100,
+        )
+        self.assertIn("Amihan", res)
+        self.assertIn("Habagat", res)
+        self.assertIn("Transition", res)
+        self.assertEqual(res["Amihan"]["case_count"], 2)
+        self.assertEqual(res["Habagat"]["case_count"], 2)
+        self.assertEqual(res["Transition"]["case_count"], 1)
+        self.assertAlmostEqual(res["Amihan"]["leads"]["3"]["delta_mae_mean"], 0.025, places=4)
+        self.assertAlmostEqual(res["Habagat"]["leads"]["3"]["delta_mae_mean"], 0.045, places=4)
+
+    def test_compute_monsoon_spatial_error_maps(self):
+        """Validates spatial error map computation and East-West asymmetry metrics."""
+        mock_cids = ["CASE_20220115_001", "CASE_20220715_002"]
+        mock_spatial = {
+            "CASE_20220115_001": np.full((GRID_HEIGHT, GRID_WIDTH), 0.06, dtype=np.float32),
+            "CASE_20220715_002": np.full((GRID_HEIGHT, GRID_WIDTH), 0.04, dtype=np.float32),
+        }
+        res = compute_monsoon_spatial_error_maps(
+            case_ids=mock_cids,
+            case_spatial_errors=mock_spatial,
+            eval_mask=self.eval_mask,
+        )
+        self.assertIn("Amihan", res)
+        self.assertIn("Habagat", res)
+        self.assertIn("Transition", res)
+        self.assertIn("Dipole_Diff", res)
+        self.assertIn("Asymmetry", res)
+        self.assertEqual(res["Amihan"]["case_count"], 1)
+        self.assertEqual(res["Habagat"]["case_count"], 1)
+        self.assertEqual(res["Transition"]["case_count"], 0)
+        self.assertAlmostEqual(res["Amihan"]["overall_mean"], 0.06, places=4)
+        self.assertAlmostEqual(res["Habagat"]["overall_mean"], 0.04, places=4)
+        # Dipole difference should be 0.06 - 0.04 = 0.02 on active cells
+        dipole_active = res["Dipole_Diff"][self.eval_mask]
+        np.testing.assert_allclose(dipole_active, 0.02, atol=1e-5)
+
+    def test_generate_seasonality_and_presentation_plots(self):
+        """Validates generation of seasonality diagnostic plots and presentation slides."""
+        import tempfile
+        mock_monsoon = {
+            "Amihan": {"case_count": 88, "leads": {"2": {"delta_mae_mean": 0.008}, "3": {"delta_mae_mean": 0.026}, "4": {"delta_mae_mean": 0.041}}},
+            "Habagat": {"case_count": 88, "leads": {"2": {"delta_mae_mean": 0.007}, "3": {"delta_mae_mean": 0.024}, "4": {"delta_mae_mean": 0.038}}},
+            "Transition": {"case_count": 18, "leads": {"2": {"delta_mae_mean": 0.006}, "3": {"delta_mae_mean": 0.022}, "4": {"delta_mae_mean": 0.035}}},
+        }
+        mock_quarter = {
+            "DJF": {"case_count": 45, "leads": {"3": {"delta_mae_mean": 0.025}, "4": {"delta_mae_mean": 0.039}}},
+            "MAM": {"case_count": 48, "leads": {"3": {"delta_mae_mean": 0.022}, "4": {"delta_mae_mean": 0.036}}},
+            "JJA": {"case_count": 52, "leads": {"3": {"delta_mae_mean": 0.027}, "4": {"delta_mae_mean": 0.042}}},
+            "SON": {"case_count": 49, "leads": {"3": {"delta_mae_mean": 0.026}, "4": {"delta_mae_mean": 0.040}}},
+        }
+        mock_spatial = {
+            "Amihan": {"mean_map": np.full((GRID_HEIGHT, GRID_WIDTH), 0.06)},
+            "Habagat": {"mean_map": np.full((GRID_HEIGHT, GRID_WIDTH), 0.04)},
+            "Dipole_Diff": np.full((GRID_HEIGHT, GRID_WIDTH), 0.02),
+            "Asymmetry": {
+                "Amihan": {"east_mean": 0.07, "west_mean": 0.05},
+                "Habagat": {"east_mean": 0.035, "west_mean": 0.045},
+            },
+        }
+        mock_results = {
+            "lead_summary": {
+                1: {"rec_mae_mean": 0.052, "ora_mae_mean": 0.052},
+                2: {"rec_mae_mean": 0.061, "ora_mae_mean": 0.054, "delta_mae_mean": 0.007, "delta_mae_ci_lower": 0.005, "delta_mae_ci_upper": 0.009},
+                3: {"rec_mae_mean": 0.078, "ora_mae_mean": 0.053, "delta_mae_mean": 0.025, "delta_mae_ci_lower": 0.021, "delta_mae_ci_upper": 0.029},
+                4: {"rec_mae_mean": 0.094, "ora_mae_mean": 0.055, "delta_mae_mean": 0.039, "delta_mae_ci_lower": 0.034, "delta_mae_ci_upper": 0.044},
+            }
+        }
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir)
+            p_comp = tmp_path / "seasonality_composite.png"
+            p_slide_s = tmp_path / "seasonality_slide.png"
+            p_div_ab = tmp_path / "seasonality_ab.png"
+            p_div_cd = tmp_path / "seasonality_cd.png"
+            p_slide_r = tmp_path / "recursive_slide.png"
+
+            generate_seasonality_diagnostic_plots(mock_monsoon, mock_quarter, mock_spatial, p_comp)
+            generate_seasonality_presentation_slide(mock_monsoon, mock_spatial, p_slide_s)
+            generate_recursive_gap_presentation_slide(mock_results, p_slide_r)
+            generate_divided_seasonality_figures(mock_monsoon, mock_quarter, mock_spatial, p_div_ab, p_div_cd)
+
+            self.assertTrue(p_comp.is_file() and p_comp.stat().st_size > 1000)
+            self.assertTrue(p_slide_s.is_file() and p_slide_s.stat().st_size > 1000)
+            self.assertTrue(p_slide_r.is_file() and p_slide_r.stat().st_size > 1000)
+            self.assertTrue(p_div_ab.is_file() and p_div_ab.stat().st_size > 1000)
+            self.assertTrue(p_div_cd.is_file() and p_div_cd.stat().st_size > 1000)
 
 
 if __name__ == "__main__":

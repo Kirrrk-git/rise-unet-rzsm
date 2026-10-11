@@ -46,7 +46,7 @@ Before production training authorization was granted on 2026-09-17, the pipeline
 1. **Pre-Production Gate 1: Validation Atmospheric Pipeline Preflight Certification (2026-09-16)**
    * **Scope**: Verified 2022–2023 atmospheric mirror across 730 continuous days (zero missing or duplicate days), 24 monthly NetCDF files, 210 validation cycles, 5 surface channels (`spfh`, `tmax`, `diff_temp`, `pwat`, `hgt_pres`), and 126 active evaluation cells.
    * **Diagnostics**: Three-way normalization checks showed unclipped bounds $[0.0220, 0.9879]$ with 0 bound excursions. Real production `CaseBuilder` ingestion produced exact multi-lead tensor hierarchies.
-   * **Audit Reference**: [`reproduction_audit/14_production_cube_compilation_and_census_audit.md`](14_production_cube_compilation_and_census_audit.md); Telemetry in `logs/gate1_validation_atmospheric_execution.json`.
+   * **Audit Reference**: [`reproduction_audit/14_production_cube_compilation_and_census_audit.md`](14_production_cube_compilation_and_census_audit.md); Telemetry in `logs/validation_atmospheric_execution.json`.
 
 2. **Pre-Production Gate 2: Genuine Model A0 (`UNET_RZSM`) Hardware Profiling & VRAM Feasibility (2026-09-17)**
    * **Scope**: Certified all six technical pillars on physical NVIDIA Tesla T4 GPU:

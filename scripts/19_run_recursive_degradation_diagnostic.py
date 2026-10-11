@@ -1,9 +1,9 @@
 """
 scripts/19_run_recursive_degradation_diagnostic.py
 --------------------------------------------------
-Authoritative execution CLI for Phase 23: Recursive Degradation Diagnostic.
+Authoritative execution CLI for Recursive Degradation Diagnostic.
 Evaluates Model A0 checkpoints (Seeds 42, 123, 456 across Leads W1 to W4)
-under Protocols 1, 2, and 4 as frozen in contracts/A0/PHASE_23_DIAGNOSTIC_CONTRACT.yaml.
+under Protocols 1, 2, and 4 as frozen in contracts/A0/recursive_degradation_diagnostic_contract.yaml.
 
 Usage:
   # Certify diagnostic mathematical pipelines and tensor contracts hermetically:
@@ -51,6 +51,13 @@ from src.evaluation.recursive_diagnostic import (
     check_perturbation_monotonicity,
     evaluate_gate2_rules,
     generate_diagnostic_plots,
+    assign_philippine_monsoon_regime,
+    assign_meteorological_quarter,
+    compute_season_stratified_breakdown,
+    compute_monsoon_spatial_error_maps,
+    generate_seasonality_diagnostic_plots,
+    generate_seasonality_presentation_slide,
+    generate_recursive_gap_presentation_slide,
 )
 
 logging.basicConfig(
@@ -60,12 +67,15 @@ logging.basicConfig(
 )
 logger = logging.getLogger("recursive_diagnostic")
 
-DEFAULT_CONTRACT_PATH = REPO_ROOT / "contracts" / "A0" / "PHASE_23_DIAGNOSTIC_CONTRACT.yaml"
+DEFAULT_CONTRACT_PATH = REPO_ROOT / "contracts" / "A0" / "recursive_degradation_diagnostic_contract.yaml"
 DEFAULT_EVAL_MASK_PATH = REPO_ROOT / "processed" / "grid" / "mindanao_eval_mask_025.nc"
 DEFAULT_VAL_MANIFEST = REPO_ROOT / "manifests" / "splits" / "val_cases.csv"
 DEFAULT_CHECKPOINTS_DIR = REPO_ROOT / "checkpoints" / "A0"
-DEFAULT_OUTPUT_JSON = REPO_ROOT / "logs" / "phase23_recursive_diagnostic_results.json"
-DEFAULT_OUTPUT_PLOT = REPO_ROOT / "figures" / "phase23_recursive_degradation_composite.png"
+DEFAULT_OUTPUT_JSON = REPO_ROOT / "logs" / "recursive_degradation_diagnostic_results.json"
+DEFAULT_OUTPUT_PLOT = REPO_ROOT / "figures" / "mindanao_recursive_degradation_diagnostic_composite.png"
+DEFAULT_OUTPUT_RECURSIVE_SLIDE = REPO_ROOT / "figures" / "recursive_error_gap_presentation_slide.png"
+DEFAULT_OUTPUT_SEASONALITY_PLOT = REPO_ROOT / "figures" / "mindanao_seasonality_and_monsoon_diagnostic_composite.png"
+DEFAULT_OUTPUT_SEASONALITY_SLIDE = REPO_ROOT / "figures" / "seasonality_error_gap_presentation_slide.png"
 
 PERTURBATIONS = [-0.50, -0.25, -0.10, -0.05, 0.05, 0.10, 0.25, 0.50]
 
@@ -187,15 +197,36 @@ def run_certification_mode() -> int:
     assert gate2_res["verdict"] == "GO"
     logger.info("[PASS] Gate 2 Evaluator Decision: %s (%s)", gate2_res["verdict"], gate2_res["action"])
 
+    # 7. Verify Philippine Monsoon and Seasonal Stratification Engine
+    logger.info("Verifying Philippine Monsoon and Seasonal Stratification Engine...")
+    mock_cids = [f"CASE_2022{m:02d}15_00{i}" for i, m in enumerate([1, 2, 5, 7, 8, 10, 11, 12])]
+    mock_diffs = {3: np.array([0.021, 0.024, 0.015, 0.038, 0.035, 0.031, 0.022, 0.026])}
+    monsoon_res = compute_season_stratified_breakdown(mock_cids, mock_diffs, regime_type="monsoon", n_boot=200)
+    quarter_res = compute_season_stratified_breakdown(mock_cids, mock_diffs, regime_type="quarter", n_boot=200)
+    assert "Amihan" in monsoon_res and "Habagat" in monsoon_res and "Transition" in monsoon_res
+    assert "DJF" in quarter_res and "JJA" in quarter_res
+    logger.info("  Amihan count: %d, Habagat count: %d, Transition count: %d",
+                monsoon_res["Amihan"]["case_count"], monsoon_res["Habagat"]["case_count"], monsoon_res["Transition"]["case_count"])
+    logger.info("[PASS] Season-Stratified Diagnostic engine verified")
+
+    # 8. Verify Monsoon Spatial Error Map & Dipole Computation
+    logger.info("Verifying Monsoon Spatial Error Map & Dipole Engine...")
+    mock_mask = np.zeros((GRID_HEIGHT, GRID_WIDTH), dtype=bool)
+    mock_mask[:10, :10] = True
+    mock_spatial = {cid: np.full((GRID_HEIGHT, GRID_WIDTH), 0.05 + 0.005 * i, dtype=np.float32) for i, cid in enumerate(mock_cids)}
+    spatial_res = compute_monsoon_spatial_error_maps(mock_cids, mock_spatial, mock_mask)
+    assert "Amihan" in spatial_res and "Habagat" in spatial_res and "Dipole_Diff" in spatial_res
+    logger.info("[PASS] Monsoon Spatial Error Map & Dipole engine verified")
+
     logger.info("================================================================================")
     logger.info("CERTIFICATION PREFLIGHT SUMMARY: 100% PASS (Zero errors, zero discrepancies)")
-    logger.info("Phase 23 Diagnostic Engine is ready for execution on physical GPU / Colab.")
+    logger.info("Recursive Degradation Diagnostic Engine is ready for execution on physical GPU / Colab.")
     logger.info("================================================================================")
     return 0
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Phase 23 Recursive Degradation Diagnostic CLI")
+    parser = argparse.ArgumentParser(description="Recursive Degradation Diagnostic CLI")
     parser.add_argument("--mode", choices=["certify", "execute"], default="certify", help="Execution mode ('certify' or 'execute')")
     parser.add_argument("--cases-dir", type=str, default="processed/cases/val", help="Directory containing validation NPZ cases")
     parser.add_argument("--checkpoints-dir", type=str, default=str(DEFAULT_CHECKPOINTS_DIR), help="Model A0 checkpoints directory")
@@ -204,6 +235,9 @@ def main() -> int:
     parser.add_argument("--contract", type=str, default=str(DEFAULT_CONTRACT_PATH), help="Path to diagnostic contract YAML")
     parser.add_argument("--output-json", type=str, default=str(DEFAULT_OUTPUT_JSON), help="Output telemetry JSON")
     parser.add_argument("--output-plot", type=str, default=str(DEFAULT_OUTPUT_PLOT), help="Output composite plot PNG")
+    parser.add_argument("--output-recursive-slide", type=str, default=str(DEFAULT_OUTPUT_RECURSIVE_SLIDE), help="Output recursive slide PNG")
+    parser.add_argument("--output-seasonality-plot", type=str, default=str(DEFAULT_OUTPUT_SEASONALITY_PLOT), help="Output seasonality composite plot PNG")
+    parser.add_argument("--output-seasonality-slide", type=str, default=str(DEFAULT_OUTPUT_SEASONALITY_SLIDE), help="Output seasonality slide PNG")
     parser.add_argument("--seeds", nargs="+", type=int, default=[42, 123, 456], help="Training seeds to evaluate")
     parser.add_argument("--batch-size", type=int, default=11, help="Inference batch size (must be 11)")
 
@@ -212,7 +246,7 @@ def main() -> int:
     if args.mode == "certify":
         return run_certification_mode()
 
-    logger.info("Starting Phase 23 Live Execution Mode across validation cohort...")
+    logger.info("Starting Live Execution Mode across validation cohort...")
     # Full execution mode will be called in Colab with GPU or CPU
     eval_mask = load_eval_mask(Path(args.eval_mask))
     cases_dir = Path(args.cases_dir)

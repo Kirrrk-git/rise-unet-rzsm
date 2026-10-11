@@ -739,44 +739,58 @@ To maintain relentless focus on the central scientific question of the thesis wh
 
 ---
 
-### Phase 24: Model A1 (Lead-Aware Recursive Residual Refinement) [Track 1: ACTIVATED UPON POST-A0 GATE 2 (G2-R) GO]
+### Phase 24: Model A1 (Monotonic Reliability-Gated Recursive Refinement — P1-MRGR) [Track 1: ACTIVATED UPON POST-A0 GATE 2 (G2-R) GO]
 
-**Objective**: Implement and train the proposed enhancement architecture: preserving the verified RISE-UNet backbone while introducing a single, shared lightweight, lead-conditioned residual correction module $\mathcal{R}_\theta(\cdot, k)$ across all recursive transitions to suppress error compounding along the recursive chain.
+**Objective**: Implement and train the proposed enhancement architecture: preserving the verified RISE-UNet backbone while introducing Monotonic Reliability-Gated Recursive Refinement (MRGR) across recursive handoffs ($W_1 \to W_2$, $W_1 \to W_3$, $W_2 \to W_3$, $W_1 \to W_4$, $W_2 \to W_4$, $W_3 \to W_4$) with explicit seasonal/monsoon context $s$ to suppress error compounding along the recursive chain. Fully harmonized with approved ACM proposal (`RISE_UNet_Research1_ACM_CS MRGR Literature Update.pdf`).
 
-- [ ] **Step 24.1**: Design and Freeze Model A1 Architecture Contract (`contracts/A1/PHASE_24_A1_ARCHITECTURE_CONTRACT.yaml`). `[FROZEN]`
-  * Architectural Principle: The verified RISE-UNet backbone remains **100% frozen** ($0$ weights modified or retrained); the refinement module is added externally at the recursive state transitions.
-  * Shared Parameterization Standard: A single unified convolutional module $\mathcal{R}_\theta(\cdot, k)$ is shared across all three transitions ($W_1 \to W_2$, $W_2 \to W_3$, $W_3 \to W_4$), conditioned explicitly on lead index $k \in \{1, 2, 3\}$. Separately parameterized modules are formally rejected to keep parameter budget small ($< 50\text{k}$ target) and evaluate a general recursive refinement mechanism.
-  * Cascade Architecture:
-    $$\hat{y}_1 \xrightarrow{\mathcal{R}_\theta(\cdot, k=1)} \tilde{y}_1 \to \text{A0}_{W2} \to \hat{y}_2 \xrightarrow{\mathcal{R}_\theta(\cdot, k=2)} \tilde{y}_2 \to \text{A0}_{W3} \to \hat{y}_3 \xrightarrow{\mathcal{R}_\theta(\cdot, k=3)} \tilde{y}_3 \to \text{A0}_{W4}$$
-  * Primary Formulation:
-    $$\tilde{y}_k = \operatorname{clip}\left(\hat{y}_k + \mathcal{R}_{\theta}(\hat{y}_k, \hat{y}_{k-1}, k), 0.0, 1.0\right)$$
-  * Input Isolation Rule: The refinement module receives **only information available at the recursive transition**; verifying ground truth observations $y_k^{\text{true}}$ are used exclusively as supervision training targets and never as transition inputs, preventing disguised teacher-forcing.
-  * Training Regime: **Direct Supervised Residual Learning** ($r_k^* = y_k^{\text{true}} - \hat{y}_k$, $\mathcal{L}_R = \operatorname{MAE}(\mathcal{R}_\theta, r_k^*)$ over 126 active cells). Model A0 predictions are treated as detached input features, avoiding any ambiguity between weight freezing and gradient detachment.
+- [x] **Step 24.1**: Harmonize and Freeze Model A1 Architecture Contract (`contracts/A1/PHASE_24_A1_ARCHITECTURE_CONTRACT.yaml`). `[FROZEN: 2026-10-11]`
+  * Architectural Principle: The verified RISE-UNet backbone remains **100% frozen** ($0$ weights modified or retrained); the MRGR refinement module operates externally at the recursive handoffs.
+  * Mathematical Formulation (ACM Proposal Section 2.4.4):
+    $$\hat{q}_{j \to h} = \text{RiskNet}_{j \to h}(x_h, r_j, s) \ge 0 \quad (\text{Huber loss against out-of-fold A0 residuals})$$
+    $$G_{j \to h} = \exp(-\hat{q}_{j \to h}) \in (0, 1] \quad (\text{Monotonic reliability gate, } \partial G / \partial \hat{q} < 0)$$
+    $$\delta_{j \to h} = c_{j \to h} \tanh[d_{\theta, j \to h}(x_h, r_j, s)] \quad (\text{Bounded physical-unit correction})$$
+    $$r_{j \to h}^* = \operatorname{clip}\left(r_j + (1 - G_{j \to h})\delta_{j \to h}, 0.0, 1.0\right) \quad (\text{Reliability-gated refined state})$$
+  * Season-Aware Context Integration: Consumer context $x_h$ explicitly includes cyclical calendar encoding $s = [\sin(2\pi \cdot \text{DOY}/365.25), \cos(2\pi \cdot \text{DOY}/365.25)]$ and Philippine monsoon regime indicators (Amihan, Habagat, Transition), giving RiskNet and CorrectionNet explicit seasonal awareness.
+  * Six Source-to-Consumer Handoffs: $M_{1 \to 2}$, $M_{1 \to 3}$, $M_{2 \to 3}$, $M_{1 \to 4}$, $M_{2 \to 4}$, $M_{3 \to 4}$.
+  * Input Isolation & Non-Leakage Rule: Ground truth observations $y_k^{\text{true}}$ are used exclusively as supervision training targets and never as transition inputs, preventing teacher-forcing.
+  * Training Supervision Order (Section 2.4.7):
+    1. Fit RiskNet on out-of-fold residuals ($q = |r_{\text{OOF}} - y| / (c + \epsilon)$) and freeze.
+    2. Initialize CorrectionNet final layer to zero (reproducing A0 initially).
+    3. Train $M_{1 \to 2}$ through frozen Stage 2 U-Net ($F_2$) and freeze.
+    4. Train $M_{1 \to 3}$ and $M_{2 \to 3}$ jointly through frozen Stage 3 U-Net ($F_3$) and freeze.
+    5. Train $M_{1 \to 4}$, $M_{2 \to 4}$, and $M_{3 \to 4}$ jointly through frozen Stage 4 U-Net ($F_4$) and freeze.
   * Framework Constraint: **TensorFlow / Keras native** (PyTorch strictly prohibited to maintain zero-overhead checkpoint and runtime parity with Model A0).
-- [ ] **Step 24.2**: Execute A1 pilot ladder (single case $\to$ overfit $\to$ checkpoint verification).
-  * Pass Criterion: Refinement module trains stably without numerical divergence; overfit test succeeds.
-- [ ] **Step 24.3**: Production training of Model A1 across identical random seeds (seeds 42, 123, 456).
+- [ ] **Step 24.2**: Generate Purged Out-of-Fold A0 Residual Bank (2015–2021).
+  * Storage: `processed/residuals/a0_oof_residuals.npz` and `gs://rise-unet-rzsm/processed/residuals/`.
+  * Pass Criterion: 677 training cases cross-fitted with temporal purging; positive floor scale $c_{j \to h}$ computed.
+- [ ] **Step 24.3**: Production Training of Model A1 (P1-MRGR) across identical random seeds (seeds 42, 123, 456).
   * Storage: `gs://rise-unet-rzsm/checkpoints/A1/`.
-  * Pass Criterion: Identical learning rate schedule, batch size, and loss formulation as Model A0.
-- [ ] **Step 24.4**: Freeze A1 winning checkpoints based on validation CRPS.
+  * Pass Criterion: Stable convergence under Huber and CRPS losses; zero gradient explosion.
+- [ ] **Step 24.4**: Freeze A1 winning checkpoints based on validation CRPS across W2–W4.
   * Storage: `manifests/A1_frozen_checkpoints.yaml` and `contracts/A1/A1_Refined_Contract.yaml`.
 
 ---
 
-### Phase 25: Ablation & Robustness Studies [Track 1: CONDITIONAL UPON PHASE 24 ACTIVATION]
+### Phase 25: Ablation, Stability & Mechanism Studies [Track 1: CONDITIONAL UPON PHASE 24 ACTIVATION]
 
-**Objective**: *[CONDITIONAL UPON PHASE 24 ACTIVATION]* Verify the specific mechanisms of the proposed refinement module and evaluate operational stability under edge conditions.
+**Objective**: Verify the specific mechanisms of MRGR, isolate the contribution of explicit reliability gating, test seasonal modulation, and evaluate operational stability.
 
-- [ ] **Step 25.1**: Execute Architectural Ablation Study.
-  * Variant 1: Refinement module without lead conditioning (static residual).
-  * Variant 2: Lead-aware refinement (full Model A1).
-  * Pass Criterion: Quantifies the isolated contribution of lead-dependent calibration.
-- [ ] **Step 25.2**: Execute Controlled Error-Damping Test.
-  * Method: Inject synthetic perturbations into Lead 1 predictions and measure downstream divergence in Leads 2–4.
-  * Pass Criterion: Model A1 demonstrably damps error propagation compared to unrefined Model A0.
-- [ ] **Step 25.3**: Sub-Regional Performance Quantification.
-  * Method: Performance variability is quantified across predefined geographic/hydroclimatic subregions derived from official administrative boundaries and river basin classifications.
-  * Pass Criterion: Performance characteristics documented across diverse terrain and rainfall regimes without ad-hoc boundary definitions.
+- [ ] **Step 25.1**: Execute Controlled Architectural Ablation Matrix (Table 6 in Proposal).
+  * Configuration B0: Persistence benchmark.
+  * Configuration A0: Adapted RISE-UNet recursive baseline.
+  * Configuration P0: Correction-only residual ablation ($r^* = r + \delta$, testing without RiskNet / reliability gate).
+  * Configuration P1-Lead: MRGR with lead condition $k$ only (no seasonal context).
+  * Configuration P1-Season: MRGR with lead condition $k$ and seasonal context $s$ (full proposed model).
+  * Configuration B1 / B2: U-Net and UNet++ regression benchmarks under matched conditions.
+  * Pass Criterion: Statistically quantifies the isolated contribution of monotonic reliability gating ($P_1$ vs $P_0$) and seasonal context ($P_{1,\text{season}}$ vs $P_{1,\text{lead}}$).
+- [ ] **Step 25.2**: RiskNet Internal Validity & Decile Calibration Test (Section 2.5.5).
+  * Method: Group held-out recursive states by predicted risk $\hat{q}$ into 10 frozen deciles; compute realized source error and Spearman rank correlation ($\rho$).
+  * Pass Criterion: Positive rank correlation ($\rho > 0$) confirming that states flagged as high-risk exhibit higher actual prediction error.
+- [ ] **Step 25.3**: Execute Controlled Recursive-Sensitivity Monotonicity Test (Section 2.5.6).
+  * Method: Construct perturbed states $r(m) = y + m(r - y)$ with $m \in \{0, 0.5, 1, 1.5, 2\}$; compare downstream sensitivity curve between A0 and P1-MRGR.
+  * Pass Criterion: P1-MRGR demonstrably damps error propagation compared to unrefined Model A0.
+- [ ] **Step 25.4**: Season-Stratified Performance Breakdown.
+  * Method: Quantify performance gains across Philippine monsoon regimes (Amihan: 88 cases, Habagat: 88 cases, Transition: 18 cases) and meteorological quarters (DJF, MAM, JJA, SON).
 
 ---
 
@@ -876,6 +890,7 @@ gs://rise-unet-rzsm/
 ├── predictions/
 ├── metrics/
 ├── figures/
+├── documentation/
 ├── logs/
 └── support/
     ├── gis_scripts/

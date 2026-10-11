@@ -4,7 +4,7 @@ src/evaluation/recursive_diagnostic.py
 Authoritative execution engine and statistical testing framework for
 Phase 23 Recursive Degradation Diagnostic (Mindanao RISE-UNet Adaptation).
 
-Conforms strictly to contracts/A0/PHASE_23_DIAGNOSTIC_CONTRACT.yaml:
+Conforms strictly to contracts/A0/recursive_degradation_diagnostic_contract.yaml:
   - Protocol 1: Standard Autoregressive Recursive Inference
   - Protocol 2: Oracle Counterfactual Diagnostic (Primary Diagnostic)
   - Protocol 3: Direct Non-Recursive Architecture Comparator (Complementary Reference)
@@ -506,7 +506,7 @@ def evaluate_gate2_rules(
 ) -> Dict[str, Any]:
     """
     Authoritative Post-A0 Gate 2 (G2-R) decision evaluator adhering to
-    contracts/A0/PHASE_23_DIAGNOSTIC_CONTRACT.yaml.
+    contracts/A0/recursive_degradation_diagnostic_contract.yaml.
 
     Pre-registered Criteria:
       GO-1: Adjusted p_boot < 0.05 in Leads W3 and/or W4.
@@ -588,6 +588,158 @@ def evaluate_gate2_rules(
     }
 
 
+def assign_philippine_monsoon_regime(date_str_or_month: Union[str, int]) -> str:
+    """
+    Classifies date into Philippine meteorological monsoon regimes:
+      - 'Amihan' (Northeast Monsoon): November to April (Months 11, 12, 1, 2, 3, 4)
+      - 'Habagat' (Southwest Monsoon): June to October (Months 6, 7, 8, 9, 10)
+      - 'Transition' (Inter-Monsoon): May (Month 5)
+    """
+    if isinstance(date_str_or_month, int):
+        m = date_str_or_month
+    else:
+        clean = "".join(filter(str.isdigit, str(date_str_or_month)))[:8]
+        if len(clean) >= 6:
+            m = int(clean[4:6])
+        else:
+            raise ValueError(f"Invalid date string format: {date_str_or_month}")
+    if m in (11, 12, 1, 2, 3, 4):
+        return "Amihan"
+    elif m in (6, 7, 8, 9, 10):
+        return "Habagat"
+    elif m == 5:
+        return "Transition"
+    else:
+        raise ValueError(f"Invalid month integer: {m}")
+
+
+def assign_meteorological_quarter(date_str_or_month: Union[str, int]) -> str:
+    """
+    Classifies date into conventional meteorological quarters:
+      - 'DJF': December, January, February
+      - 'MAM': March, April, May
+      - 'JJA': June, July, August
+      - 'SON': September, October, November
+    """
+    if isinstance(date_str_or_month, int):
+        m = date_str_or_month
+    else:
+        clean = "".join(filter(str.isdigit, str(date_str_or_month)))[:8]
+        if len(clean) >= 6:
+            m = int(clean[4:6])
+        else:
+            raise ValueError(f"Invalid date string format: {date_str_or_month}")
+    if m in (12, 1, 2):
+        return "DJF"
+    elif m in (3, 4, 5):
+        return "MAM"
+    elif m in (6, 7, 8):
+        return "JJA"
+    elif m in (9, 10, 11):
+        return "SON"
+    else:
+        raise ValueError(f"Invalid month integer: {m}")
+
+
+def compute_season_stratified_breakdown(
+    case_ids: List[str],
+    case_diffs_by_lead: Dict[Union[int, str], np.ndarray],
+    rec_errors_by_lead: Optional[Dict[Union[int, str], np.ndarray]] = None,
+    ora_errors_by_lead: Optional[Dict[Union[int, str], np.ndarray]] = None,
+    regime_type: str = "monsoon",
+    block_length: int = 4,
+    n_boot: int = 1000,
+    seed: int = 42,
+) -> Dict[str, Dict[str, Any]]:
+    """
+    Computes season-stratified breakdown of recursive degradation gap (Delta E_k)
+    across defined seasonal or monsoon partitions.
+
+    Parameters
+    ----------
+    case_ids : List[str]
+        List of N case identifiers, each containing issue date (e.g. 'CASE_20220115_...').
+    case_diffs_by_lead : Dict[Union[int, str], np.ndarray]
+        Dictionary mapping lead index (2, 3, 4) to 1D array of length N containing paired differences.
+    rec_errors_by_lead : Optional[Dict[Union[int, str], np.ndarray]]
+        Optional mapping of lead index to 1D array of recursive errors.
+    ora_errors_by_lead : Optional[Dict[Union[int, str], np.ndarray]]
+        Optional mapping of lead index to 1D array of oracle errors.
+    regime_type : str
+        Either 'monsoon' ('Amihan', 'Habagat', 'Transition') or 'quarter' ('DJF', 'MAM', 'JJA', 'SON').
+    block_length : int
+        Moving-block bootstrap block length (default 4).
+    n_boot : int
+        Number of bootstrap resamples (default 1000).
+    seed : int
+        RNG seed for reproducibility.
+
+    Returns
+    -------
+    Dict[str, Dict[str, Any]]
+        Nested dictionary of seasonal slices and their per-lead metrics.
+    """
+    n_cases = len(case_ids)
+    assign_fn = assign_philippine_monsoon_regime if regime_type == "monsoon" else assign_meteorological_quarter
+
+    # Group case indices by regime
+    regime_indices: Dict[str, List[int]] = {}
+    for idx, cid in enumerate(case_ids):
+        regime = assign_fn(cid)
+        if regime not in regime_indices:
+            regime_indices[regime] = []
+        regime_indices[regime].append(idx)
+
+    stratified_results: Dict[str, Dict[str, Any]] = {}
+
+    for regime_name, indices in sorted(regime_indices.items()):
+        idx_arr = np.array(indices, dtype=int)
+        count = len(indices)
+        regime_lead_metrics: Dict[str, Any] = {}
+
+        for lead_key, diffs in case_diffs_by_lead.items():
+            lead_int = int(lead_key)
+            diffs_slice = np.asarray(diffs)[idx_arr]
+
+            if count < 2 or np.all(diffs_slice == 0.0):
+                regime_lead_metrics[str(lead_int)] = {
+                    "delta_mae_mean": float(np.mean(diffs_slice)),
+                    "delta_mae_ci_lower": float(np.mean(diffs_slice)),
+                    "delta_mae_ci_upper": float(np.mean(diffs_slice)),
+                    "cohens_d_z": 0.0,
+                    "p_boot": 1.0,
+                }
+            else:
+                bl = min(block_length, count)
+                m_gap, ci_lo, ci_hi, p_b = moving_block_bootstrap(
+                    diffs_slice, block_length=bl, n_boot=n_boot, seed=seed
+                )
+                dz = compute_cohens_d_z(diffs_slice)
+                regime_lead_metrics[str(lead_int)] = {
+                    "delta_mae_mean": float(m_gap),
+                    "delta_mae_ci_lower": float(ci_lo),
+                    "delta_mae_ci_upper": float(ci_hi),
+                    "cohens_d_z": float(dz),
+                    "p_boot": float(p_b),
+                }
+
+            if rec_errors_by_lead and lead_key in rec_errors_by_lead:
+                r_slice = np.asarray(rec_errors_by_lead[lead_key])[idx_arr]
+                regime_lead_metrics[str(lead_int)]["rec_mae_mean"] = float(np.mean(r_slice))
+
+            if ora_errors_by_lead and lead_key in ora_errors_by_lead:
+                o_slice = np.asarray(ora_errors_by_lead[lead_key])[idx_arr]
+                regime_lead_metrics[str(lead_int)]["ora_mae_mean"] = float(np.mean(o_slice))
+
+        stratified_results[regime_name] = {
+            "case_count": count,
+            "case_percentage": float(100.0 * count / n_cases) if n_cases > 0 else 0.0,
+            "leads": regime_lead_metrics,
+        }
+
+    return stratified_results
+
+
 def generate_diagnostic_plots(
     results: Dict[str, Any],
     output_plot_path: Union[str, Path],
@@ -604,15 +756,10 @@ def generate_diagnostic_plots(
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
+    from matplotlib.patches import Patch
 
     out_path = Path(output_plot_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
-
-    fig, axes = plt.subplots(2, 2, figsize=(14, 10), dpi=300)
-    plt.subplots_adjust(hspace=0.35, wspace=0.3)
-
-    leads = [1, 2, 3, 4]
-    lead_labels = ["W1 (Days 1-7)", "W2 (Days 8-14)", "W3 (Days 15-21)", "W4 (Days 22-28)"]
 
     # Support either 'lead_summary' (from notebook) or 'lead_metrics' (from script)
     metrics_source = results.get("lead_summary", results.get("lead_metrics", {}))
@@ -625,61 +772,913 @@ def generate_diagnostic_plots(
             return metrics_source[str(ld)]
         return {}
 
-    # Panel A: Recursive vs Oracle Error
-    ax_a = axes[0, 0]
+    leads = [1, 2, 3, 4]
+    lead_labels = ["Week 1", "Week 2", "Week 3", "Week 4"]
+    lead_sublabels = ["(Days 1–7)", "(Days 8–14)", "(Days 15–21)", "(Days 22–28)"]
+
     rec_mae = [get_lead_metric(l).get("rec_mae_mean", 0.0) for l in leads]
     ora_mae = [get_lead_metric(l).get("ora_mae_mean", 0.0) for l in leads]
-    x_pos = np.arange(len(leads))
-    width = 0.35
-    ax_a.bar(x_pos - width / 2, rec_mae, width, label="Protocol 1: Standard Recursive", color="#d95f02", alpha=0.9)
-    ax_a.bar(x_pos + width / 2, ora_mae, width, label="Protocol 2: Oracle Counterfactual", color="#1b9e77", alpha=0.9)
-    ax_a.set_xticks(x_pos)
-    ax_a.set_xticklabels(lead_labels)
-    ax_a.set_ylabel("Validation MAE (126 cells)")
-    ax_a.set_title("(A) Standard Recursive vs. Oracle Counterfactual Forecast Error", fontweight="bold", fontsize=11)
-    ax_a.grid(True, linestyle="--", alpha=0.5)
-    ax_a.legend(loc="upper left")
 
-    # Panel B: Recursive Degradation Gap Delta E_k with MBB 95% CIs
-    ax_b = axes[0, 1]
     gaps = [get_lead_metric(l).get("delta_mae_mean", 0.0) for l in [2, 3, 4]]
-    ci_los = [get_lead_metric(l).get("delta_mae_ci_lower", 0.0) for l in [2, 3, 4]]
-    ci_his = [get_lead_metric(l).get("delta_mae_ci_upper", 0.0) for l in [2, 3, 4]]
-    yerr = [np.maximum(0.0, np.array(gaps) - np.array(ci_los)), np.maximum(0.0, np.array(ci_his) - np.array(gaps))]
-    ax_b.errorbar([2, 3, 4], gaps, yerr=yerr, fmt="-o", color="#7570b3", ecolor="#7570b3", capsize=6, linewidth=2, markersize=8)
-    ax_b.axhline(0, color="black", linestyle=":", alpha=0.7)
-    ax_b.set_xticks([2, 3, 4])
-    ax_b.set_xticklabels(["W2", "W3", "W4"])
-    ax_b.set_ylabel("Recursive Degradation Gap ΔMAE")
-    ax_b.set_title("(B) Primary Recursive Error Gap (ΔE_k = E_rec - E_ora) with 95% MBB CI", fontweight="bold", fontsize=11)
-    ax_b.grid(True, linestyle="--", alpha=0.5)
+    ci_low = [get_lead_metric(l).get("delta_mae_ci_lower", 0.0) for l in [2, 3, 4]]
+    ci_high = [get_lead_metric(l).get("delta_mae_ci_upper", 0.0) for l in [2, 3, 4]]
 
-    # Panel C: Protocol 4 Perturbation Divergence D_k(eps)
+    # Styling parameters
+    plt.rcParams["font.sans-serif"] = ["DejaVu Sans", "Helvetica", "Arial"]
+    plt.rcParams["axes.edgecolor"] = "#CBD5E1"
+    plt.rcParams["axes.linewidth"] = 1.0
+
+    fig, axes = plt.subplots(2, 2, figsize=(16.5, 12.0), dpi=300)
+    fig.patch.set_facecolor("#FFFFFF")
+    plt.subplots_adjust(hspace=0.38, wspace=0.26)
+
+    # Modern high-contrast color palette
+    c_rec = "#E11D48"      # Rose / Crimson (Standard Recursive)
+    c_ora = "#059669"      # Emerald (Oracle Counterfactual)
+    c_gap = "#4338CA"      # Deep Indigo (Gap Progression)
+    c_title = "#0F172A"    # Deep Slate
+    c_grid = "#F1F5F9"     # Subtle grid
+
+    # -------------------------------------------------------------------------
+    # PANEL A: Forecast Error by Lead Horizon (Protocols 1 & 2)
+    # -------------------------------------------------------------------------
+    ax_a = axes[0, 0]
+    ax_a.set_facecolor("#FFFFFF")
+    x = np.arange(len(leads))
+    bar_w = 0.32
+
+    b1 = ax_a.bar(
+        x - bar_w/2, rec_mae, width=bar_w,
+        color=c_rec, alpha=0.92,
+        label="Standard Recursive (Model A0)"
+    )
+    b2 = ax_a.bar(
+        x + bar_w/2, ora_mae, width=bar_w,
+        color=c_ora, alpha=0.92,
+        label="Oracle Counterfactual (Ground Truth Injected)"
+    )
+
+    # Clean text directly above bars (staggered Week 1 horizontal offset)
+    for i, bar in enumerate(b1):
+        h = bar.get_height()
+        x_pos = bar.get_x() + bar.get_width() / 2 - (0.045 if i == 0 else 0.0)
+        ax_a.text(
+            x_pos, h + 0.0022,
+            f"{h:.4f}", ha="center", va="bottom",
+            fontsize=10.5, fontweight="bold", color=c_rec
+        )
+
+    for i, bar in enumerate(b2):
+        h = bar.get_height()
+        x_pos = bar.get_x() + bar.get_width() / 2 + (0.045 if i == 0 else 0.0)
+        ax_a.text(
+            x_pos, h + 0.0022,
+            f"{h:.4f}", ha="center", va="bottom",
+            fontsize=10.5, fontweight="bold", color=c_ora
+        )
+
+    ax_a.set_xticks(x)
+    ax_a.set_xticklabels([f"{l}\n{s}" for l, s in zip(lead_labels, lead_sublabels)], fontsize=10.5, color=c_title)
+    ax_a.set_ylabel("Validation MAE (Normalized [0, 1])", fontsize=11.2, fontweight="bold", color=c_title)
+    ax_a.set_ylim(0, 0.108)
+    ax_a.spines["top"].set_visible(False)
+    ax_a.spines["right"].set_visible(False)
+    ax_a.yaxis.grid(True, linestyle="-", color=c_grid, linewidth=1.2, zorder=0)
+    ax_a.set_axisbelow(True)
+    ax_a.set_title("A. Forecast Error by Lead Horizon (Protocols 1 & 2)", fontsize=13.0, fontweight="bold", color=c_title, pad=14, loc="left")
+    ax_a.legend(loc="upper left", frameon=False, fontsize=9.8)
+
+    # -------------------------------------------------------------------------
+    # PANEL B: Compounded Recursive Degradation Gap
+    # -------------------------------------------------------------------------
+    ax_b = axes[0, 1]
+    ax_b.set_facecolor("#FFFFFF")
+    gx = np.array([2, 3, 4])
+    gx_labels = ["Week 2\n(Days 8–14)", "Week 3\n(Days 15–21)", "Week 4\n(Days 22–28)"]
+
+    ax_b.axhline(0, color="#94A3B8", linestyle="--", linewidth=1.0, alpha=0.7)
+    ax_b.fill_between(
+        gx, ci_low, ci_high,
+        color="#E0E7FF", alpha=0.65,
+        label="95% Bootstrap CI (B=10,000)"
+    )
+    ax_b.plot(gx, gaps, marker="o", markersize=8.5, linewidth=2.8, color=c_gap, label="Recursive Error Gap (ΔMAE)", zorder=4)
+
+    for xi, yi in zip(gx, gaps):
+        ax_b.text(
+            xi, yi + 0.0028, f"+{yi:.4f}",
+            ha="center", va="bottom",
+            fontsize=11.2, fontweight="bold", color=c_gap
+        )
+
+    ax_b.set_xticks(gx)
+    ax_b.set_xticklabels(gx_labels, fontsize=10.5, color=c_title)
+    ax_b.set_ylabel("Error Gap ΔMAE (Normalized [0, 1])", fontsize=11.2, fontweight="bold", color=c_title)
+    ax_b.set_xlim(1.4, 4.6)
+    ax_b.set_ylim(-0.003, 0.052)
+    ax_b.spines["top"].set_visible(False)
+    ax_b.spines["right"].set_visible(False)
+    ax_b.yaxis.grid(True, linestyle="-", color=c_grid, linewidth=1.2, zorder=0)
+    ax_b.set_axisbelow(True)
+    ax_b.set_title("B. Compounded Recursive Degradation Gap with 95% CI", fontsize=13.0, fontweight="bold", color=c_title, pad=14, loc="left")
+    ax_b.legend(loc="upper left", frameon=False, fontsize=9.8)
+
+    # -------------------------------------------------------------------------
+    # PANEL C: Downstream Divergence to State Perturbations (Protocol 4)
+    # -------------------------------------------------------------------------
     ax_c = axes[1, 0]
+    ax_c.set_facecolor("#FFFFFF")
+
     default_perts = [-0.50, -0.25, -0.10, -0.05, 0.05, 0.10, 0.25, 0.50]
     eps_vals = results.get("perturbations_evaluated", default_perts)
     div_dict = results.get("divergence_by_lead_eps", {})
+
+    cx = np.arange(len(eps_vals))
+    cx_labels = [f"{e:+.2f}" for e in eps_vals]
+
+    # Shaded operational error zone spanning [-0.10, +0.10]
+    ax_c.axvspan(1.5, 5.5, color="#F0FDF4", alpha=0.6, zorder=0, label="Operational Error Range (|ε| ≤ 0.10)")
+
+    lead_styles = {
+        2: {"color": "#0284C7", "marker": "o", "label": "Week 2 (Days 8–14)", "lw": 2.5, "ms": 7.0},
+        3: {"color": "#7C3AED", "marker": "s", "label": "Week 3 (Days 15–21)", "lw": 2.5, "ms": 6.5},
+        4: {"color": "#D97706", "marker": "^", "label": "Week 4 (Days 22–28)", "lw": 2.5, "ms": 7.0},
+    }
+
     for lead in [2, 3, 4]:
         ld_div = div_dict.get(lead, div_dict.get(str(lead), {}))
         div_vals = [ld_div.get(e, ld_div.get(str(e), 0.0)) for e in eps_vals]
-        ax_c.plot(eps_vals, div_vals, marker="o", label=f"Lead {lead}")
-    ax_c.set_xlabel("Perturbation Offset ε applied to W1")
-    ax_c.set_ylabel("Downstream Divergence D_k(ε) [RMSE]")
-    ax_c.set_title("(C) Downstream Error-Injection Divergence (Protocol 4)", fontweight="bold", fontsize=11)
-    ax_c.grid(True, linestyle="--", alpha=0.5)
-    ax_c.legend()
+        st = lead_styles[lead]
+        ax_c.plot(
+            cx, div_vals,
+            marker=st["marker"], markersize=st["ms"], linewidth=st["lw"],
+            color=st["color"], label=st["label"], zorder=3
+        )
 
-    # Panel D: Perturbation Boundary Clipping Percentage
+    ax_c.set_xticks(cx)
+    ax_c.set_xticklabels(cx_labels, fontsize=10.0, color=c_title)
+    ax_c.set_xlabel("Perturbation Offset ε Injected at Week 1", fontsize=11.2, fontweight="bold", color=c_title)
+    ax_c.set_ylabel("Downstream Divergence D_k(ε) [RMSE, Normalized]", fontsize=11.2, fontweight="bold", color=c_title)
+    ax_c.set_ylim(0, 0.44)
+    ax_c.spines["top"].set_visible(False)
+    ax_c.spines["right"].set_visible(False)
+    ax_c.yaxis.grid(True, linestyle="-", color=c_grid, linewidth=1.2, zorder=0)
+    ax_c.set_axisbelow(True)
+    ax_c.set_title("C. Downstream Divergence to State Perturbations (Protocol 4)", fontsize=13.0, fontweight="bold", color=c_title, pad=14, loc="left")
+    ax_c.legend(loc="upper left", frameon=False, fontsize=9.4)
+
+    # -------------------------------------------------------------------------
+    # PANEL D: Physical Boundary Saturation Census (Clipping)
+    # -------------------------------------------------------------------------
     ax_d = axes[1, 1]
+    ax_d.set_facecolor("#FFFFFF")
+
     clip_dict = results.get("clipping_census", {})
     clip_pcts = [clip_dict.get(e, clip_dict.get(str(e), 0.0)) for e in eps_vals]
-    ax_d.bar([f"{e:+0.2f}" for e in eps_vals], clip_pcts, color="#e7298a", alpha=0.85)
-    ax_d.set_xlabel("Perturbation Offset ε")
-    ax_d.set_ylabel("Active Cells Clipped to [0, 1] (%)")
-    ax_d.set_title("(D) Boundary Saturation Census (Active Land Cells Clipped)", fontweight="bold", fontsize=11)
-    ax_d.grid(True, linestyle="--", alpha=0.5)
 
-    fig.suptitle("Phase 23 Diagnostic: Subseasonal Recursive Error Compounding Analysis (Mindanao A0)", fontsize=14, fontweight="bold", y=0.98)
-    plt.savefig(out_path, bbox_inches="tight")
+    bar_colors = []
+    for e in eps_vals:
+        if abs(e) <= 0.10:
+            bar_colors.append("#10B981")  # Emerald (Safe / Negligible)
+        elif abs(e) <= 0.25:
+            bar_colors.append("#94A3B8")  # Slate (Moderate stress test)
+        else:
+            bar_colors.append("#F43F5E")  # Rose (Extreme stress test)
+
+    d_x = np.arange(len(eps_vals))
+    d_bars = ax_d.bar(d_x, clip_pcts, color=bar_colors, width=0.52, alpha=0.92, zorder=3)
+
+    ax_d.axvspan(1.5, 5.5, color="#F0FDF4", alpha=0.6, zorder=0)
+
+    for b, pct, e in zip(d_bars, clip_pcts, eps_vals):
+        h = b.get_height()
+        if abs(e) <= 0.10:
+            label_text = f"{pct:.2f}%" if pct > 0 else "0.0%"
+            ax_d.text(
+                b.get_x() + b.get_width() / 2, h + 1.2,
+                label_text, ha="center", va="bottom",
+                fontsize=9.8, fontweight="bold", color="#047857"
+            )
+        elif abs(e) == 0.25:
+            label_text = f"{pct:.1f}%" if pct > 0 else "0.0%"
+            ax_d.text(
+                b.get_x() + b.get_width() / 2, h + 1.2,
+                label_text, ha="center", va="bottom",
+                fontsize=9.5, fontweight="medium", color="#475569"
+            )
+        elif abs(e) == 0.50:
+            ax_d.text(
+                b.get_x() + b.get_width() / 2, h + 1.2,
+                f"{pct:.1f}%", ha="center", va="bottom",
+                fontsize=9.8, fontweight="bold", color="#BE123C"
+            )
+
+    ax_d.set_xticks(d_x)
+    ax_d.set_xticklabels([f"{e:+.2f}" for e in eps_vals], fontsize=10.0, color=c_title)
+    ax_d.set_xlabel("Perturbation Offset ε Injected at Week 1", fontsize=11.2, fontweight="bold", color=c_title)
+    ax_d.set_ylabel("Active Land Cells Clipped to [0, 1] (%)", fontsize=11.2, fontweight="bold", color=c_title)
+    ax_d.set_ylim(0, 95)
+    ax_d.spines["top"].set_visible(False)
+    ax_d.spines["right"].set_visible(False)
+    ax_d.yaxis.grid(True, linestyle="-", color=c_grid, linewidth=1.2, zorder=0)
+    ax_d.set_axisbelow(True)
+    ax_d.set_title("D. Physical Boundary Saturation Census", fontsize=13.0, fontweight="bold", color=c_title, pad=14, loc="left")
+
+    d_legend_elements = [
+        Patch(facecolor="#10B981", label="Operational Range (|ε| ≤ 0.10: Safe, ≤ 0.27% clipped)"),
+        Patch(facecolor="#94A3B8", label="Moderate Stress Test (|ε| = 0.25: ≤ 6.4% clipped)"),
+        Patch(facecolor="#F43F5E", label="Extreme Stress Test (|ε| = 0.50: up to 83.5% clipped)"),
+    ]
+    ax_d.legend(handles=d_legend_elements, loc="upper left", frameon=False, fontsize=9.4)
+
+    # Global Figure Suptitle
+    fig.suptitle(
+        "Subseasonal Recursive Error Compounding Analysis (Mindanao Baseline Model A0)\n"
+        "194 Validation Cases (2022–2023) · 126 Active Land Cells · 3 Independent Training Seeds (42, 123, 456)",
+        fontsize=14.5, fontweight="bold", color=c_title, y=0.985
+    )
+
+    # Footnote
+    fig.text(
+        0.50, 0.015,
+        "Protocols 1–4 Diagnostic Suite · Mindanao RISE-UNet Baseline Verification · Moving-Block Bootstrap B = 10,000 · Sealed 2024–2025 Test Cohort Quarantined",
+        ha="center", fontsize=9.5, color="#64748B", style="italic"
+    )
+
+    plt.savefig(out_path, dpi=300, bbox_inches="tight")
     plt.close()
 
+
+def generate_recursive_gap_presentation_slide(
+    results: Dict[str, Any],
+    output_plot_path: Union[str, Path],
+) -> None:
+    """
+    Generates a dedicated 16:9 widescreen presentation slide proving the
+    Recursive Error Compounding Gap in Model A0 for the thesis presentation.
+    """
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    out_path = Path(output_plot_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    metrics_source = results.get("lead_summary", results.get("lead_metrics", {}))
+
+    def get_lead_metric(ld: int) -> Dict[str, Any]:
+        if ld in metrics_source:
+            return metrics_source[ld]
+        if str(ld) in metrics_source:
+            return metrics_source[str(ld)]
+        return {}
+
+    leads = [1, 2, 3, 4]
+    rec_mae = [get_lead_metric(l).get("rec_mae_mean", 0.0) for l in leads]
+    ora_mae = [get_lead_metric(l).get("ora_mae_mean", 0.0) for l in leads]
+    gaps = [get_lead_metric(l).get("delta_mae_mean", 0.0) for l in [2, 3, 4]]
+    ci_low = [get_lead_metric(l).get("delta_mae_ci_lower", 0.0) for l in [2, 3, 4]]
+    ci_high = [get_lead_metric(l).get("delta_mae_ci_upper", 0.0) for l in [2, 3, 4]]
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15.0, 7.5), dpi=300)
+    fig.patch.set_facecolor("#FFFFFF")
+    c_title = "#0F172A"
+    c_grid = "#F1F5F9"
+    c_rec = "#E11D48"
+    c_ora = "#059669"
+    c_gap = "#4338CA"
+
+    # LEFT PANEL: Protocols 1 vs 2 Comparison
+    ax1.set_facecolor("#FFFFFF")
+    x = np.arange(len(leads))
+    bar_w = 0.32
+    b1 = ax1.bar(x - bar_w/2, rec_mae, width=bar_w, color=c_rec, alpha=0.92, label="Standard Recursive (Model A0)", zorder=3)
+    b2 = ax1.bar(x + bar_w/2, ora_mae, width=bar_w, color=c_ora, alpha=0.92, label="Oracle Counterfactual (Ground Truth Injected)", zorder=3)
+
+    for i, bar in enumerate(b1):
+        h = bar.get_height()
+        x_pos = bar.get_x() + bar.get_width() / 2 - (0.045 if i == 0 else 0.0)
+        ax1.text(x_pos, h + 0.002, f"{h:.4f}", ha="center", va="bottom", fontsize=10.0, fontweight="bold", color=c_rec)
+
+    for i, bar in enumerate(b2):
+        h = bar.get_height()
+        x_pos = bar.get_x() + bar.get_width() / 2 + (0.045 if i == 0 else 0.0)
+        ax1.text(x_pos, h + 0.002, f"{h:.4f}", ha="center", va="bottom", fontsize=10.0, fontweight="bold", color=c_ora)
+
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(["Week 1\n(Days 1–7)", "Week 2\n(Days 8–14)", "Week 3\n(Days 15–21)", "Week 4\n(Days 22–28)"], fontsize=10.5, color=c_title)
+    ax1.set_ylabel("Validation MAE (Normalized [0, 1])", fontsize=11.5, fontweight="bold", color=c_title)
+    ax1.set_ylim(0, 0.11)
+    ax1.spines["top"].set_visible(False)
+    ax1.spines["right"].set_visible(False)
+    ax1.yaxis.grid(True, linestyle="-", color=c_grid, linewidth=1.2, zorder=0)
+    ax1.set_axisbelow(True)
+    ax1.set_title("Forecast Error Across Lead Horizons", fontsize=13.0, fontweight="bold", color=c_title, pad=12, loc="left")
+    ax1.legend(loc="upper left", frameon=False, fontsize=9.5)
+
+    # RIGHT PANEL: Error Gap Compounding with 95% Bootstrap CI
+    ax2.set_facecolor("#FFFFFF")
+    gx = np.array([2, 3, 4])
+    ax2.axhline(0, color="#94A3B8", linestyle="--", linewidth=1.0, alpha=0.7)
+    ax2.fill_between(gx, ci_low, ci_high, color="#E0E7FF", alpha=0.65, label="95% Bootstrap CI (B=10,000)")
+    ax2.plot(gx, gaps, marker="o", markersize=8.5, linewidth=2.8, color=c_gap, label="Recursive Error Gap (ΔMAE)", zorder=4)
+
+    for xi, yi in zip(gx, gaps):
+        ax2.text(xi, yi + 0.0025, f"+{yi:.4f}", ha="center", va="bottom", fontsize=11.0, fontweight="bold", color=c_gap)
+
+    ax2.set_xticks(gx)
+    ax2.set_xticklabels(["Week 2 (Days 8–14)", "Week 3 (Days 15–21)", "Week 4 (Days 22–28)"], fontsize=11.0, color=c_title)
+    ax2.set_ylabel("Recursive Compounding Gap ΔMAE", fontsize=11.5, fontweight="bold", color=c_title)
+    ax2.set_xlim(1.5, 4.5)
+    ax2.set_ylim(-0.003, 0.052)
+    ax2.spines["top"].set_visible(False)
+    ax2.spines["right"].set_visible(False)
+    ax2.yaxis.grid(True, linestyle="-", color=c_grid, linewidth=1.2, zorder=0)
+    ax2.set_axisbelow(True)
+    ax2.set_title("Compounded Degradation Gap with 95% CI", fontsize=13.0, fontweight="bold", color=c_title, pad=12, loc="left")
+    ax2.legend(loc="upper left", frameon=False, fontsize=9.5)
+
+    plt.suptitle("Empirical Proof of Recursive Error Compounding Gap in Baseline Model A0", fontsize=15.5, fontweight="bold", color=c_title, y=0.965)
+    fig.text(0.50, 0.022, "194 validation cases (2022–2023) · 126 active cells · 3 independent seeds · Moving-Block Bootstrap B=10,000", ha="center", fontsize=9.3, color="#64748B", style="italic")
+    plt.tight_layout(rect=[0.02, 0.06, 0.98, 0.93], w_pad=4.0)
+    plt.savefig(out_path, dpi=300, bbox_inches="tight")
+    plt.close()
+
+
+def compute_monsoon_spatial_error_maps(
+    case_ids: List[str],
+    case_spatial_errors: Dict[str, np.ndarray],
+    eval_mask: np.ndarray,
+    lons: Optional[np.ndarray] = None,
+    lats: Optional[np.ndarray] = None,
+    divide_lon: float = 124.5,
+) -> Dict[str, Any]:
+    """
+    Computes 2D mean spatial error maps and East-vs-West asymmetry metrics
+    partitioned by Philippine monsoon regime.
+
+    Parameters
+    ----------
+    case_ids : List[str]
+        List of N case identifiers.
+    case_spatial_errors : Dict[str, np.ndarray]
+        Dictionary mapping case_id to 2D spatial error array of shape (32, 48).
+    eval_mask : np.ndarray
+        2D boolean evaluation mask of shape (32, 48) with 126 active land cells.
+    lons : Optional[np.ndarray]
+        1D array of longitudes (length 48). If None, defaults to CANDIDATE_A_LONS.
+    lats : Optional[np.ndarray]
+        1D array of latitudes (length 32). If None, defaults to CANDIDATE_A_LATS.
+    divide_lon : float
+        Longitudinal threshold dividing Western and Eastern Mindanao (default 124.5°E).
+
+    Returns
+    -------
+    Dict[str, Any]
+        Dictionary containing per-regime mean maps, dipole difference map, and
+        East vs. West asymmetry metrics.
+    """
+    if lons is None:
+        from src.data.s2s import CANDIDATE_A_LONS
+        lons = CANDIDATE_A_LONS
+    if lats is None:
+        from src.data.s2s import CANDIDATE_A_LATS
+        lats = CANDIDATE_A_LATS
+
+    mask_2d = eval_mask.astype(bool)
+    regime_cases: Dict[str, List[np.ndarray]] = {"Amihan": [], "Habagat": [], "Transition": []}
+
+    for cid in case_ids:
+        r = assign_philippine_monsoon_regime(cid)
+        if cid in case_spatial_errors:
+            regime_cases[r].append(case_spatial_errors[cid])
+
+    out: Dict[str, Any] = {}
+    for r in ["Amihan", "Habagat", "Transition"]:
+        if regime_cases[r]:
+            stack = np.stack(regime_cases[r], axis=0)  # (N_r, 32, 48)
+            mean_map = np.mean(stack, axis=0)
+            masked_map = np.where(mask_2d, mean_map, np.nan)
+            out[r] = {
+                "mean_map": masked_map,
+                "case_count": len(regime_cases[r]),
+                "overall_mean": float(np.nanmean(masked_map)),
+            }
+        else:
+            out[r] = {
+                "mean_map": np.full((GRID_HEIGHT, GRID_WIDTH), np.nan),
+                "case_count": 0,
+                "overall_mean": 0.0,
+            }
+
+    # Dipole Difference Map: (Amihan - Habagat)
+    if out["Amihan"]["case_count"] > 0 and out["Habagat"]["case_count"] > 0:
+        dipole = out["Amihan"]["mean_map"] - out["Habagat"]["mean_map"]
+    else:
+        dipole = np.full((GRID_HEIGHT, GRID_WIDTH), np.nan)
+    out["Dipole_Diff"] = dipole
+
+    # East vs. West Orographic Asymmetry
+    # Western Mindanao: lon < divide_lon; Eastern Mindanao: lon >= divide_lon
+    lon_grid, lat_grid = np.meshgrid(lons, lats)
+    east_mask = mask_2d & (lon_grid >= divide_lon)
+    west_mask = mask_2d & (lon_grid < divide_lon)
+
+    out["Asymmetry"] = {
+        "divide_lon": divide_lon,
+        "east_cells": int(np.sum(east_mask)),
+        "west_cells": int(np.sum(west_mask)),
+        "Amihan": {
+            "east_mean": float(np.nanmean(out["Amihan"]["mean_map"][east_mask])) if np.any(east_mask) else 0.0,
+            "west_mean": float(np.nanmean(out["Amihan"]["mean_map"][west_mask])) if np.any(west_mask) else 0.0,
+        },
+        "Habagat": {
+            "east_mean": float(np.nanmean(out["Habagat"]["mean_map"][east_mask])) if np.any(east_mask) else 0.0,
+            "west_mean": float(np.nanmean(out["Habagat"]["mean_map"][west_mask])) if np.any(west_mask) else 0.0,
+        },
+    }
+    return out
+
+
+def load_psa_boundary_geom(boundary_path: Optional[Union[str, Path]] = None) -> Any:
+    """
+    Loads official PSA-NAMRIA regional boundary polygon for Mindanao.
+    """
+    if boundary_path is None:
+        boundary_path = Path("processed/boundary/mindanao_analysis_boundary.gpkg")
+    bp = Path(boundary_path)
+    if not bp.exists():
+        repo_root = Path(__file__).resolve().parent.parent.parent
+        alt = repo_root / "processed" / "boundary" / "mindanao_analysis_boundary.gpkg"
+        if alt.exists():
+            bp = alt
+        else:
+            return None
+    try:
+        import sqlite3
+        import shapely.wkb
+        conn = sqlite3.connect(bp)
+        cur = conn.cursor()
+        cur.execute("SELECT geom FROM mindanao_analysis_boundary LIMIT 1")
+        row = cur.fetchone()
+        conn.close()
+        if row:
+            raw_geom = row[0]
+            flags = raw_geom[3]
+            envelope_type = (flags >> 1) & 0x07
+            header_lens = {0: 8, 1: 40, 2: 56, 3: 56, 4: 72}
+            return shapely.wkb.loads(raw_geom[header_lens.get(envelope_type, 8):])
+    except Exception:
+        return None
+    return None
+
+
+def plot_psa_boundary(ax: Any, geom: Any, edgecolor: str = "#0F172A", linewidth: float = 1.1, alpha: float = 0.95, zorder: int = 6) -> None:
+    """
+    Plots the official PSA-NAMRIA boundary onto matplotlib axis.
+    """
+    if geom is None:
+        return
+    geoms = geom.geoms if geom.geom_type == "MultiPolygon" else [geom]
+    for p in geoms:
+        x, y = p.exterior.xy
+        ax.plot(x, y, color=edgecolor, linewidth=linewidth, alpha=alpha, zorder=zorder)
+        for interior in p.interiors:
+            ix, iy = interior.xy
+            ax.plot(ix, iy, color=edgecolor, linewidth=linewidth * 0.6, alpha=alpha * 0.75, zorder=zorder)
+
+
+def generate_seasonality_diagnostic_plots(
+    monsoon_res: Dict[str, Any],
+    quarter_res: Dict[str, Any],
+    spatial_res: Dict[str, Any],
+    output_plot_path: Union[str, Path],
+) -> None:
+    """
+    Generates an authoritative, publication-grade 4-panel composite (300 DPI)
+    illustrating the empirical Seasonality & Monsoon Gap in Model A0 on an expanded canvas.
+    """
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    out_path = Path(output_plot_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Expanded canvas for larger, highly readable panels
+    fig, axes = plt.subplots(2, 2, figsize=(21.0, 16.0), dpi=300)
+    fig.patch.set_facecolor("#FFFFFF")
+    c_title = "#0F172A"
+    c_grid = "#F1F5F9"
+
+    # Color Palette: Amihan (Blue/Teal), Habagat (Rose/Red), Transition (Amber)
+    c_ami = "#0284C7"
+    c_hab = "#E11D48"
+    c_trn = "#D97706"
+
+    # -------------------------------------------------------------------------
+    # PANEL A: Compounded Recursive Error Gap by Monsoon Regime across Leads
+    # -------------------------------------------------------------------------
+    ax_a = axes[0, 0]
+    ax_a.set_facecolor("#FFFFFF")
+    leads = [2, 3, 4]
+    x = np.arange(len(leads))
+    w = 0.26
+
+    ami_gaps = [monsoon_res["Amihan"]["leads"][str(l)]["delta_mae_mean"] for l in leads]
+    hab_gaps = [monsoon_res["Habagat"]["leads"][str(l)]["delta_mae_mean"] for l in leads]
+    trn_gaps = [monsoon_res["Transition"]["leads"][str(l)]["delta_mae_mean"] for l in leads]
+
+    b_ami = ax_a.bar(x - w, ami_gaps, width=w, color=c_ami, label=f"Amihan (Nov–Apr, N={monsoon_res['Amihan']['case_count']})", zorder=3)
+    b_hab = ax_a.bar(x, hab_gaps, width=w, color=c_hab, label=f"Habagat (Jun–Oct, N={monsoon_res['Habagat']['case_count']})", zorder=3)
+    b_trn = ax_a.bar(x + w, trn_gaps, width=w, color=c_trn, label=f"Transition (May, N={monsoon_res['Transition']['case_count']})", zorder=3)
+
+    # Actual numbers on top of each bar graph in Panel A
+    for i in range(len(leads)):
+        ax_a.text(x[i] - w, ami_gaps[i] + 0.0008, f"{ami_gaps[i]:.4f}", ha="center", va="bottom", fontsize=10.5, fontweight="bold", color=c_ami)
+        ax_a.text(x[i], hab_gaps[i] + 0.0008, f"{hab_gaps[i]:.4f}", ha="center", va="bottom", fontsize=10.5, fontweight="bold", color=c_hab)
+        ax_a.text(x[i] + w, trn_gaps[i] + 0.0008, f"{trn_gaps[i]:.4f}", ha="center", va="bottom", fontsize=10.5, fontweight="bold", color=c_trn)
+
+    ax_a.set_xticks(x)
+    ax_a.set_xticklabels(["Week 2\n(Days 8–14)", "Week 3\n(Days 15–21)", "Week 4\n(Days 22–28)"], fontsize=12.0, color=c_title)
+    ax_a.set_ylabel("Empirical Error Gap ΔMAE (Normalized)", fontsize=13.0, fontweight="bold", color=c_title)
+    ax_a.set_ylim(0, 0.050)
+    ax_a.spines["top"].set_visible(False)
+    ax_a.spines["right"].set_visible(False)
+    ax_a.yaxis.grid(True, linestyle="-", color=c_grid, linewidth=1.2, zorder=0)
+    ax_a.set_axisbelow(True)
+    ax_a.set_title("A. Compounded Error Gap by Monsoon Regime", fontsize=14.5, fontweight="bold", color=c_title, pad=14, loc="left")
+    ax_a.legend(loc="upper left", frameon=False, fontsize=11.5)
+
+    # -------------------------------------------------------------------------
+    # PANEL B: Standard Meteorological Quarters (DJF, MAM, JJA, SON)
+    # -------------------------------------------------------------------------
+    ax_b = axes[0, 1]
+    ax_b.set_facecolor("#FFFFFF")
+    quarters = ["DJF", "MAM", "JJA", "SON"]
+    qx = np.arange(len(quarters))
+    qw = 0.28
+
+    w3_gaps = [quarter_res[q]["leads"]["3"]["delta_mae_mean"] for q in quarters]
+    w4_gaps = [quarter_res[q]["leads"]["4"]["delta_mae_mean"] for q in quarters]
+
+    b_w3 = ax_b.bar(qx - qw/2, w3_gaps, width=qw, color="#64748B", label="Week 3 Degradation Gap", zorder=3)
+    b_w4 = ax_b.bar(qx + qw/2, w4_gaps, width=qw, color="#0F172A", label="Week 4 Degradation Gap", zorder=3)
+
+    # Actual numbers on top of each bar graph in Panel B
+    for i in range(len(quarters)):
+        ax_b.text(qx[i] - qw/2, w3_gaps[i] + 0.0008, f"{w3_gaps[i]:.4f}", ha="center", va="bottom", fontsize=10.0, fontweight="bold", color="#475569")
+        ax_b.text(qx[i] + qw/2, w4_gaps[i] + 0.0008, f"{w4_gaps[i]:.4f}", ha="center", va="bottom", fontsize=10.0, fontweight="bold", color="#0F172A")
+
+    ax_b.set_xticks(qx)
+    ax_b.set_xticklabels([f"{q}\n(N={quarter_res[q]['case_count']})" for q in quarters], fontsize=12.0, color=c_title)
+    ax_b.set_ylabel("Degradation Gap ΔMAE (Normalized)", fontsize=13.0, fontweight="bold", color=c_title)
+    ax_b.set_ylim(0, 0.054)
+    ax_b.spines["top"].set_visible(False)
+    ax_b.spines["right"].set_visible(False)
+    ax_b.yaxis.grid(True, linestyle="-", color=c_grid, linewidth=1.2, zorder=0)
+    ax_b.set_axisbelow(True)
+    ax_b.set_title("B. Conventional Quarter Benchmark (Lesinger Parity)", fontsize=14.5, fontweight="bold", color=c_title, pad=14, loc="left")
+    # Position legend higher up with clean white background so it never overlaps bars
+    ax_b.legend(loc="upper left", bbox_to_anchor=(0.02, 0.98), frameon=True, facecolor="white", edgecolor="#E2E8F0", fontsize=11.5)
+
+    # Geographic Extents & Boundary
+    extent_cand_a = [115.875, 127.875, 3.875, 11.875]
+    xlims = (118.2, 127.0)
+    ylims = (4.8, 10.4)
+    boundary_geom = load_psa_boundary_geom()
+
+    # -------------------------------------------------------------------------
+    # PANEL C: Spatial Error Map during Northeast Monsoon (Amihan)
+    # -------------------------------------------------------------------------
+    ax_c = axes[1, 0]
+    ax_c.set_facecolor("#F8FAFC")
+    ax_c.set_aspect("equal")
+    ax_c.set_xlim(xlims)
+    ax_c.set_ylim(ylims)
+    ami_map = spatial_res["Amihan"]["mean_map"]
+    cmap_err = matplotlib.colormaps["YlOrRd"].copy()
+    cmap_err.set_bad(color="#F8FAFC")
+
+    vmin = 0.03
+    vmax = 0.11
+    im_c = ax_c.imshow(ami_map, origin="upper", cmap=cmap_err, vmin=vmin, vmax=vmax, extent=extent_cand_a, zorder=2)
+    plot_psa_boundary(ax_c, boundary_geom, linewidth=1.2)
+    ax_c.set_title("C. Spatial MAE: Northeast Monsoon (Amihan)", fontsize=14.5, fontweight="bold", color=c_title, pad=14, loc="left")
+    ax_c.set_xlabel("Longitude (°E)", fontsize=12.0, color=c_title)
+    ax_c.set_ylabel("Latitude (°N)", fontsize=12.0, color=c_title)
+    ax_c.tick_params(labelsize=11.0)
+    ax_c.axvline(124.5, color="#64748B", linestyle=":", linewidth=1.3, zorder=5)
+    ax_c.text(0.04, 0.90, f"East Mean: {spatial_res['Asymmetry']['Amihan']['east_mean']:.4f}\nWest Mean: {spatial_res['Asymmetry']['Amihan']['west_mean']:.4f}",
+              transform=ax_c.transAxes, fontsize=11.0, fontweight="bold", color="#0F172A",
+              bbox=dict(boxstyle="round,pad=0.35", facecolor="white", edgecolor="#CBD5E1", alpha=0.92), zorder=7)
+    cb_c = plt.colorbar(im_c, ax=ax_c, fraction=0.035, pad=0.04)
+    cb_c.set_label("Normalized MAE", fontsize=11.5, fontweight="bold")
+    cb_c.ax.tick_params(labelsize=10.5)
+
+    # -------------------------------------------------------------------------
+    # PANEL D: Spatial Error Map during Southwest Monsoon (Habagat)
+    # -------------------------------------------------------------------------
+    ax_d = axes[1, 1]
+    ax_d.set_facecolor("#F8FAFC")
+    ax_d.set_aspect("equal")
+    ax_d.set_xlim(xlims)
+    ax_d.set_ylim(ylims)
+    hab_map = spatial_res["Habagat"]["mean_map"]
+    im_d = ax_d.imshow(hab_map, origin="upper", cmap=cmap_err, vmin=vmin, vmax=vmax, extent=extent_cand_a, zorder=2)
+    plot_psa_boundary(ax_d, boundary_geom, linewidth=1.2)
+    ax_d.set_title("D. Spatial MAE: Southwest Monsoon (Habagat)", fontsize=14.5, fontweight="bold", color=c_title, pad=14, loc="left")
+    ax_d.set_xlabel("Longitude (°E)", fontsize=12.0, color=c_title)
+    ax_d.set_ylabel("Latitude (°N)", fontsize=12.0, color=c_title)
+    ax_d.tick_params(labelsize=11.0)
+    ax_d.axvline(124.5, color="#64748B", linestyle=":", linewidth=1.3, zorder=5)
+    ax_d.text(0.04, 0.90, f"East Mean: {spatial_res['Asymmetry']['Habagat']['east_mean']:.4f}\nWest Mean: {spatial_res['Asymmetry']['Habagat']['west_mean']:.4f}",
+              transform=ax_d.transAxes, fontsize=11.0, fontweight="bold", color="#0F172A",
+              bbox=dict(boxstyle="round,pad=0.35", facecolor="white", edgecolor="#CBD5E1", alpha=0.92), zorder=7)
+    cb_d = plt.colorbar(im_d, ax=ax_d, fraction=0.035, pad=0.04)
+    cb_d.set_label("Normalized MAE", fontsize=11.5, fontweight="bold")
+    cb_d.ax.tick_params(labelsize=10.5)
+
+    # Global Suptitle
+    fig.suptitle(
+        "Empirical Evidence of the Seasonality & Monsoon Gap in Model A0\n"
+        "194 Validation Cycles (2022–2023) · 126 Land Cells · Model A0 Static Weights vs. Regional Monsoons",
+        fontsize=16.5, fontweight="bold", color=c_title, y=0.985
+    )
+
+    # Footnote
+    fig.text(
+        0.50, 0.015,
+        "PAGASA Monsoon Partition (Amihan: Nov–Apr, Habagat: Jun–Oct, Transition: May) · East-West Orographic Asymmetry · Sealed 2024–2025 Quarantined",
+        ha="center", fontsize=11.0, color="#64748B", style="italic"
+    )
+
+    plt.tight_layout(rect=[0.02, 0.035, 0.98, 0.94], w_pad=3.5, h_pad=3.5)
+    plt.savefig(out_path, dpi=300, bbox_inches="tight")
+    plt.close()
+
+
+def generate_divided_seasonality_figures(
+    monsoon_res: Dict[str, Any],
+    quarter_res: Dict[str, Any],
+    spatial_res: Dict[str, Any],
+    output_ab_path: Union[str, Path],
+    output_cd_path: Union[str, Path],
+) -> None:
+    """
+    Generates two separate, divided high-resolution diagnostic figures:
+      1. Figures A & B (Statistical Compounding by Monsoon & Quarter)
+      2. Figures C & D (2D Spatial Error Maps for Amihan and Habagat)
+    """
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    p_ab = Path(output_ab_path)
+    p_cd = Path(output_cd_path)
+    p_ab.parent.mkdir(parents=True, exist_ok=True)
+    p_cd.parent.mkdir(parents=True, exist_ok=True)
+
+    c_title = "#0F172A"
+    c_grid = "#F1F5F9"
+    c_ami = "#0284C7"
+    c_hab = "#E11D48"
+    c_trn = "#D97706"
+
+    # =========================================================================
+    # PART 1: FIGURE A & FIGURE B (STATISTICAL ERROR COMPOUNDING)
+    # =========================================================================
+    fig_ab, (ax_a, ax_b) = plt.subplots(1, 2, figsize=(20.0, 9.0), dpi=300)
+    fig_ab.patch.set_facecolor("#FFFFFF")
+
+    leads = [2, 3, 4]
+    x = np.arange(len(leads))
+    w = 0.26
+
+    ami_gaps = [monsoon_res["Amihan"]["leads"][str(l)]["delta_mae_mean"] for l in leads]
+    hab_gaps = [monsoon_res["Habagat"]["leads"][str(l)]["delta_mae_mean"] for l in leads]
+    trn_gaps = [monsoon_res["Transition"]["leads"][str(l)]["delta_mae_mean"] for l in leads]
+
+    ax_a.bar(x - w, ami_gaps, width=w, color=c_ami, label=f"Amihan (Nov–Apr, N={monsoon_res['Amihan']['case_count']})", zorder=3)
+    ax_a.bar(x, hab_gaps, width=w, color=c_hab, label=f"Habagat (Jun–Oct, N={monsoon_res['Habagat']['case_count']})", zorder=3)
+    ax_a.bar(x + w, trn_gaps, width=w, color=c_trn, label=f"Transition (May, N={monsoon_res['Transition']['case_count']})", zorder=3)
+
+    for i in range(len(leads)):
+        ax_a.text(x[i] - w, ami_gaps[i] + 0.0008, f"{ami_gaps[i]:.4f}", ha="center", va="bottom", fontsize=10.5, fontweight="bold", color=c_ami)
+        ax_a.text(x[i], hab_gaps[i] + 0.0008, f"{hab_gaps[i]:.4f}", ha="center", va="bottom", fontsize=10.5, fontweight="bold", color=c_hab)
+        ax_a.text(x[i] + w, trn_gaps[i] + 0.0008, f"{trn_gaps[i]:.4f}", ha="center", va="bottom", fontsize=10.5, fontweight="bold", color=c_trn)
+
+    ax_a.set_xticks(x)
+    ax_a.set_xticklabels(["Week 2\n(Days 8–14)", "Week 3\n(Days 15–21)", "Week 4\n(Days 22–28)"], fontsize=12.0, color=c_title)
+    ax_a.set_ylabel("Empirical Error Gap ΔMAE (Normalized)", fontsize=13.0, fontweight="bold", color=c_title)
+    ax_a.set_ylim(0, 0.050)
+    ax_a.spines["top"].set_visible(False)
+    ax_a.spines["right"].set_visible(False)
+    ax_a.yaxis.grid(True, linestyle="-", color=c_grid, linewidth=1.2, zorder=0)
+    ax_a.set_axisbelow(True)
+    ax_a.set_title("A. Compounded Error Gap by Monsoon Regime", fontsize=14.5, fontweight="bold", color=c_title, pad=14, loc="left")
+    ax_a.legend(loc="upper left", frameon=False, fontsize=11.5)
+
+    quarters = ["DJF", "MAM", "JJA", "SON"]
+    qx = np.arange(len(quarters))
+    qw = 0.28
+
+    w3_gaps = [quarter_res[q]["leads"]["3"]["delta_mae_mean"] for q in quarters]
+    w4_gaps = [quarter_res[q]["leads"]["4"]["delta_mae_mean"] for q in quarters]
+
+    ax_b.bar(qx - qw/2, w3_gaps, width=qw, color="#64748B", label="Week 3 Degradation Gap", zorder=3)
+    ax_b.bar(qx + qw/2, w4_gaps, width=qw, color="#0F172A", label="Week 4 Degradation Gap", zorder=3)
+
+    for i in range(len(quarters)):
+        ax_b.text(qx[i] - qw/2, w3_gaps[i] + 0.0008, f"{w3_gaps[i]:.4f}", ha="center", va="bottom", fontsize=10.0, fontweight="bold", color="#475569")
+        ax_b.text(qx[i] + qw/2, w4_gaps[i] + 0.0008, f"{w4_gaps[i]:.4f}", ha="center", va="bottom", fontsize=10.0, fontweight="bold", color="#0F172A")
+
+    ax_b.set_xticks(qx)
+    ax_b.set_xticklabels([f"{q}\n(N={quarter_res[q]['case_count']})" for q in quarters], fontsize=12.0, color=c_title)
+    ax_b.set_ylabel("Degradation Gap ΔMAE (Normalized)", fontsize=13.0, fontweight="bold", color=c_title)
+    ax_b.set_ylim(0, 0.054)
+    ax_b.spines["top"].set_visible(False)
+    ax_b.spines["right"].set_visible(False)
+    ax_b.yaxis.grid(True, linestyle="-", color=c_grid, linewidth=1.2, zorder=0)
+    ax_b.set_axisbelow(True)
+    ax_b.set_title("B. Conventional Quarter Benchmark (Lesinger Parity)", fontsize=14.5, fontweight="bold", color=c_title, pad=14, loc="left")
+    ax_b.legend(loc="upper left", bbox_to_anchor=(0.02, 0.98), frameon=True, facecolor="white", edgecolor="#E2E8F0", fontsize=11.5)
+
+    fig_ab.suptitle(
+        "Empirical Evidence of Seasonality & Monsoon Gap: Statistical Error Compounding (Model A0)\n"
+        "194 Validation Cycles (2022–2023) · 126 Land Cells · PAGASA Monsoon & Quarterly Stratification",
+        fontsize=16.0, fontweight="bold", color=c_title, y=0.985
+    )
+    fig_ab.text(0.50, 0.020, "PAGASA Monsoon Partition (Amihan: Nov–Apr, Habagat: Jun–Oct, Transition: May) · Sealed 2024–2025 Quarantined",
+                ha="center", fontsize=10.5, color="#64748B", style="italic")
+    plt.tight_layout(rect=[0.02, 0.05, 0.98, 0.93], w_pad=4.0)
+    plt.savefig(p_ab, dpi=300, bbox_inches="tight")
+    plt.close()
+
+    # =========================================================================
+    # PART 2: FIGURE C & FIGURE D (SPATIAL ERROR MAPS)
+    # =========================================================================
+    fig_cd, (ax_c, ax_d) = plt.subplots(1, 2, figsize=(20.0, 9.5), dpi=300)
+    fig_cd.patch.set_facecolor("#FFFFFF")
+
+    extent_cand_a = [115.875, 127.875, 3.875, 11.875]
+    xlims = (118.2, 127.0)
+    ylims = (4.8, 10.4)
+    boundary_geom = load_psa_boundary_geom()
+
+    cmap_err = matplotlib.colormaps["YlOrRd"].copy()
+    cmap_err.set_bad(color="#F8FAFC")
+    vmin = 0.03
+    vmax = 0.11
+
+    # Panel C: Amihan
+    ax_c.set_facecolor("#F8FAFC")
+    ax_c.set_aspect("equal")
+    ax_c.set_xlim(xlims)
+    ax_c.set_ylim(ylims)
+    ami_map = spatial_res["Amihan"]["mean_map"]
+    im_c = ax_c.imshow(ami_map, origin="upper", cmap=cmap_err, vmin=vmin, vmax=vmax, extent=extent_cand_a, zorder=2)
+    plot_psa_boundary(ax_c, boundary_geom, linewidth=1.2)
+    ax_c.set_title("C. Spatial MAE: Northeast Monsoon (Amihan)", fontsize=14.5, fontweight="bold", color=c_title, pad=14, loc="left")
+    ax_c.set_xlabel("Longitude (°E)", fontsize=12.0, color=c_title)
+    ax_c.set_ylabel("Latitude (°N)", fontsize=12.0, color=c_title)
+    ax_c.tick_params(labelsize=11.0)
+    ax_c.axvline(124.5, color="#64748B", linestyle=":", linewidth=1.3, zorder=5)
+    ax_c.text(0.04, 0.90, f"East Mean: {spatial_res['Asymmetry']['Amihan']['east_mean']:.4f}\nWest Mean: {spatial_res['Asymmetry']['Amihan']['west_mean']:.4f}",
+              transform=ax_c.transAxes, fontsize=11.0, fontweight="bold", color="#0F172A",
+              bbox=dict(boxstyle="round,pad=0.35", facecolor="white", edgecolor="#CBD5E1", alpha=0.92), zorder=7)
+    cb_c = plt.colorbar(im_c, ax=ax_c, fraction=0.035, pad=0.04)
+    cb_c.set_label("Normalized MAE", fontsize=11.5, fontweight="bold")
+    cb_c.ax.tick_params(labelsize=10.5)
+
+    # Panel D: Habagat
+    ax_d.set_facecolor("#F8FAFC")
+    ax_d.set_aspect("equal")
+    ax_d.set_xlim(xlims)
+    ax_d.set_ylim(ylims)
+    hab_map = spatial_res["Habagat"]["mean_map"]
+    im_d = ax_d.imshow(hab_map, origin="upper", cmap=cmap_err, vmin=vmin, vmax=vmax, extent=extent_cand_a, zorder=2)
+    plot_psa_boundary(ax_d, boundary_geom, linewidth=1.2)
+    ax_d.set_title("D. Spatial MAE: Southwest Monsoon (Habagat)", fontsize=14.5, fontweight="bold", color=c_title, pad=14, loc="left")
+    ax_d.set_xlabel("Longitude (°E)", fontsize=12.0, color=c_title)
+    ax_d.set_ylabel("Latitude (°N)", fontsize=12.0, color=c_title)
+    ax_d.tick_params(labelsize=11.0)
+    ax_d.axvline(124.5, color="#64748B", linestyle=":", linewidth=1.3, zorder=5)
+    ax_d.text(0.04, 0.90, f"East Mean: {spatial_res['Asymmetry']['Habagat']['east_mean']:.4f}\nWest Mean: {spatial_res['Asymmetry']['Habagat']['west_mean']:.4f}",
+              transform=ax_d.transAxes, fontsize=11.0, fontweight="bold", color="#0F172A",
+              bbox=dict(boxstyle="round,pad=0.35", facecolor="white", edgecolor="#CBD5E1", alpha=0.92), zorder=7)
+    cb_d = plt.colorbar(im_d, ax=ax_d, fraction=0.035, pad=0.04)
+    cb_d.set_label("Normalized MAE", fontsize=11.5, fontweight="bold")
+    cb_d.ax.tick_params(labelsize=10.5)
+
+    fig_cd.suptitle(
+        "Empirical Evidence of Seasonality & Monsoon Gap: Geographic Error Asymmetry (Model A0)\n"
+        "194 Validation Cycles (2022–2023) · 126 Land Cells · Orographic Reversal Across 124.5°E Meridian",
+        fontsize=16.0, fontweight="bold", color=c_title, y=0.985
+    )
+    fig_cd.text(0.50, 0.020, "Official PSA-NAMRIA Administrative Boundary Overlay · Sealed 2024–2025 Quarantined",
+                ha="center", fontsize=10.5, color="#64748B", style="italic")
+    plt.tight_layout(rect=[0.02, 0.05, 0.98, 0.93], w_pad=4.0)
+    plt.savefig(p_cd, dpi=300, bbox_inches="tight")
+    plt.close()
+
+
+
+def generate_seasonality_presentation_slide(
+    monsoon_res: Dict[str, Any],
+    spatial_res: Dict[str, Any],
+    output_plot_path: Union[str, Path],
+) -> None:
+    """
+    Generates a dedicated 16:9 widescreen presentation slide proving the
+    Seasonality & Monsoon Gap for the thesis presentation.
+    """
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    out_path = Path(output_plot_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15.0, 7.5), dpi=300)
+    fig.patch.set_facecolor("#FFFFFF")
+    c_title = "#0F172A"
+    c_grid = "#F1F5F9"
+
+    # LEFT PANEL: Monsoonal Compounding Gap Comparison
+    ax1.set_facecolor("#FFFFFF")
+    leads = [2, 3, 4]
+    x = np.arange(len(leads))
+    w = 0.28
+    ami_g = [monsoon_res["Amihan"]["leads"][str(l)]["delta_mae_mean"] for l in leads]
+    hab_g = [monsoon_res["Habagat"]["leads"][str(l)]["delta_mae_mean"] for l in leads]
+    trn_g = [monsoon_res["Transition"]["leads"][str(l)]["delta_mae_mean"] for l in leads]
+
+    ax1.bar(x - w, ami_g, width=w, color="#0284C7", label=f"Northeast Monsoon (Amihan, N={monsoon_res['Amihan']['case_count']})", zorder=3)
+    ax1.bar(x, hab_g, width=w, color="#E11D48", label=f"Southwest Monsoon (Habagat, N={monsoon_res['Habagat']['case_count']})", zorder=3)
+    ax1.bar(x + w, trn_g, width=w, color="#D97706", label=f"Inter-Monsoon Transition (May, N={monsoon_res['Transition']['case_count']})", zorder=3)
+
+    for i in range(len(leads)):
+        ax1.text(x[i] - w, ami_g[i] + 0.001, f"{ami_g[i]:.4f}", ha="center", va="bottom", fontsize=9.0, fontweight="bold", color="#0284C7")
+        ax1.text(x[i], hab_g[i] + 0.001, f"{hab_g[i]:.4f}", ha="center", va="bottom", fontsize=9.0, fontweight="bold", color="#E11D48")
+        ax1.text(x[i] + w, trn_g[i] + 0.001, f"{trn_g[i]:.4f}", ha="center", va="bottom", fontsize=9.0, fontweight="bold", color="#D97706")
+
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(["Week 2 (Days 8–14)", "Week 3 (Days 15–21)", "Week 4 (Days 22–28)"], fontsize=11, color=c_title)
+    ax1.set_ylabel("Recursive Error Compounding ΔMAE", fontsize=11.5, fontweight="bold", color=c_title)
+    ax1.set_ylim(0, 0.055)
+    ax1.spines["top"].set_visible(False)
+    ax1.spines["right"].set_visible(False)
+    ax1.yaxis.grid(True, linestyle="-", color=c_grid, linewidth=1.2, zorder=0)
+    ax1.set_axisbelow(True)
+    ax1.set_title("Compounded Recursive Degradation Across Monsoons", fontsize=13, fontweight="bold", color=c_title, pad=12, loc="left")
+    ax1.legend(loc="upper left", frameon=False, fontsize=9.8)
+
+    # Geographic Extents & Boundary
+    extent_cand_a = [115.875, 127.875, 3.875, 11.875]
+    xlims = (118.2, 127.0)
+    ylims = (4.8, 10.4)
+    boundary_geom = load_psa_boundary_geom()
+
+    # RIGHT PANEL: The Spatial Error Dipole Map (Amihan vs Habagat Difference)
+    ax2.set_facecolor("#F8FAFC")
+    ax2.set_aspect("equal")
+    ax2.set_xlim(xlims)
+    ax2.set_ylim(ylims)
+    dipole_map = spatial_res["Dipole_Diff"]
+    cmap_dipole = matplotlib.colormaps["coolwarm"].copy()
+    cmap_dipole.set_bad(color="#F8FAFC")
+
+    v_abs = 0.025
+    im2 = ax2.imshow(dipole_map, origin="upper", cmap=cmap_dipole, vmin=-v_abs, vmax=v_abs, extent=extent_cand_a, zorder=2)
+    plot_psa_boundary(ax2, boundary_geom)
+    ax2.axvline(124.5, color="#0F172A", linestyle="--", linewidth=1.3, zorder=5)
+    ax2.set_title("Geographic Error Asymmetry: Amihan vs. Habagat", fontsize=13, fontweight="bold", color=c_title, pad=12, loc="left")
+    ax2.set_xlabel("Longitude (°E)", fontsize=10.5, color=c_title)
+    ax2.set_ylabel("Latitude (°N)", fontsize=10.5, color=c_title)
+
+    ax2.text(0.04, 0.90, "RED: Higher Error in Amihan (East Coast)\nBLUE: Higher Error in Habagat (West Coast)",
+             transform=ax2.transAxes, fontsize=9.0, fontweight="bold", color="#0F172A",
+             bbox=dict(boxstyle="round,pad=0.3", facecolor="white", edgecolor="#CBD5E1", alpha=0.95), zorder=7)
+
+    cb = plt.colorbar(im2, ax=ax2, fraction=0.035, pad=0.04)
+    cb.set_label("Spatial Error Difference (MAE_Amihan - MAE_Habagat)", fontsize=9.5, fontweight="bold")
+
+    plt.suptitle(
+        "Demonstration of Seasonality & Monsoon Blind Spots in Baseline Model A0",
+        fontsize=15.5, fontweight="bold", color=c_title, y=0.965
+    )
+    fig.text(
+        0.50, 0.022,
+        "194 validation cases (88 Amihan, 88 Habagat, 18 Transition) · 126 active cells · Unconditioned Model A0 fails to adapt to monsoon wind reversal",
+        ha="center", fontsize=9.3, color="#64748B", style="italic"
+    )
+
+    plt.tight_layout(rect=[0.02, 0.075, 0.98, 0.93], w_pad=5.0)
+    plt.savefig(out_path, dpi=300, bbox_inches="tight")
+    plt.close()
+
+
+# Professional / Formal Aliases
+generate_recursive_compounding_analysis = generate_recursive_gap_presentation_slide
+generate_seasonality_dipole_analysis = generate_seasonality_presentation_slide

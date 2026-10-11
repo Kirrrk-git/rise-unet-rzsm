@@ -32,7 +32,7 @@ computational_domain:
     pooling_stride_total: 16
     lat_divisibility: "32 % 16 == 0 (Yields integer bottleneck H_bottleneck = 2)"
     lon_divisibility: "48 % 16 == 0 (Yields integer bottleneck W_bottleneck = 3)"
-    status: "CERTIFIED_PASS (Verified via TensorFlow/Keras in notebooks/02_mindanao_geometry_and_cascade_gate.ipynb)"
+    status: "CERTIFIED_PASS (Verified via TensorFlow/Keras in notebooks/02_mindanao_geometry_and_cascade_compatibility.ipynb)"
 
 coordinate_variables:
   convention: "Cell-Center Coordinates"

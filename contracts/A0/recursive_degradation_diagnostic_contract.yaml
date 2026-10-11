@@ -1,4 +1,4 @@
-# contracts/A0/PHASE_23_DIAGNOSTIC_CONTRACT.yaml
+# contracts/A0/recursive_degradation_diagnostic_contract.yaml
 # --------------------------------------------------
 # Authoritative Pre-Analysis Specification & Diagnostic Contract for Phase 23.
 # Pre-registers and freezes all diagnostic protocols, exact oracle replacements,
@@ -7,7 +7,7 @@
 # Single Source of Truth for Phase 23 Recursive Degradation Diagnostic.
 
 contract_version: "v1.0.0-pre-analysis-freeze"
-contract_title: "Mindanao RISE-UNet Phase 23 Pre-Analysis Specification & Diagnostic Contract"
+contract_title: "Mindanao RISE-UNet Pre-Analysis Specification & Recursive Degradation Diagnostic Contract"
 certification_date: "2026-09-17"
 authority_hierarchy: "contracts/ -> master_plan -> artifact_registry"
 governance_status: "PRE_ANALYSIS_SPECIFICATION_FROZEN"
@@ -222,4 +222,54 @@ predeclared_protocol_action:
     Model A0 is designated as the authoritative regional benchmark for Mindanao.
     The thesis documents that recursive degradation is not an actionable bottleneck
     under the tested tropical regime, and execution proceeds directly to Phase 26 holdout evaluation.
+
+monsoon_and_seasonality_stratification_protocol:
+  regime_definitions:
+    philippine_monsoon_standard:
+      authority: "PAGASA (Philippine Atmospheric, Geophysical and Astronomical Services Administration)"
+      amihan:
+        name: "Northeast Monsoon (Amihan)"
+        months: [11, 12, 1, 2, 3, 4]
+        climatology: "Prevailing northeasterly trade winds; high precipitation on eastern Pacific seaboard (Caraga, Davao Oriental); dry in western Mindanao."
+        validation_census: 88  # 45.4% of 194 usable cases
+      habagat:
+        name: "Southwest Monsoon (Habagat)"
+        months: [6, 7, 8, 9, 10]
+        climatology: "Prevailing southwesterly monsoon winds; high precipitation on western Mindanao (Zamboanga Peninsula, BARMM); dry in eastern Mindanao."
+        validation_census: 88  # 45.4% of 194 usable cases
+      transition:
+        name: "Inter-Monsoon Transition"
+        months: [5]
+        climatology: "Weak steering flow, convective diurnal thunderstorms, transition between prevailing wind regimes."
+        validation_census: 18  # 9.3% of 194 usable cases
+    conventional_meteorological_quarters:
+      authority: "Lesinger et al. (EX29 Parity Benchmark)"
+      quarters:
+        DJF: {months: [12, 1, 2], name: "December-January-February"}
+        MAM: {months: [3, 4, 5], name: "March-April-May"}
+        JJA: {months: [6, 7, 8], name: "June-July-August"}
+        SON: {months: [9, 10, 11], name: "September-October-November"}
+
+  spatial_asymmetry_and_dipole_metrics:
+    longitudinal_divide: 124.5  # Degrees East dividing Western vs. Eastern Mindanao
+    metric_1_dipole_difference: "MAE_Amihan(lat, lon) - MAE_Habagat(lat, lon)"
+    metric_2_east_west_asymmetry: "Mean MAE on Eastern cells (lon >= 124.5) vs. Western cells (lon < 124.5)"
+    physical_gap_assertion: >
+      Unconditioned Model A0 weights are temporally static and spatially stationary.
+      Because Model A0 lacks seasonal conditioning s, it cannot adapt to the prevailing
+      wind reversal, generating a geographic error dipole inversion between Amihan and Habagat.
+
+output_diagnostic_artifacts:
+  figures:
+    - path: "figures/mindanao_recursive_degradation_diagnostic_composite.png"
+      description: "4-panel publication composite (300 DPI) for Research Gap 1 (Recursive Degradation)"
+    - path: "figures/recursive_error_gap_presentation_slide.png"
+      description: "16:9 widescreen presentation slide for Research Gap 1"
+    - path: "figures/mindanao_seasonality_and_monsoon_diagnostic_composite.png"
+      description: "4-panel publication composite (300 DPI) for Research Gap 2 (Seasonality & Monsoon Gap)"
+    - path: "figures/seasonality_error_gap_presentation_slide.png"
+      description: "16:9 widescreen presentation slide for Research Gap 2"
+  telemetry:
+    - path: "logs/recursive_degradation_diagnostic_results.json"
+      description: "Comprehensive JSON telemetry containing all case-level differences, bootstrap CIs, Wilcoxon tests, and seasonal breakdowns"
 

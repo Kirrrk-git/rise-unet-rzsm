@@ -157,8 +157,8 @@ milestones:
       - "scripts/15_verify_validation_atmospheric_pipeline.py"
       - "notebooks/10_mindanao_validation_atmospheric_pipeline.ipynb"
       - "tests/test_14_validation_atmospheric_pipeline.py"
-      - "logs/gate1_validation_atmospheric_execution.json"
-      - "figures/gate1_validation_atmospheric_spatial_sanity.png"
+      - "logs/validation_atmospheric_execution.json"
+      - "figures/mindanao_validation_atmospheric_spatial_sanity.png"
 
   21K_3_production_training:
     name: "Full Three-Seed Model A0 Production Training"
@@ -237,16 +237,16 @@ milestones:
       - "scripts/19_run_recursive_degradation_diagnostic.py"
       - "notebooks/13_mindanao_recursive_degradation_diagnostic.ipynb"
       - "tests/test_17_recursive_diagnostic.py"
-      - "logs/phase23_recursive_diagnostic_results.json"
-      - "figures/phase23_recursive_degradation_composite.png"
-      - "reproduction_audit/POST_A0_GATE2_DECISION_DOSSIER.md"
+      - "logs/recursive_degradation_diagnostic_results.json"
+      - "figures/mindanao_recursive_degradation_diagnostic_composite.png"
+      - "reproduction_audit/POST_A0_BASELINE_DECISION_DOSSIER.md"
 
   phase_24_model_a1_refinement:
     name: "Phase 24: Model A1 (Lead-Aware Recursive Residual Refinement)"
     status: "SPECIFICATION_FROZEN"
     certification_level: "PRE_IMPLEMENTATION_CONTRACT_FROZEN"
     date_certified: "2026-09-18"
-    governance_contract: "contracts/A1/PHASE_24_A1_ARCHITECTURE_CONTRACT.yaml"
+    governance_contract: "contracts/A1/mrgr_model_architecture_contract.yaml"
     shared_module_specification: "Shared single R_theta(., k) module across W1->W2, W2->W3, W3->W4 transitions with lead conditioning"
     training_regime: "Direct Supervised Residual Learning (r_k* = y_true_k - y_hat_k) with detached A0 input features"
     backbone_status: "100% frozen A0 weights (0 weights retrained)"

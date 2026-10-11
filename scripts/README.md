@@ -182,7 +182,7 @@ optional GPU diagnostics & preflights ───────> 11_profile, 12_tiny
   - **Purpose**: **Authoritative Gate 1 Certification Engine**. Verifies that 2022–2023 atmospheric data flows through the exact production preprocessing path across all 210 validation cycles, enforcing continuous 730-day daily calendar continuity (0 missing/duplicate days), fail-closed 24-file monthly whitelist, 5 channels, 126 active cells, Candidate A shape, three-way normalization audit (Checks A, B, C), production `CaseBuilder` ingestion into `CaseTensorHierarchy` ($[11, 12, 5, 6]$ channels, normalization, zero ocean buffer), and exports execution telemetry. Serves as authoritative source of truth for Pre-Production Gate 1 (invoked via `notebooks/10_mindanao_validation_atmospheric_pipeline.ipynb`).
   - **Command**:
     ```bash
-    python scripts/15_verify_validation_atmospheric_pipeline.py --mode live --data-dir processed/atmospheric/ --export-json logs/gate1_validation_atmospheric_execution.json
+    python scripts/15_verify_validation_atmospheric_pipeline.py --mode live --data-dir processed/atmospheric/ --export-json logs/validation_atmospheric_execution.json
     ```
 
 - **[`16_train_a0_production.py`](16_train_a0_production.py)**

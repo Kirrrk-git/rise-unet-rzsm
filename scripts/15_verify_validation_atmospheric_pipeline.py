@@ -411,7 +411,7 @@ def main():
         "--export-json",
         type=str,
         default=None,
-        help="Path to export execution telemetry JSON (e.g. logs/gate1_validation_atmospheric_execution.json)",
+        help="Path to export execution telemetry JSON (e.g. logs/validation_atmospheric_execution.json)",
     )
     args = parser.parse_args()
 

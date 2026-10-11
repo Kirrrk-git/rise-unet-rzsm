@@ -39,7 +39,7 @@ dl_dm_rzsm_subseasonal_forecast/
 ├── notebooks/                               <── Numbered End-to-End Mindanao Execution Pipeline
 │   ├── 00_parent_freeze_and_inspection.ipynb
 │   ├── 01_parent_experiment_trace.ipynb
-│   ├── 02_mindanao_geometry_and_cascade_gate.ipynb
+│   ├── 02_mindanao_geometry_and_cascade_compatibility.ipynb
 │   ├── 03_mindanao_spatial_foundation.ipynb
 │   ├── 04_mindanao_elevation_and_soil_static_channels.ipynb
 │   ├── 05_mindanao_atmospheric_and_rzsm_preprocessing.ipynb

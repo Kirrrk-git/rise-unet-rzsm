@@ -1,13 +1,13 @@
 <!-- markdownlint-disable -->
-# Reproduction Audit Dossier: Post-A0 Gate 2 (G2-R) Recursive Refinement Decision Gate
+# Reproduction Audit Dossier: Post-Baseline Recursive Degradation Diagnostic & Refinement Decision
 
-**Document Identifier**: `reproduction_audit/POST_A0_GATE2_DECISION_DOSSIER.md`  
+**Document Identifier**: `reproduction_audit/POST_A0_BASELINE_DECISION_DOSSIER.md`  
 **Milestone**: Phase 23 (Recursive Degradation Diagnostic) & Post-A0 Gate 2 (G2-R: Recursive Refinement Decision Gate)  
 **Execution Context**: Google Colab Live GPU Execution (`notebooks/13_mindanao_recursive_degradation_diagnostic.ipynb`)  
 **Hardware Target**: NVIDIA Tesla T4 GPU (Driver CUDA 12.5.1 / cuDNN 9)  
 **Execution Timestamp**: 2026-09-17T18:29:12Z  
 **Execution Commit SHA**: `b64970f9c159dd509dbe46874a832f7ab855a491` (`b64970f` on `mindanao-adaptation`)  
-**Pre-Analysis Contract**: [`contracts/A0/PHASE_23_DIAGNOSTIC_CONTRACT.yaml`](../contracts/A0/PHASE_23_DIAGNOSTIC_CONTRACT.yaml) (Frozen prior to inspection)  
+**Pre-Analysis Contract**: [`contracts/A0/recursive_degradation_diagnostic_contract.yaml`](../contracts/A0/recursive_degradation_diagnostic_contract.yaml) (Frozen prior to inspection)  
 **Authority Status**: `[PASS / CERTIFIED_ON_GPU]`  
 **Formal Decision Verdict**: **`GO`** (Proceed to Phase 24: Model A1 Lead-Aware Recursive Residual Refinement $\mathcal{R}_\theta$)
 
@@ -87,15 +87,15 @@ To guarantee audit integrity, artifacts produced during the Colab execution are 
 
 | Artifact Description | File Path | Cryptographic SHA-256 Checksum | Google Cloud Storage Lake URI | Status |
 | :--- | :--- | :--- | :--- | :---: |
-| **Telemetry JSON** | [`logs/phase23_recursive_diagnostic_results.json`](../logs/phase23_recursive_diagnostic_results.json) | `00f12b86977ead92db5d4b2300e100a0f37523e2eee47c79ab3865cb00bc797b` | `gs://rise-unet-rzsm/logs/phase23_recursive_diagnostic_results.json` | `[VERIFIED]` |
-| **Diagnostic Composite Figure** | [`figures/phase23_recursive_degradation_composite.png`](../figures/phase23_recursive_degradation_composite.png) | `601d7b406b940bd692e2a1bac3702a8b921b18d7d9a6b914790c81a96a542f7f` | `gs://rise-unet-rzsm/figures/phase23_recursive_degradation_composite.png` | `[VERIFIED]` |
+| **Telemetry JSON** | [`logs/recursive_degradation_diagnostic_results.json`](../logs/recursive_degradation_diagnostic_results.json) | `00f12b86977ead92db5d4b2300e100a0f37523e2eee47c79ab3865cb00bc797b` | `gs://rise-unet-rzsm/logs/recursive_degradation_diagnostic_results.json` | `[VERIFIED]` |
+| **Diagnostic Composite Figure** | [`figures/mindanao_recursive_degradation_diagnostic_composite.png`](../figures/mindanao_recursive_degradation_diagnostic_composite.png) | `601d7b406b940bd692e2a1bac3702a8b921b18d7d9a6b914790c81a96a542f7f` | `gs://rise-unet-rzsm/figures/mindanao_recursive_degradation_diagnostic_composite.png` | `[VERIFIED]` |
 | **Execution Notebook** | [`notebooks/13_mindanao_recursive_degradation_diagnostic.ipynb`](../notebooks/13_mindanao_recursive_degradation_diagnostic.ipynb) | Git Commit `b64970f9c159dd509dbe46874a832f7ab855a491` | Synced to GitHub repository | `[EXECUTED]` |
 
 ---
 
 ## 6. Predeclared Protocol Action & Scope of Phase 24 Activation
 
-In accordance with Section `predeclared_protocol_action.on_go` of [`contracts/A0/PHASE_23_DIAGNOSTIC_CONTRACT.yaml`](../contracts/A0/PHASE_23_DIAGNOSTIC_CONTRACT.yaml):
+In accordance with Section `predeclared_protocol_action.on_go` of [`contracts/A0/recursive_degradation_diagnostic_contract.yaml`](../contracts/A0/recursive_degradation_diagnostic_contract.yaml):
 
 1. **Gate 2 Decision Scope**: Phase 23 has established a measurable recursive-vs-oracle performance gap, replicated across A0 training seeds, plus downstream sensitivity to controlled recursive-state perturbation. Therefore, the pre-specified condition for investigating a recursive-refinement intervention is officially satisfied.
 2. **Empirical Boundary**: This verdict authorizes the development and testing of Model A1; it does **not** assume that Model A1 will automatically improve real-world forecasting. Whether the proposed refinement improves subseasonal forecasting over Model A0 remains an empirical question to be evaluated under Phase 24, Phase 25 (ablations), and Phase 26 (sealed test holdout).

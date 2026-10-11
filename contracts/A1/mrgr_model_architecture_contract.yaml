@@ -1,0 +1,220 @@
+# contracts/A1/mrgr_model_architecture_contract.yaml
+# --------------------------------------------------------
+# Authoritative Pre-Analysis Specification & Architecture Contract for Model A1 (P1-MRGR).
+# Pre-registers and freezes all architectural constraints, mathematical formulations,
+# baseline invariants, allowable modification boundaries, parameter budgets,
+# RiskNet/CorrectionNet topologies, loss formulations, training regimes, and checkpoint-selection rules.
+#
+# Aligned 1-to-1 with Approved Proposal:
+# "Improving Recursive RISE-UNet with Monotonic Reliability-Gated Recursive Refinement for
+#  Probabilistic Subseasonal Root-Zone Soil-Moisture Drought Forecasting"
+# (Aracena, Jalapon, Gabriel, Aborde / University of Mindanao / ACM Literature Update)
+# Single Source of Truth for Phase 24: Model A1 (P1-MRGR) Implementation.
+
+contract_version: "v2.0.0-mrgr-season-harmonized"
+contract_title: "Mindanao RISE-UNet Phase 24 Model A1 Architecture Contract: Monotonic Reliability-Gated Recursive Refinement (MRGR) with Season-Aware Context"
+certification_date: "2026-10-11"
+authority_hierarchy: "contracts/ -> master_plan -> artifact_registry"
+governance_status: "PRE_IMPLEMENTATION_SPECIFICATION_FROZEN"
+thesis_track: "Track B (Mindanao Regional Adaptation & Proposed MRGR Enhancement)"
+prerequisite_gate: "Post-A0 Gate 2 (G2-R): Officially Cleared with Unanimous GO Verdict"
+
+objectives:
+  primary_research_problem: >
+    Suppress recursive predicted-state error compounding in subseasonal RZSM forecasting over Mindanao
+    across horizons W2 -> W3 -> W4. The unrefined Model A0 baseline reuses self-generated predictions
+    as ordinary predictors without an explicit spatial estimate of error risk or reliability, leading
+    to an empirical recursive degradation gap of +44.12% at Lead W4 (p < 0.0001, Cohen's dz = 1.269).
+  secondary_contextual_dimension: >
+    Investigate whether recursive error propagation exhibits seasonal/monsoon dependency in tropical Mindanao,
+    addressing the lack of explicit seasonal awareness identified in the parent study (Lesinger & Tian 2025).
+    Incorporate explicit seasonal/monsoon context s alongside lead horizon into the recursive handoff
+    modules (M_j->h) to determine whether season-conditioned reliability gating and residual correction
+    provide measurable skill improvements over lead-only refinement.
+
+governance_and_freeze_invariants:
+  frozen_backbone:
+    architecture: "UNET_RZSM (Kyle Lesinger / Nature Communications EX29 Adaptation)"
+    total_checkpoints: 12
+    replicate_seeds: [42, 123, 456]
+    forecast_leads: [1, 2, 3, 4]
+    checkpoints_directory: "checkpoints/A0/"
+    weights_format: "best_model.weights.h5"
+    freeze_rule: >
+      All 12 Model A0 production checkpoint weights are completely frozen.
+      Zero base U-Net parameters may be retrained, fine-tuned, or modified.
+      Gradient backpropagation through the A0 backbone must stop at the input
+      of A0 or be detached, ensuring all updates apply strictly to MRGR modules.
+
+  frozen_data_and_splits:
+    calendar_manifest: "manifests/production_case_calendar.csv"
+    train_split_manifest: "manifests/splits/train_cases.csv"
+    val_split_manifest: "manifests/splits/val_cases.csv"
+    sealed_test_manifest: "manifests/splits/test_cases_sealed.csv"
+    training_usable_cases: 677
+    validation_usable_cases: 194
+    sealed_test_usable_cases: 202
+    training_years: "2015-2021"
+    validation_years: "2022-2023"
+    sealed_test_years: "2024-2025"
+    sealed_test_quarantine_rule: >
+      The 2024-2025 Sealed Test Cohort (N=202 usable cases) remains strictly quarantined
+      during Phase 24 and Phase 25. Zero access, evaluation, or hyperparameter tuning
+      against sealed test data is permitted until Phase 26.
+
+  frozen_spatial_domain:
+    reference_grid: "Candidate A (32 x 48, 0.25 deg)"
+    active_evaluation_cells: 126
+    ocean_buffer_cells: 1410
+    evaluation_mask_artifact: "processed/grid/mindanao_eval_mask_025.nc"
+    ocean_buffer_convention: 0.0
+
+  frozen_normalization_contract:
+    contract_file: "contracts/A0/normalization_parameters.yaml"
+    scope: "Training-only active evaluation domain bounds (2015-2021)"
+    rule: "All inputs to A0, RiskNet, and CorrectionNet consume this frozen normalization contract."
+
+  framework_standard:
+    primary_framework: "TensorFlow 2.x / Keras (Matching Model A0)"
+    rationale: "Bit-for-bit parity, gradient detachment guarantees, and GPU execution reproducibility."
+
+mrgr_mathematical_formulation:
+  source_to_consumer_handoffs:
+    total_handoffs: 6
+    handoff_list:
+      - id: "M_1_to_2"
+        source_lead: 1
+        consumer_lead: 2
+        description: "W1 forecast refined before entering W2 stage"
+      - id: "M_1_to_3"
+        source_lead: 1
+        consumer_lead: 3
+        description: "W1 forecast refined separately before entering W3 stage"
+      - id: "M_2_to_3"
+        source_lead: 2
+        consumer_lead: 3
+        description: "W2 forecast refined before entering W3 stage"
+      - id: "M_1_to_4"
+        source_lead: 1
+        consumer_lead: 4
+        description: "W1 forecast refined separately before entering W4 stage"
+      - id: "M_2_to_4"
+        source_lead: 2
+        consumer_lead: 4
+        description: "W2 forecast refined separately before entering W4 stage"
+      - id: "M_3_to_4"
+        source_lead: 3
+        consumer_lead: 4
+        description: "W3 forecast refined before entering W4 stage"
+
+  error_risk_label_definition:
+    formula: "q_{j->h} = |r_{j,OOF} - y_j| / (c_{j->h} + epsilon)"
+    source_reference: "y_j is historical ground-truth verifying weekly-mean RZSM"
+    out_of_fold_source: "r_{j,OOF} from 2015-2021 blocked cross-fitted Model A0 development bank"
+    scale_factor: "c_{j->h} is training-only 95th percentile of absolute OOF source errors"
+    stability_epsilon: 1.0e-6
+
+  risknet_specification:
+    symbol: "RiskNet_{j->h}"
+    inputs:
+      - "r_j: Unrefined recursive RZSM prediction from source stage j"
+      - "x_h: Non-recursive consumer context (antecedent lags, atmospheric features, and seasonal context s)"
+    topology:
+      source_encoder: "Conv2D(8 filters, 3x3, activation='relu', padding='same')"
+      context_encoder: "Conv2D(8 filters, 3x3, activation='relu', padding='same')"
+      fusion: "Concat([enc_source, enc_context, |enc_source - enc_context|]) -> 24 channels"
+      fusion_conv: "Conv2D(8 filters, 3x3, activation='relu', padding='same')"
+      output_head: "Conv2D(1 filter, 1x1, activation='softplus', padding='same')"
+    output_constraint: "q_hat_{j->h}(x_h, r_j) >= 0 (strictly non-negative predicted risk)"
+    training_loss: "Huber loss on active evaluation cells"
+
+  monotonic_reliability_gate:
+    formula: "G_{j->h} = exp(-q_hat_{j->h})"
+    range: "(0.0, 1.0]"
+    monotonicity_property: "dG / dq_hat = -exp(-q_hat) < 0 (strictly monotonically decreasing with risk)"
+    interpretation: >
+      When predicted risk is near zero (q_hat -> 0), reliability G -> 1, suppressing correction.
+      When predicted risk is high (q_hat >> 0), reliability G -> 0, allowing full bounded correction.
+
+  correctionnet_specification:
+    symbol: "CorrectionNet_{j->h}"
+    inputs: "Same dual-source context (r_j, x_h) with independent parameter weights"
+    output_head: "Conv2D(1 filter, 1x1, activation='linear', padding='same') yielding signed score d_theta"
+    bounded_correction_formula: "delta_{j->h} = c_{j->h} * tanh(d_{theta, j->h}(x_h, r_j))"
+    bounding_property: "|delta_{j->h}| <= c_{j->h} (strictly bounded by training empirical scale)"
+
+  gated_state_refinement_formula:
+    formula: "r_{j->h}^* = r_j + (1.0 - G_{j->h}) * delta_{j->h}"
+    derivative_bound: "|r_{j->h}^* - r_j| <= c_{j->h}"
+    physical_domain_clipping: "clip_by_value(r_{j->h}^*, 0.0, 1.0)"
+
+seasonality_integration_specification:
+  conceptual_bridge: "r~_k = clip(r_k + R_theta(r_k, r_{k-1}, k, s), 0, 1)"
+  operational_role: >
+    Seasonality is integrated as contextual conditioning inputs s to the consumer context x_h
+    in RiskNet and CorrectionNet, rather than altering the U-Net backbone.
+  seasonal_context_representations:
+    continuous_doy_encoding:
+      formula: "[sin(2*pi * DOY / 365.25), cos(2*pi * DOY / 365.25)]"
+      properties: "Smooth, continuous calendar angle without boundary discontinuity"
+    regional_monsoon_regimes:
+      regimes:
+        - "Amihan (Northeast Monsoon): November to April"
+        - "Habagat (Southwest Monsoon): June to October"
+        - "Inter-Monsoon Transition: May"
+      encoding: "3-dimensional one-hot vector broadcast across spatial grid"
+
+training_and_supervision_protocol:
+  cross_fitted_residual_bank:
+    partition: "2015-2021 Development Cohort (677 usable cases)"
+    purging_rule: "Purge cases with temporal overlap to held-out intervals to prevent serial leakage."
+  stagewise_supervision_order:
+    step_1: "Fit RiskNet_{j->h} on out-of-fold residuals using Huber loss; freeze RiskNet parameters."
+    step_2: "Initialize CorrectionNet final 1x1 layer weights to zero (ensuring P1 initially reproduces A0)."
+    step_3: "Optimize M_1->2 through frozen Stage 2 U-Net (F_2) and freeze."
+    step_4: "Optimize M_1->3 and M_2->3 jointly through frozen Stage 3 U-Net (F_3) and freeze."
+    step_5: "Optimize M_1->4, M_2->4, and M_3->4 jointly through frozen Stage 4 U-Net (F_4) and freeze."
+  loss_function:
+    formula: "L_{corr, h} = L_{A0, h}(F_h(X_h), T_{out, h}(y_h))"
+    gradient_target: "Gradients pass through frozen consumer F_h into active CorrectionNet parameters only."
+
+model_lineup_and_ablation_matrix:
+  configurations:
+    - id: "B0"
+      name: "Persistence Benchmark"
+      purpose: "Carry t-1 weekly RZSM forward to W1-W4"
+    - id: "A0"
+      name: "Adapted RISE-UNet Baseline"
+      purpose: "Frozen recursive baseline (EX29 regional adaptation)"
+    - id: "P0"
+      name: "Correction-Only Residual Ablation"
+      formula: "r^* = r + delta (removes RiskNet and reliability gating)"
+      purpose: "Isolate incremental value of explicit reliability gating"
+    - id: "P1_lead"
+      name: "MRGR (Lead-Conditioned)"
+      formula: "r^* = r + (1 - G)*delta with lead condition k"
+      purpose: "Test monotonic reliability-gated refinement without explicit seasonal context"
+    - id: "P1_season"
+      name: "MRGR (Season-Aware, Full Proposed Model)"
+      formula: "r^* = r + (1 - G)*delta with lead condition k and seasonal context s"
+      purpose: "Test complete model evaluating joint recursive error suppression and seasonal modulation"
+    - id: "B1"
+      name: "Standard U-Net Benchmark"
+      purpose: "Standard encoder-decoder regression comparator"
+    - id: "B2"
+      name: "UNet++ Benchmark"
+      purpose: "Nested-skip dense architecture comparator"
+
+evaluation_and_confirmatory_criteria:
+  confirmatory_family:
+    metric: "Continuous Ranked Probability Score (CRPS) at Leads W3 and W4"
+    contrast: "P1 versus A0 paired difference on 194 validation cases (2022-2023)"
+    statistical_test: "Circular Moving-Block Bootstrap (L=4 cycles, B=10,000 resamples)"
+    significance_threshold: "Step-down Holm-Bonferroni adjusted p_boot < 0.05"
+    effect_size_threshold: "Relative CRPS reduction >= 2.0% in W3 and/or W4"
+  supporting_diagnostics:
+    - "Deterministic metrics: ACC, MAE, RMSE across W1-W4"
+    - "Brier score and reliability diagrams for 20th percentile dry events"
+    - "RiskNet decile validity: Spearman rank correlation between q_hat and realized error"
+    - "Controlled perturbation sensitivity curve (Section 2.5.6)"
+    - "Season-stratified error breakdown across Amihan, Habagat, and Transition regimes"

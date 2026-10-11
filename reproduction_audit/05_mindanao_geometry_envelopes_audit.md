@@ -83,4 +83,4 @@ All intermediate spatial feature map dimensions are strictly whole positive inte
 ## 5. Certification & Next Step
 
 * **Step 21A.4 Status**: **PASSED**.
-* **Next Step (Step 21A.5)**: Construct and execute `notebooks/02_mindanao_geometry_and_cascade_gate.ipynb` executing synthetic 4-lead forward recursive cascade through frozen `UNET_RZSM` across these candidate dimensions.
+* **Next Step (Step 21A.5)**: Construct and execute `notebooks/02_mindanao_geometry_and_cascade_compatibility.ipynb` executing synthetic 4-lead forward recursive cascade through frozen `UNET_RZSM` across these candidate dimensions.
