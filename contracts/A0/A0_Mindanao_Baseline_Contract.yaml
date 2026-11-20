@@ -1,8 +1,15 @@
 # contracts/A0/A0_Mindanao_Baseline_Contract.yaml
 # -----------------------------------------------
-# Authoritative Post-Training Baseline Specification & Certification Contract for Model A0.
-# Formally seals Phase 21 (Model A0 Production Training) and defines baseline parameters.
-# Single Source of Truth for Model A0 checkpoints, empirical metrics, and governance bounds.
+# [LEGACY v1 HISTORICAL CERTIFICATION RECORD — TEST-LOCKED FOR tests/test_17_recursive_diagnostic.py]
+# Superseded for Thesis v3.0 (Oct 12, 2026 Outline Proposal) by:
+#   contracts/A0/thesis_revised_baseline_and_data_contract.yaml
+# Historical Note: This v2.0.0-certified file records Phase 21 on modelRzsmRelu (1.63M),
+# un-purged 735/194/194 splits, B=33/120 epochs, and legacy normalization. Do not alter keys
+# below until Phase 21R refactors test_17_recursive_diagnostic.py.
+#
+# Authoritative Post-Training Baseline Specification & Certification Contract for Model A0 (Legacy Phase 21).
+# Formally seals legacy Phase 21 (Model A0 Production Training) and defines legacy baseline parameters.
+# Single Source of Truth for legacy Phase 21 checkpoints, preliminary metrics, and governance bounds.
 
 contract_version: "v2.0.0-certified"
 contract_title: "Mindanao RISE-UNet Model A0 Certified Production Baseline Contract"

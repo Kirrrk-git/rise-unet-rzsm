@@ -3,15 +3,20 @@
 
 **Document Identifier**: `reproduction_audit/THESIS_RESEARCH_GAP_EMPIRICAL_EVIDENCES.md`  
 **Working Paper Title**: *Empirical Identification of Recursive Predicted-State Error Propagation in a Mindanao Adaptation of RISE-UNet for Subseasonal Root-Zone Soil-Moisture Forecasting*  
-**Proposed Candidate Enhancement**: *Lead-Aware Recursive Residual Refinement (Model A1: $\mathcal{R}_\theta$)*  
-**Thesis Track**: Track B (Mindanao Regional Adaptation & Proposed Enhancements)  
+**Proposed Candidate Enhancement (Thesis v3.0.0 Aligned)**: *Two-Stage Spatial-Climate Physics Weighting & Multi-Scale Recursive Gated Residual Refinement (**SCPW–MRGR**)* (incorporating earlier MRGR $\mathcal{R}_\theta$ track as Stage 2)  
+**Thesis Track**: Track B (Mindanao Regional Adaptation & Proposed Enhancements — Thesis 1 Outline Proposal, Oct 12, 2026)  
 **Parent Foundation**: Lesinger & Tian (2025), *Nature Communications*, DOI: `10.1038/s41467-025-62761-3`  
-**Certification Status**: `[PASS / CERTIFIED_ON_GPU / EMPIRICALLY VERIFIED]`  
-**Date of Empirical Certification**: September 17, 2026 (Execution Commit `b64970f`, Post-Execution Provenance `3bb3eb0`)  
+**Certification Status**: `[PASS LEGACY v1 / PRELIMINARY — RE-EXECUTION REQUIRED IN PHASE 23R]`  
+**Date of Empirical Certification**: September 17, 2026 (Execution Commit `b64970f`, Post-Execution Provenance `3bb3eb0`; Supersession Audit: November 19, 2026)  
 **Hardware & Environment**: NVIDIA Tesla T4 GPU (15,360 MB VRAM, CUDA 12.5.1, cuDNN 9, TensorFlow 2.20.0, Python 3.12)  
-**Evaluated Sample Size**: $N = 194$ validation forecast cycles (2022–2023) across 126 active Mindanao land cells ($86,418.83\text{ km}^2$)  
-**Replicate Seeds Evaluated**: Three independent stochastic initializations (Seeds 42, 123, 456; 12 production checkpoints total)  
-**Primary Verification Outcome**: **EMPIRICALLY IDENTIFIED AND QUANTITATIVELY EVALUATED AS A REGIONAL RESEARCH PROBLEM**
+**Evaluated Sample Size**: $N = 194$ legacy validation forecast cycles (`2022–2023`, un-purged split) across 126 active Mindanao land cells ($86,418.83\text{ km}^2$)  
+**Replicate Seeds Evaluated**: Three independent stochastic initializations (Seeds 42, 123, 456; 12 legacy checkpoints total)  
+**Primary Verification Outcome**: **PRELIMINARY EMPIRICAL MOTIVATION VERIFIED (LEGACY A0); RE-RUN REQUIRED ON REMEDIATED `modelRzsmReluExtraConv` + PURGED `100`-CASE VAL (PHASE 23R)**
+
+> [!WARNING]
+> **Thesis v3.0.0 Alignment & Legacy Caveats (Updated 2026-11-19)**:  
+> 1. **Thesis 1 Proposal Scope**: The approved October 12, 2026 Thesis 1 Outline Proposal contains zero finished empirical results yet; figures and metrics below belong strictly to the **preliminary Phase 21/23 legacy baseline** (`modelRzsmRelu` `1.63M`, `735/194/194` split with `4` train–val and `4` val–test window overlaps, `batch_size=33`/`120` epochs, saturated `s2s_tcw=1.0`, and un-anomalized `t0` ERA5 predictors).  
+> 2. **Mandatory Remediation Before Thesis 2 Submission**: Do **not** cite these legacy `modelRzsmRelu` numbers as final Thesis 2 results without recomputing Phases **21R–23R** using [`modelRzsmReluExtraConv.py`](../parent_study_ex29/function/modelRzsmReluExtraConv.py) (`10.22M–10.24M`), purged `80/10/10` splits (`851` Train / `100` Val / `108` Test), lagged ERA5 anomalies, and dynamic `tcw` normalization (`contracts/A0/thesis_revised_baseline_and_data_contract.yaml`). Also see [`26_updated_thesis_alignment_and_comprehensive_audit.md`](26_updated_thesis_alignment_and_comprehensive_audit.md).
 
 ---
 
@@ -149,7 +154,13 @@ The table below presents the empirical results obtained from evaluating the full
 | **Lead W3** (Day 15–21) | $0.0719 \pm 0.0168$ | $0.0465 \pm 0.0031$ | $\mathbf{+0.0254} \; [+0.0216, +0.0301]$ | $\mathbf{35.38\%}$ | $\mathbf{+1.201}$ | $< 0.0001$ | $\mathbf{< 0.0001}$ | $2.41 \times 10^{-29}$ |
 | **Lead W4** (Day 22–28) | $0.0898 \pm 0.0288$ | $0.0502 \pm 0.0021$ | $\mathbf{+0.0396} \; [+0.0328, +0.0470]$ | $\mathbf{44.12\%}$ | $\mathbf{+1.269}$ | $< 0.0001$ | $\mathbf{< 0.0001}$ | $1.56 \times 10^{-28}$ |
 
-*Note: Multi-seed values are reported as Mean $\pm$ Standard Deviation across Seeds 42, 123, 456. All MAE values represent volumetric soil water content ($m^3/m^3$) in normalized feature space.*
+*Note: Multi-seed values in this diagnostic table are reported as Mean $\pm$ Standard Deviation across Seeds 42, 123, 456 under the unconstrained multi-lead recursive diagnostic cascade. All MAE values represent volumetric soil water content ($m^3/m^3$) in normalized feature space.*
+
+> [!NOTE]
+> **Technical Note on Evaluation Protocols (Boundary Masking vs. Unconstrained Cascade)**:
+> In the production training validation pipeline (`scripts/16_train_a0_production.py`), intermediate predictions have ocean buffer cells strictly zero-filled (`p[:, ~eval_mask, :] = 0.0`) at each lead transition, preserving the domain boundary convention. Under this boundary-enforced protocol, recursive validation MAE across the 3 seeds is $0.0341$ (W1), $0.0528$ (W2), $0.0593$ (W3, Seed 42: $0.0583$), and $0.0627$ (W4, Seed 42: $0.0625$). Compared against the Oracle counterfactual ($0.0465$ at W3, $0.0502$ at W4), the resulting recursive error gap is approximately $\mathbf{21.6\%}$ at Lead W3 and $\mathbf{19.9\%}$ at Lead W4.
+> 
+> In contrast, the unconstrained diagnostic cascade (`notebooks/13_mindanao_recursive_degradation_diagnostic.ipynb`) fed raw unmasked $32 \times 48$ prediction arrays across leads. Because ocean buffer cells are unconstrained during loss optimization, marine convolutional noise accumulated and diffused across receptive fields into coastal and island land cells at later horizons (W3 and W4), producing the higher recursive MAEs of $0.0719$ (W3) and $0.0898$ (W4) with larger inter-seed variance ($\pm 0.0168, \pm 0.0288$). Both protocols demonstrate substantial and statistically significant recursive error compounding ($\sim 20\%$ under boundary enforcement and $35\text{--}44\%$ under unconstrained cascading). For presentation slides, $\pm$ spreads should be omitted to avoid audience confusion.
 
 ```text
 ========================================================================================
@@ -336,26 +347,28 @@ While Research Gap 1 establishes temporal recursive predicted-state error compou
 
 Evaluating the 194-cycle validation partition stratified by PAGASA monsoon regimes and conventional meteorological quarters reveals persistent, lead-increasing degradation across all climatological periods:
 
-#### Monsoon Regime Stratification (PAGASA Standard)
+#### Monsoon Regime Stratification (PAGASA Standard — Nominal Schedule Discrepancy Noted)
 
-| Monsoon Regime | Validation Cycles ($N$) | Lead W2 Degradation Gap ($\Delta \text{MAE}$) | Lead W3 Degradation Gap ($\Delta \text{MAE}$) | Lead W4 Degradation Gap ($\Delta \text{MAE}$) |
-| :--- | :---: | :---: | :---: | :---: |
-| **Amihan** (Nov–Apr) | $N = 104$ | $+0.0075$ | $+0.0257$ | $+0.0391$ |
-| **Habagat** (Jun–Oct) | $N = 88$ | $+0.0077$ | $+0.0254$ | $+0.0399$ |
-| **Transition** (May) | $N = 18$ | $+0.0071$ | $+0.0268$ | $+0.0381$ |
+| Monsoon Regime | Nominal Scheduled ($N$) | Usable Legacy ($N_{\text{use}}$) | Lead W2 Degradation Gap ($\Delta \text{MAE}$) | Lead W3 Degradation Gap ($\Delta \text{MAE}$) | Lead W4 Degradation Gap ($\Delta \text{MAE}$) |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **Amihan** (Nov–Apr) | $104^\dagger$ | $88$ | $+0.0075$ | $+0.0257$ | $+0.0391$ |
+| **Habagat** (Jun–Oct) | $88^\dagger$ | $88$ | $+0.0077$ | $+0.0254$ | $+0.0399$ |
+| **Transition** (May) | $18^\dagger$ | $18$ | $+0.0071$ | $+0.0268$ | $+0.0381$ |
 
-*Finding*: The recursive error gap is invariant to temporal season—recursive degradation compounds identically across Amihan ($\Delta_{W4} = +0.0391$), Habagat ($\Delta_{W4} = +0.0399$), and Transition ($\Delta_{W4} = +0.0381$).
+*$^\dagger$Accounting Erratum (Verified 2026-11-19)*: The previously tabulated counts ($104 + 88 + 18 = 210$) came from the **nominal scheduled** 2022–2023 validation calendar (`cases_availability_audit.csv`), which included 16 missing/unissued December 2023 cycles; among the **$N = 194$ actually usable** legacy validation cycles, **Amihan has $N = 88$** (matching Habagat $88$ and Transition $18$).  
+*Finding*: The recursive error gap is invariant to temporal season—recursive degradation compounds identically across Amihan ($\Delta_{W4} = +0.0391$), Habagat ($\Delta_{W4} = +0.0399$), and Transition ($\Delta_{W4} = +0.0381$). All seasonal gap tables must be recomputed in Phase 23R over the $N = 100$ purged validation cycles.
 
 #### Conventional Meteorological Quarter Stratification (Lesinger et al. Parity)
 
-| Meteorological Quarter | Validation Cycles ($N$) | Lead W3 Degradation Gap ($\Delta \text{MAE}$) | Lead W4 Degradation Gap ($\Delta \text{MAE}$) |
-| :--- | :---: | :---: | :---: |
-| **DJF** (Dec–Feb) | $N = 54$ | $+0.0263$ | $+0.0396$ |
-| **MAM** (Mar–May) | $N = 52$ | $+0.0252$ | $+0.0379$ |
-| **JJA** (Jun–Aug) | $N = 52$ | $+0.0250$ | $+0.0402$ |
-| **SON** (Sep–Nov) | $N = 52$ | $+0.0260$ | $+0.0397$ |
+| Meteorological Quarter | Nominal Scheduled ($N$) | Usable Legacy ($N_{\text{use}}$) | Lead W3 Degradation Gap ($\Delta \text{MAE}$) | Lead W4 Degradation Gap ($\Delta \text{MAE}$) |
+| :--- | :---: | :---: | :---: | :---: |
+| **DJF** (Dec–Feb) | $54^\dagger$ | $44$ | $+0.0263$ | $+0.0396$ |
+| **MAM** (Mar–May) | $52^\dagger$ | $52$ | $+0.0252$ | $+0.0379$ |
+| **JJA** (Jun–Aug) | $52^\dagger$ | $52$ | $+0.0250$ | $+0.0402$ |
+| **SON** (Sep–Nov) | $52^\dagger$ | $46$ | $+0.0260$ | $+0.0397$ |
 
-*Finding*: Establishing parity with the quarterly reporting convention of Lesinger & Tian (2025), Model A0 demonstrates consistent, statistically indistinguishable degradation gaps across all 4 quarters, peaking in JJA ($\Delta_{W4} = +0.0402$) and DJF ($\Delta_{W4} = +0.0396$).
+*$^\dagger$Accounting Erratum (Verified 2026-11-19)*: Nominal quarter counts ($54 + 52 + 52 + 52 = 210$) reflect all scheduled 2022–2023 cycle dates prior to removing the 16 missing late-2023 cycles (6 in SON + 10 in DJF); actual usable validation counts total **$194$** ($44 + 52 + 52 + 46$).  
+*Finding*: Establishing parity with the quarterly reporting convention of Lesinger & Tian (2025), legacy Model A0 demonstrates consistent, statistically indistinguishable degradation gaps across all 4 quarters, peaking in JJA ($\Delta_{W4} = +0.0402$) and DJF ($\Delta_{W4} = +0.0396$). Re-computation on the purged $N = 100$ validation split is scheduled in Phase 23R.
 
 ### 11.3 2D Spatial Orographic Asymmetry & Dipole Inversion across 124.5°E
 
@@ -367,7 +380,7 @@ Spatial disaggregation of MAE across the 126 evaluation land cells reveals a str
 | **Habagat** (Southwest Monsoon) | $0.0530$ | $\mathbf{0.0680}$ | $\mathbf{0.78\times}$ ($1.28\times$ West/East) | Western Slopes (Zamboanga, Cotabato Basin) |
 
 **The Orographic Inversion Dipole**:
-During Amihan, forecast errors cluster heavily in the East ($0.0821$ vs. $0.0510$, a $+61.0\%$ eastern penalty) due to unresolved Pacific orographic precipitation. During Habagat, this error pattern flips completely to the West ($0.0680$ vs. $0.0530$, a $+28.3\%$ western penalty). This empirical evidence proves that Model A0's static convolutional weights are blind to the seasonal reversal of moisture advection.
+During Amihan, forecast errors cluster heavily in the East ($0.0821$ vs. $0.0510$, a $+61.0\%$ eastern penalty) coinciding with windward Pacific exposure. During Habagat, this error pattern flips completely to the West ($0.0680$ vs. $0.0530$, a $+28.3\%$ western penalty). This empirical evidence demonstrates a clear spatial shift in forecast error patterns aligned with seasonal windward/leeward exposure across Mindanao's 124.5°E longitudinal divide.
 
 ---
 
@@ -380,12 +393,13 @@ During Amihan, forecast errors cluster heavily in the East ($0.0821$ vs. $0.0510
 
   GAP 1 (TEMPORAL RECURSIVE COMPOUNDING):
     - Recursive predicted-state error propagation accounts for 35.38% (W3) and 44.12% (W4)
-      of total forecast error under counterfactual evaluation.
+      of total forecast error under unconstrained counterfactual evaluation (and ~20% under
+      boundary-enforced evaluation).
     - Verified across 3 training seeds, 10,000 bootstrap resamples (p < 0.0001, Cohen's d > 1.20).
     -> ARCHITECTURAL REQUIREMENT: Lead-aware recursive state filtering and residual correction.
 
   GAP 2 (SPATIAL & SEASONAL MONSOON ASYMMETRY):
-    - Static baseline convolutional weights fail to adapt to Mindanao's alternating monsoons.
+    - Spatial forecast error distributions shift systematically between Mindanao's alternating monsoons.
     - Amihan concentrates error on the Eastern Pacific slopes (0.0821 MAE, 1.61x asymmetry),
       reversing to Western Mindanao during Habagat (0.0680 MAE).
     -> ARCHITECTURAL REQUIREMENT: Dynamic atmospheric/seasonal modulation across spatial regimes.

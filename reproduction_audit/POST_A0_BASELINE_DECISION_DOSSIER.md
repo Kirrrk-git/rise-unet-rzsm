@@ -8,8 +8,11 @@
 **Execution Timestamp**: 2026-09-17T18:29:12Z  
 **Execution Commit SHA**: `b64970f9c159dd509dbe46874a832f7ab855a491` (`b64970f` on `mindanao-adaptation`)  
 **Pre-Analysis Contract**: [`contracts/A0/recursive_degradation_diagnostic_contract.yaml`](../contracts/A0/recursive_degradation_diagnostic_contract.yaml) (Frozen prior to inspection)  
-**Authority Status**: `[PASS / CERTIFIED_ON_GPU]`  
-**Formal Decision Verdict**: **`GO`** (Proceed to Phase 24: Model A1 Lead-Aware Recursive Residual Refinement $\mathcal{R}_\theta$)
+**Authority Status**: `[PASS / CERTIFIED_ON_GPU (LEGACY v1 — SUPERSEDED BY THESIS v3.0 REMEDIATION)]`  
+**Formal Decision Verdict**: **`GO (PRELIMINARY LEGACY RECORD)`** (Re-verification mandatory in Phase 23R after Phase 21R `modelRzsmReluExtraConv` + `851/100/108` purged re-baseline)
+
+> [!WARNING]
+> **Thesis v3.0.0 Governance Notice (Updated 2026-11-19)**: This dossier preserves the verified Phase 23 Gate 2 decision executed on **2026-09-17** against the **legacy Model A0 baseline** (`modelRzsmRelu` `1.63M`, un-purged `735/194/194` splits, `batch_size=33` / `120` epochs, hardcoded `s2s_tcw=[0.5, 15.0]`, and single-day `t0` ERA5 atmospheric inputs). Under the aligned October 12, 2026 Thesis 1 Outline Proposal (**SCPW–MRGR**, [`thesis_revised_baseline_and_data_contract.yaml`](../contracts/A0/thesis_revised_baseline_and_data_contract.yaml), [`mrgr_model_architecture_contract.yaml`](../contracts/A1/mrgr_model_architecture_contract.yaml)), this verdict remains valid **historical motivation**, while formal thesis empirical results require executing **Phases 20R–23R** (`modelRzsmReluExtraConv` `~10.24M`, purged `851/100/108` splits, lagged ERA5 anomalies, dynamic `tcw`, and `B=66` / `150` epochs).
 
 ---
 
@@ -53,8 +56,13 @@ Following the strict, fail-closed pre-analysis specification frozen prior to ins
 | **Lead W3** | $0.0719 \pm 0.0168$ | $0.0465 \pm 0.0031$ | $\mathbf{+0.0254} \; [+0.0216, +0.0301]$ | $\mathbf{35.38\%}$ | $\mathbf{+1.201}$ | $< 0.0001$ | $\mathbf{< 0.0001}$ | $2.41 \times 10^{-29}$ |
 | **Lead W4** | $0.0898 \pm 0.0288$ | $0.0502 \pm 0.0021$ | $\mathbf{+0.0396} \; [+0.0328, +0.0470]$ | $\mathbf{44.12\%}$ | $\mathbf{+1.269}$ | $< 0.0001$ | $\mathbf{< 0.0001}$ | $1.56 \times 10^{-28}$ |
 
+> [!NOTE]
+> **Evaluation Protocol Context (Boundary Masking vs. Unconstrained Cascade)**:
+> In the production training validation pipeline (`scripts/16_train_a0_production.py`), ocean buffer cells are strictly zero-masked (`p[:, ~eval_mask, :] = 0.0`) at each recursive handoff step. Under this boundary-enforced protocol, 3-seed validation MAE is $0.0341$ (W1), $0.0528$ (W2), $0.0593$ (W3, Seed 42: $0.0583$), and $0.0627$ (W4, Seed 42: $0.0625$), producing an Oracle relative gap of $\sim 21.6\%$ at W3 and $\sim 19.9\%$ at W4.
+> Under the unconstrained diagnostic cascade (`notebooks/13_mindanao_recursive_degradation_diagnostic.ipynb`), raw unmasked arrays were propagated without boundary zero-masking, allowing marine convolutional noise to diffuse into land cells over multi-lead steps and yielding MAEs of $0.0719$ (W3) and $0.0898$ (W4) with larger inter-seed variance ($\pm 0.0168, \pm 0.0288$). Both protocols confirm substantial, statistically significant recursive compounding. On presentation slides, $\pm$ spreads are omitted to prevent panel confusion.
+
 ### Rigorous Scientific Interpretation
-- **Counterfactual Attribution**: Under the oracle counterfactual protocol, the recursive pathway accounts for an additional $35.38\%$ of Lead W3 recursive MAE and $44.12\%$ of Lead W4 recursive MAE relative to the non-recursive counterfactual. This indicates substantial error attributable to predicted-state substitution under the specified counterfactual protocol. In a nonlinear deep learning system, this represents a counterfactual error decomposition rather than an additive linear causal breakdown.
+- **Counterfactual Attribution**: Under the oracle counterfactual protocol, the recursive pathway accounts for an additional $35.38\%$ of Lead W3 recursive MAE and $44.12\%$ of Lead W4 recursive MAE relative to the non-recursive counterfactual (or $\sim 20\text{--}21\%$ under boundary-enforced evaluation). This indicates substantial error attributable to predicted-state substitution under the specified counterfactual protocol. In a nonlinear deep learning system, this represents a counterfactual error decomposition rather than an additive linear causal breakdown.
 - **Progression Across Horizons**: The recursive-oracle gap increases monotonically from Lead W2 ($+0.0076$) through Lead W3 ($+0.0254$) to Lead W4 ($+0.0396$), demonstrating that predicted-state conditioning is associated with substantial additional error as the forecast horizon extends.
 
 ---

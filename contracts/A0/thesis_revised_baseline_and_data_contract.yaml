@@ -1,0 +1,219 @@
+# contracts/A0/thesis_revised_baseline_and_data_contract.yaml
+# =============================================================================
+# REVISED THESIS PROTOCOL v3.0: BASELINE, DATA, SPLITS & EVALUATION CONTRACT
+# =============================================================================
+# Authoritative Source:
+#   Updated Thesis Proposal ("Improving DL-DM RISE-UNet: Seasonal Conditioning
+#   and Reliability-Gated Recursive Refinement for Probabilistic Subseasonal
+#   Root-Zone Soil-Moisture Forecasting", Oct 12 2026 Outline Defense Edition)
+# Parent Reference:
+#   Lesinger & Tian (2025), Nature Communications, DOI: 10.1038/s41467-025-62761-3
+#
+# Governance Posture:
+#   - Defines the authoritative target contract for Thesis 1 remediation and
+#     Thesis 2 empirical execution.
+#   - Supersedes Legacy Phase 21-23 Baseline Protocol v1
+#     (contracts/A0/A0_Mindanao_Baseline_Contract.yaml, normalization_parameters.yaml,
+#      mindanao_a0_production_contract.yaml, recursive_degradation_diagnostic_contract.yaml)
+#     for all thesis-reported comparisons.
+#   - Legacy v1 files remain preserved on disk solely as historical audit logs
+#     and to keep legacy hermetic unit tests backward-compatible until code remediation.
+
+contract_name: THESIS_REVISED_BASELINE_AND_DATA_CONTRACT
+version: "3.0.0-thesis-revised"
+status: "SPECIFICATION_LOCKED_IMPLEMENTATION_PENDING"
+thesis_stage: "Thesis 1 (Outline / Proposal Stage — Zero Empirical Results Claimed)"
+last_updated: "2026-11-19"
+
+# -----------------------------------------------------------------------------
+# 1. STORAGE INFRASTRUCTURE & KAGGLE MIGRATION POSTURE
+# -----------------------------------------------------------------------------
+storage_and_cloud_lake:
+  primary_gcs_bucket: "gs://rise-unet-rzsm/"
+  gcs_billing_status: "DISABLED_HTTP_403"
+  gcs_project: "mindanao-drought-aaron-jalapon"
+  gcs_verification_note: "gcloud billingEnabled=false; gcloud storage ls returned 6,795 objects (31,092,944,230 bytes) in rise-unet-rzsm (total 7,789 objects / 45,788,363,491 bytes across 4 buckets), but object reads/downloads fail with HTTP 403 billing disabled."
+  kaggle_migration_index:
+    dataset_ref: "aaronjalapon02/mindanao-gcs-migration-index"
+    dataset_id: 13033202
+    version: 2
+    verified_at_utc: "2026-11-02T09:41:01.537087+00:00"
+    total_migrated_objects: 7789
+    total_migrated_bytes: 45788363491
+    excluded_items: "150 GB and 100 GB Google Cloud notebook disks excluded by owner."
+    helper_module: "kaggle_restore.py (paired with object-locations.json)"
+    rise_unet_rzsm_shards:
+      - "aaronjalapon02/mindanao-drought-data-gcs-migration/versions/2 (6,477 initial files)"
+      - "aaronjalapon02/rise-remaining-a-gcs-migration (299 files + original archive ZIP)"
+      - "aaronjalapon02/rise-remaining-b-gcs-migration (19 files)"
+  required_code_adaptation: "Refactor src/data/cloud_lake.py and data scripts from GCS-only assumptions to local-first / Kaggle-restore (or Kaggle Dataset mount) resolution."
+
+# -----------------------------------------------------------------------------
+# 2. SPATIAL DOMAIN & TEMPORAL CASE INVENTORY
+# -----------------------------------------------------------------------------
+spatial_domain:
+  grid_shape: [32, 48]
+  resolution_deg: 0.25
+  active_evaluation_cells: 126
+  inactive_ocean_buffer_cells: 1410
+  boundary_coverage_pct: 86.46
+  mask_artifact: "processed/grid/mindanao_eval_mask_025.nc"
+  spatial_contract_ref: "contracts/spatial/spatial_grid_contract.yaml"
+
+case_inventory:
+  total_scheduled_cycles_2015_2025: 1154
+  target_out_of_bounds_cycles: 7     # Dec 8..29, 2025 (W4 exceeds 2025-12-31)
+  provider_mars_no_data_gaps: 74     # Nov-Dec 2015..2023 MARS gaps
+  usable_issue_cases_before_purging: 1073
+  members_per_issue: 11
+  usable_member_samples_per_lead_before_purging: 11803
+  note_on_illustrative_table4_date: "Thesis Table 4 (2015-01-16) uses the legacy pilot fixture date; actual operational CY48R1 issue dates begin 2015-01-01, 2015-01-04, ..., 2015-01-15, 2015-01-18."
+
+# -----------------------------------------------------------------------------
+# 3. REVISED CHRONOLOGICAL 80/10/10 SPLIT WITH TARGET-WINDOW PURGING (SEC 2.3)
+# -----------------------------------------------------------------------------
+data_splitting:
+  strategy: "chronological_80_10_10_with_target_window_purging"
+  unpurged_cutoffs:
+    train_count: 858                 # floor(0.80 * 1073) = 858 (2015-01-01 .. 2023-10-17)
+    val_count: 107                   # floor(0.90 * 1073) - 858 = 107 (2023-10-21 .. 2024-11-21)
+    test_count: 108                  # 1073 - 965 = 108 (2024-11-25 .. 2025-12-04)
+  purging_rule: "Exclude any Training/Validation issue whose target window [t0, t0+27d] reaches or crosses the earliest issue date of the subsequent partition (w4_end >= next_partition.min_issue_date)."
+  purged_retained_allocations:
+    train:
+      retained_issue_cases: 851
+      purged_boundary_cases: 7       # 2023-09-26 .. 2023-10-17
+      retained_member_samples_per_lead: 9361
+      issue_date_range: ["2015-01-01", "2023-09-23"]
+      max_target_w4_date: "2023-10-20"
+    validation:
+      retained_issue_cases: 100
+      purged_boundary_cases: 7       # 2024-10-31 .. 2024-11-21
+      retained_member_samples_per_lead: 1100
+      issue_date_range: ["2023-10-21", "2024-10-28"]
+      max_target_w4_date: "2024-11-24"
+    sealed_final_test:
+      retained_issue_cases: 108
+      purged_boundary_cases: 0
+      retained_member_samples_per_lead: 1188
+      issue_date_range: ["2024-11-25", "2025-12-04"]
+      max_target_w4_date: "2025-12-31"
+  supersession_note: "Replaces Legacy Year Split (2015-2021: 677 / 2022-2023: 194 / 2024-2025: 202) which also lacked target-window boundary purging (4 Train->Val and 4 Val->Test overlapping cases)."
+
+# -----------------------------------------------------------------------------
+# 4. PREPROCESSING & FEATURE ALIGNMENT REMEDIATION CONTRACT (SEC 2.2)
+# -----------------------------------------------------------------------------
+preprocessing_and_normalization:
+  rzsm_target_and_lags:
+    formula: "0.07*SM1 + 0.21*SM2 + 0.72*SM3"
+    rolling_window: "7-day backward trailing mean (center=False, min_periods=7)"
+    antecedent_lags_days: [-1, -7, -14]
+    target_lead_endpoints_days: [6, 13, 20, 27]
+    climatology_method: "season (DJF, MAM, JJA, SON) fitted strictly on permitted training partition/fold"
+    scaling: "domain_wide_active_cell_min_max fitted strictly on permitted training partition/fold"
+    recomputation_required: true
+    preliminary_purged_train_bounds_check:
+      anomaly_min: -0.185106
+      anomaly_max: 0.157441
+      val_out_of_range_pct: 0.0
+      test_out_of_range_pct: 0.0
+
+  era5_atmospheric_predictors:
+    variables: ["pwat", "spfh", "tmax", "diff_temp", "z200"]
+    required_fixes_over_legacy_v1:
+      - "REMEDIATE HARDCODED BOUNDS: Replace arbitrary constants in scripts/08_derive_training_normalization.py with empirical training-fold min-max bounds."
+      - "REMEDIATE TEMPORAL AGGREGATION & ANOMALIES: Apply 7-day trailing rolling mean sampled at lag=-1d (t0 - 1d, avoiding t0 leakage) and training-fitted DJF/MAM/JJA/SON seasonal anomaly subtraction (matching Sec 2.2.2-2.2.3 & parent loadDataAllWeeks.py:L740)."
+      - "REMEDIATE MISSING DERIVED MONTHS: Derive 26 missing processed atmospheric monthly NetCDFs (2015_02, 2015_03, and 2024_01..2025_12) from raw era5/single + era5/pressure archives."
+      - "REMEDIATE 2014 WARMUP GAP: Acquire Dec 25-31 2014 ERA5 hourly single + pressure levels (zero 2014 atmospheric files exist in GCS) OR document handling for 2015-01-01 and 2015-01-04."
+
+  ecmwf_s2s_predictors:
+    variables: ["t2m", "d2m", "tcw"]
+    lead_windows:
+      W1: "6-hourly steps 0..144h daily-aggregated / meaned"
+      W2: "6-hourly steps 168..312h daily-aggregated / meaned"
+    required_fixes_over_legacy_v1:
+      - "CRITICAL BUGFIX (ch10 s2s_tcw saturation): Legacy normalization hardcoded tcw=[0.5, 15.0], which clipped 100.0% of real ECDS Mindanao tcw (27.66-53.77 kg/m^2) to constant 1.0000 across every production NPZ tensor."
+      - "REMEDIATE SEASONAL ANOMALIES & EMPIRICAL SCALING: Apply seasonal anomaly subtraction (DJF/MAM/JJA/SON) and training-only empirical min-max normalization to t2m, d2m, and tcw (Sec 2.2.3)."
+
+  out_of_range_and_constant_rule:
+    constant_training_var_denominator_floor: 1.0e-6
+    predictor_bounds_policy: "Apply explicit documented clipping or unclipped transform fixed purely from training extrema (no val/test stats)."
+    physical_state_report_range_check: "Report frequency of r and r* falling outside physical volumetric [0.0, 1.0] m^3/m^3; do not silently clip r* (Sec 2.4.4)."
+
+# -----------------------------------------------------------------------------
+# 5. AUTHENTIC BASELINE ARCHITECTURE & TRAINING PROTOCOL (SEC 2.4)
+# -----------------------------------------------------------------------------
+baseline_architecture:
+  parent_module: "parent_study_ex29/function/modelRzsmReluExtraConv.py"
+  legacy_v1_mismatch_note: "Legacy src/models/a0_unet.py mistakenly imported modelRzsmRelu.py (filters [32,32,64,128], DepthwiseConv2D, 1.61M-1.63M params), whereas parent EX29 regular scenario (losses.py:469, 02_run_model...ipynb:78) and Updated Thesis Sec 2.4.1 specify modelRzsmReluExtraConv.py."
+  filter_schedule: [32, 64, 128, 256]
+  convolution_ops: "Standard Conv2D across inception and composite blocks (no DepthwiseConv2D)."
+  attention_layer: "keras_cv.layers.SqueezeAndExcite2D(ratio=0.25) in both inception_block and conv_batchnorm_relu_block_SE_and_residual_connections."
+  dropout_config:
+    initial_inception_rate: 0.10
+    later_blocks_rate: 0.25
+    types: "Both SpatialDropout2D(..., training=True) and ordinary Dropout(..., training=True)."
+  output_heads:
+    count: 3
+    activation: "relu"
+    dtype: "float32"
+    reported_and_recursive_head: "head_3 (last output: RZSM_output_3)"
+    deep_supervision_loss_weights: [0.2, 0.3, 0.5]
+  lead_input_channels:
+    W1: 11
+    W2: 12
+    W3: 5
+    W4: 6
+  verified_parameter_counts_32x48:
+    W1_11ch: 10240723
+    W2_12ch: 10243539
+    W3_5ch: 10223827
+    W4_6ch: 10226643
+  vram_reprofiling_required: true    # 10.24M params (~6.3x legacy 1.63M) requires Colab T4 memory profiling at B=66
+
+training_hyperparameters:
+  optimizer:
+    name: "Adam"
+    learning_rate: 1.0e-4
+    beta_1: 0.9
+    beta_2: 0.999
+    epsilon: 1.0e-7
+  batch_size: 66                     # 6 issue dates x 11 ECMWF ensemble members
+  max_epochs: 40
+  lr_scheduler: "ReduceLROnPlateau(factor=0.5, patience=3, min_lr=1.0e-6)"
+  early_stopping_patience: 8
+  seeds: [42, 123, 456]
+  loss_function: "CRPS_exp surrogate = mean(|a_m - b|) - 0.08 * std_pop(a_m, denom=11), masked strictly to 126 active cells, weighted [0.2, 0.3, 0.5] across 3 heads (Eq. 11)."
+  inference_stochastic_draws:
+    physical_members: 11
+    mc_dropout_draws_per_member: 10  # D=10 trajectories carried across W1->W4
+    total_draws_per_issue_seed_lead: 110
+    batch_norm_mode_at_inference: "fixed_inference_mode (training=False while Dropout/SpatialDropout remain training=True)"
+  weight_initialization_sharing: "Matching backbone layers across Baseline, SCPW-only, MRGR-only, Combined share identical per-seed initial weights."
+
+# -----------------------------------------------------------------------------
+# 6. EVALUATION, DRY-EVENT & STATISTICAL COMPARISON CONTRACT (SEC 2.5 - 2.6)
+# -----------------------------------------------------------------------------
+evaluation_contract:
+  midpoint_date_convention:
+    formula: "d_h(t) = t + 7*(h - 1) + 3 days"
+    uses:
+      - "SCPW calendar descriptor s_h(t) = [sin(2*pi*(n-1)/Y), cos(2*pi*(n-1)/Y)]"
+      - "DJF/MAM/JJA/SON verification season assignment"
+      - "Seasonal dry-event threshold season selection"
+  dry_event_definition:
+    threshold_tau: "Empirical 20th percentile of training-period weekly-mean reference RZSM at cell s in midpoint season k (frozen prior to val/test)."
+    inequality: "STRICT (< tau), replacing legacy inclusive (<= tau)."
+    probability_estimator: "p_hat_h(s) = N_dry,h(s) / (11 * D) over M=110 draws (Eq. 10)."
+    brier_and_reliability: "Binary Brier Score averaged over 126 cells -> case -> lead; 10 reliability bins of width 0.1 with [0.9, 1.0] inclusive."
+  metrics:
+    deterministic: "MAE, RMSE, and spatial Pearson ACC (Eq. 12-14) computed from predictive mean of 110 draws per case before case averaging (zero-variance ACC cases reported separately)."
+    probabilistic: "Empirical CRPS Eq. (15) over full M=110 draws (1/M sum|x_i-y| - 1/(2M^2) sum|x_i-x_j|), spread (pop std of 110 draws), 80% & 95% empirical PI coverage & width."
+  primary_inferential_family:
+    tests: ["Combined minus Baseline case-level CRPS at W3", "Combined minus Baseline case-level CRPS at W4"]
+    procedure: "Paired Moving-Block Bootstrap (10,000 replicates, blocks spanning 28 calendar days preserving actual issue gaps, percentile 95% CI, two-sided p-value from mean-centered null series, Holm-Bonferroni correction across W3 & W4)."
+    sensitivity_analysis: "56-calendar-day block sensitivity check."
+  external_benchmarks:
+    - "Persistence (carry t-1 weekly RZSM to W1-W4)"
+    - "Separately trained U-Net regression benchmark"
+    - "Separately trained UNet++ regression benchmark"

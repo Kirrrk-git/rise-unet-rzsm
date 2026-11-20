@@ -1,0 +1,56 @@
+{
+  "status": "COMPLETE_ALL_6795_VERIFIED",
+  "verified_objects": 6795,
+  "verified_bytes": 31092944230,
+  "expected_objects": 6795,
+  "expected_bytes": 31092944230,
+  "byte_for_byte_match": true,
+  "archive_checks": {
+    "rise-remaining-a-gcs-migration.zip.bin": {
+      "sha256_verified": true,
+      "archive_bytes": 4096577509,
+      "source_objects": 299
+    },
+    "rise-remaining-b-gcs-migration.zip.bin": {
+      "sha256_verified": true,
+      "archive_bytes": 10018733738,
+      "source_objects": 19
+    }
+  },
+  "extracted_objects": 3826,
+  "extracted_bytes": 6448640613,
+  "bundle_stats": {
+    "checkpoints_legacy_a0_best12.zip": {
+      "files": 24,
+      "bytes": 86072963
+    },
+    "meta_docs_and_audits.zip": {
+      "files": 93,
+      "bytes": 44692684
+    },
+    "processed_all.zip": {
+      "files": 1003,
+      "bytes": 360647083
+    },
+    "raw_boundaries_and_other.zip": {
+      "files": 4,
+      "bytes": 522389890
+    },
+    "raw_ecmwf_s2s.zip": {
+      "files": 2170,
+      "bytes": 372006659
+    },
+    "raw_era5.zip": {
+      "files": 265,
+      "bytes": 1120570506
+    },
+    "raw_era5_land.zip": {
+      "files": 267,
+      "bytes": 3942260828
+    }
+  },
+  "parked_reference_bytes": 10018580801,
+  "parked_redundant_or_epoch_ckpt_bytes": 14625722816,
+  "working_free_bytes_after": 14491152384,
+  "elapsed_seconds": 2443.03
+}

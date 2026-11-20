@@ -1,0 +1,100 @@
+{
+  "schema_version": "v3.0.0-thesis-revised",
+  "source_audit_csv": "cases_availability_audit.csv",
+  "partition_metadata": {
+    "usable_total": 1073,
+    "unpurged_counts": {
+      "train": 858,
+      "val": 107,
+      "test": 108
+    },
+    "purged_removed": {
+      "train": 7,
+      "val": 7,
+      "test": 0
+    },
+    "retained_counts": {
+      "train": 851,
+      "val": 100,
+      "test": 108
+    },
+    "max_w4_dates": {
+      "train": "2023-10-20",
+      "val": "2024-11-24",
+      "test": "2025-12-31"
+    }
+  },
+  "oof_cross_fitting_plan": {
+    "years": [
+      2015,
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023
+    ],
+    "naive_oof_stage_fits": 675,
+    "deduplicated_unique_stage_fits": 183,
+    "unique_stage_fits_by_lead": {
+      "W1": 129,
+      "W2": 45,
+      "W3": 9
+    },
+    "unique_year_subsets": 129,
+    "outer_fold_retained_counts": {
+      "2015": 754,
+      "2016": 751,
+      "2017": 750,
+      "2018": 750,
+      "2019": 750,
+      "2020": 751,
+      "2021": 750,
+      "2022": 750,
+      "2023": 770
+    },
+    "outer_fold_purged_counts": {
+      "2015": 97,
+      "2016": 100,
+      "2017": 101,
+      "2018": 101,
+      "2019": 101,
+      "2020": 100,
+      "2021": 101,
+      "2022": 101,
+      "2023": 81
+    }
+  },
+  "files": {
+    "TRAIN": {
+      "filename": "train_cases_v3_purged.csv",
+      "sha256": "3c52131364e1bcdf51fb38007421071a549c14030de89a92d1dec3ad1a7fc2e6",
+      "count": 851,
+      "issue_range": [
+        "2015-01-01",
+        "2023-09-23"
+      ]
+    },
+    "VAL": {
+      "filename": "val_cases_v3_purged.csv",
+      "sha256": "bed40edac3ccb5dc117303c0ae8de2741bfbc9eb616df69fcc94612ed3225c8f",
+      "count": 100,
+      "issue_range": [
+        "2023-10-21",
+        "2024-10-28"
+      ]
+    },
+    "SEALED_TEST": {
+      "filename": "test_cases_sealed_v3.csv",
+      "sha256": "9acde70d1b6018470b555df204b8d901c4b513db932e51b7529b7e520d67b9e3",
+      "count": 108,
+      "issue_range": [
+        "2024-11-25",
+        "2025-12-04"
+      ],
+      "quarantine_policy": "STRICT_SEALED_NO_PEEKING"
+    }
+  }
+}

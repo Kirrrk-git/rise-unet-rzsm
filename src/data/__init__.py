@@ -64,6 +64,25 @@ from src.data.calendar import (
     load_case_calendar,
     get_available_s2s_cycles,
 )
+from src.data.splits_v3 import (
+    SEASONS,
+    date_to_season,
+    build_chronological_purged_splits,
+    filter_interval_purged_years,
+    plan_nested_yearly_oof_folds,
+    fit_training_rzsm_v3_contract,
+    write_v3_split_manifests,
+)
+from src.data.preprocessing_v3 import (
+    EPS_FLOOR,
+    ATM_VARS,
+    S2S_VARS,
+    empirical_min_max_scale,
+    V3PredictorNormalizationParams,
+    fit_and_transform_era5_atmos,
+    fit_s2s_training_anomalies,
+    assemble_v3_case_tensors,
+)
 
 __all__ = [
     "compute_depth_weighted_rzsm",
@@ -114,6 +133,21 @@ __all__ = [
     "export_case_calendar",
     "load_case_calendar",
     "get_available_s2s_cycles",
+    "SEASONS",
+    "date_to_season",
+    "build_chronological_purged_splits",
+    "filter_interval_purged_years",
+    "plan_nested_yearly_oof_folds",
+    "fit_training_rzsm_v3_contract",
+    "write_v3_split_manifests",
+    "EPS_FLOOR",
+    "ATM_VARS",
+    "S2S_VARS",
+    "empirical_min_max_scale",
+    "V3PredictorNormalizationParams",
+    "fit_and_transform_era5_atmos",
+    "fit_s2s_training_anomalies",
+    "assemble_v3_case_tensors",
 ]
 
 

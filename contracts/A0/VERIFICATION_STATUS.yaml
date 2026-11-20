@@ -242,14 +242,83 @@ milestones:
       - "reproduction_audit/POST_A0_BASELINE_DECISION_DOSSIER.md"
 
   phase_24_model_a1_refinement:
-    name: "Phase 24: Model A1 (Lead-Aware Recursive Residual Refinement)"
-    status: "SPECIFICATION_FROZEN"
+    name: "Phase 24: Model A1 (Season-Conditioned SCPW + Monotonic Reliability-Gated MRGR)"
+    status: "SPECIFICATION_LOCKED_THESIS_V3"
     certification_level: "PRE_IMPLEMENTATION_CONTRACT_FROZEN"
-    date_certified: "2026-09-18"
-    governance_contract: "contracts/A1/mrgr_model_architecture_contract.yaml"
-    shared_module_specification: "Shared single R_theta(., k) module across W1->W2, W2->W3, W3->W4 transitions with lead conditioning"
-    training_regime: "Direct Supervised Residual Learning (r_k* = y_true_k - y_hat_k) with detached A0 input features"
-    backbone_status: "100% frozen A0 weights (0 weights retrained)"
-    current_step: "Step 24.1 Contract Frozen -> Proceeding to test_18_a1_refinement.py & src/models/a1_refinement.py"
+    date_certified: "2026-11-19"
+    contract_version: "v3.0.0-scpw-mrgr-thesis-revised"
+    governance_contracts:
+      - "contracts/A0/thesis_revised_baseline_and_data_contract.yaml"
+      - "contracts/A1/mrgr_model_architecture_contract.yaml"
+    module_architecture:
+      scpw_module:
+        insertion_point: "Between initial 128-ch inception_block u_h and following 64-ch conv composite in modelRzsmReluExtraConv.py"
+        residual_formula: "u_h^S = u_h + (w_h - 1) * z_h, z_h=ReLU(Conv3x3_128(x_h)), w_h=1+0.25*tanh(MLP_16_128(s_h))"
+        calendar_descriptor: "s_h(t)=[sin(2*pi*(n-1)/Y), cos(2*pi*(n-1)/Y)] using week midpoint d_h(t)=t+7(h-1)+3"
+      mrgr_module:
+        total_handoffs: 6
+        handoff_list:
+          - "M_1_to_2: W1 refined before entering W2 stage"
+          - "M_1_to_3: W1 refined separately before entering W3 stage"
+          - "M_2_to_3: W2 refined before entering W3 stage"
+          - "M_1_to_4: W1 refined separately before entering W4 stage"
+          - "M_2_to_4: W2 refined separately before entering W4 stage"
+          - "M_3_to_4: W3 refined before entering W4 stage"
+        core_components:
+          risknet: "Independently parameterized CNN (3x3_8 on x_h & r_j, concat 24ch, 3x3_8, 1x1 Softplus) -> q_hat >= 0 (Huber loss on 9-year purged OOF bank)"
+          reliability_gate: "Monotonic gate G_{j->h} = exp(-q_hat_{j->h}) in (0.0, 1.0]"
+          correctionnet: "Independently parameterized CNN ending in 1x1 linear d_theta (zero-init); delta = c_{j->h} * tanh(d_theta)"
+          state_refinement_formula: "r_{j->h}^* = r_j + (1.0 - G_{j->h}) * delta_{j->h} (NO clipping; out-of-[0,1] excursions counted)"
+    model_lineup_and_ablations:
+      - "Persistence Benchmark: carry t-1 weekly RZSM to W1-W4"
+      - "Baseline: Adapted RISE-UNet (modelRzsmReluExtraConv.py, [32,64,128,256], 10.24M params/lead)"
+      - "Single-module 1: RISE-UNet with MRGR (reuses Baseline W1)"
+      - "Single-module 2: RISE-UNet with SCPW (+ Constant-Calendar [0,0] Control)"
+      - "Combined: Season-Aware MRGR-RISE-UNet (SCPW + MRGR; reuses SCPW W1)"
+      - "Ablation: SCPW + ungated residual correction (r* = r + delta)"
+      - "External Benchmarks: U-Net regression and UNet++ regression"
+    backbone_status: "Consumer stage backbone F_h, active SCPW, and incoming CorrectionNets trained JOINTLY per lead (NOT frozen); RiskNets and earlier weekly stages frozen with BN in inference mode."
+    current_step: "Contracts v3.0.0 locked -> Blocked on Phase 21R data/backbone/storage remediation before model execution"
+
+legacy_protocol_supersession_audit:
+  audited_date: "2026-11-19"
+  thesis_stage: "Thesis 1 (Outline / Proposal Stage — Zero Empirical Results Claimed)"
+  storage_status:
+    gcs_bucket: "gs://rise-unet-rzsm/"
+    gcs_read_write_status: "BLOCKED_HTTP_403_BILLING_DISABLED (6,795 objects / 31.09 GB verified preserved in Kaggle aaronjalapon02/mindanao-gcs-migration-index v2)"
+  legacy_phase_21_23_defects_requiring_remediation:
+    - "WRONG_BACKBONE: src/models/a0_unet.py imported modelRzsmRelu.py ([32,32,64,128] DepthwiseConv2D, 1.63M) instead of modelRzsmReluExtraConv.py ([32,64,128,256] standard Conv2D, 10.24M)."
+    - "CH10_TCW_SATURATION: scripts/08 hardcoded s2s_tcw=[0.5, 15.0], clipping 100.0% of Mindanao ECDS tcw (27.66-53.77 kg/m^2) to constant 1.0000."
+    - "MISSING_TEMPORAL_AND_ANOMALIES: ERA5 atmospheric and S2S predictors used un-anomalized single-day/raw values with hardcoded bounds instead of 7-day trailing summaries + DJF/MAM/JJA/SON anomalies + empirical train min-max."
+    - "MISSING_ATMOSPHERIC_MONTHS: 26 monthly processed atmospheric files absent from GCS/repo (2015_02, 2015_03, 2024_01..2025_12) plus zero 2014-12 ERA5 atmospheric files for Jan 1 & Jan 4 warmup."
+    - "SPLIT_AND_PROTOCOL_DRIFT: Legacy 2015-21/22-23/24-25 split (677/194/202, unpurged) replaced by purged 80/10/10 (851/100/108); B=33 -> B=66; D=1 -> D=10 (M=110); MBB L=4 -> 28d/56d; < tau strict drought threshold."
+
+revised_thesis_v3_roadmap:
+  phase_21r_remediation_and_kaggle_migration:
+    status: "CONSOLIDATED_LAKE_LIVE_ON_KAGGLE_READY_FOR_DERIVATION"
+    completed_offline_deliverables:
+      - "reproduction_audit/27_end_to_end_verification_and_redo_verdict.md: Independent end-to-end audit verifying parent EX29 selection, 7 legacy redo triggers (NB 13 unmasked-ocean cascade 0.0627->0.0898, NB 07 synthetic Panel D, scripts/19 stub), and pre-GPU v3.0 blockers"
+      - "src/data/cloud_lake.py: Priority resolver for consolidated kirkishere/rise-unet-rzsm (unpacked <bundle_stem>/ tree or 7 topic ZIP_STORED bundles), legacy 4-dataset Backup Store (object-locations.json loose + .zip.bin MD5/CRC32C), and optional GCS fallback"
+      - "kirkishere/rise-unet-rzsm (Private, status: ready): Live consolidated Kaggle dataset verified via API pagination at 3,828 files / 6,449,251,345 B (auto-extracted topic folders including all 3,826 active objects + manifest_active_files.json + verification_report.json)"
+      - "scripts/21_sync_kaggle_docs_dataset.py + kirkishere/rise-unet-rzsm-docs (Private): Lightweight living codebase, contracts, manifests, audits, and figures synced cleanly via Kaggle CLI"
+      - "logs/kaggle_migration_verification_report.json + kirkishere/rise-unet-rzsm-verify-and-consolidate (COMPLETE, 2443.03 s): Byte-for-byte cloud verification of all 6,795 gs://rise-unet-rzsm/ objects (31,092,944,230 B; Archive A/B full SHA-256 + per-file MD5/CRC32C) and consolidation of 3,826 active files (6,448,640,613 B; including all 12 canonical A0 weights) into 7 topic ZIP_STORED bundles (14.49 GB working free space)"
+      - "src/data/splits_v3.py + scripts/20_generate_v3_purged_splits_and_rzsm_bounds.py: Purged 80/10/10 manifests (851 Train / 100 Val / 108 Sealed Test) in manifests/splits_v3/"
+      - "contracts/A0/rzsm_normalization_v3_purged.yaml + processed/rzsm/v3_purged_train_climatology_and_thresholds.nc: Training-only (<=2023-10-20) DJF/MAM/JJA/SON climatology, min-max bounds, and strict < tau 20th-percentile drought thresholds (zero Val/Test peek)"
+      - "src/data/preprocessing_v3.py: Lag=-1d 7-day trailing ERA5 atmos anomalies, empirical dynamic scaling fixing ch10 s2s_tcw saturation, eps_floor=1e-6"
+      - "src/models/scpw_mrgr.py: Authentic modelRzsmReluExtraConv builder + Stage 1 SCPW (+41,664) + Stage 2 MRGR (+25,740) + CPU math validators"
+      - "src/evaluation/v3_metrics_and_bootstrap.py + tests/test_18_thesis_v3_modules.py: 110-draw CRPS Eq. (15), strict < tau Brier/reliability, 28d/56d calendar MBB + Holm-Bonferroni"
+    remaining_blocked_items: "Pre-GPU code fixes required first: (1) replace raw tf.tanh/tf.abs on KerasTensors in scpw_mrgr.py (L249, L326) with keras.ops + add differentiable TF MRGR graph, eval_mask zeroing, and volumetric m3/m3 unscaling; (2) fix resolve_rzsm_target_cube ('production/' subdir) & resolve_s2s_cycle (.grib) in cloud_lake.py and rzsm_var_name default in preprocessing_v3.py; (3) acquire/handle Dec 25-31 2014 ERA5 warmup, derive 26 missing atmospheric monthly NetCDFs (2015_02, 2015_03, 2024_01..2025_12), build scripts/22+ v3 execution runners (cases, ExtraConv B=66 VRAM profile, 183-fit OOF w/ inner validation rule, U-Net/UNet++/Persistence, Sealed Test)."
+  phase_23r_rebaselined_a0_and_diagnostic:
+    status: "PENDING_EXECUTION_BLOCKED_ON_21R_DATA_AND_GPU"
+    scope: "Train 10.24M Adapted RISE-UNet Baseline (3 seeds, B=66, max 40 ep, D=10 MC draws) on 851/100 split; run m-perturbation diagnostic & baseline evaluation."
+  phase_24r_scpw_mrgr_and_oof_banks:
+    status: "CODE_IMPLEMENTED_PENDING_21R_DATA_AND_GPU"
+    scope: "Execute 9-year purged nested OOF banks (unordered-subset dedup 675->183 unique stage fits [W1=129, W2=45, W3=9] over 129 year-subsets); train RiskNets, SCPW-only, Constant-Calendar Control, MRGR-only, Combined SCPW-MRGR, and Ungated Ablation."
+  phase_25r_external_benchmarks_and_selection:
+    status: "PENDING_EXECUTION"
+    scope: "Train U-Net and UNet++ benchmarks; evaluate Persistence; lock risk-bin edges and model selection on Validation (N=100) before unsealing Test."
+  phase_26r_sealed_test_and_statistical_inference:
+    status: "SEALED_TEST_QUARANTINED"
+    scope: "Unseal N=108 test cases (2024-11-25..2025-12-04); execute 28d/56d paired MBB (10,000 resamples) + Holm-Bonferroni on W3/W4 CRPS, ACC, MAE, RMSE, RiskNet Spearman/deciles, dry-event Brier/reliability, and Thesis 2 manuscript synthesis."
 
 

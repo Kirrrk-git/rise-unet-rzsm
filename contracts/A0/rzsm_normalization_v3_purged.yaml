@@ -1,0 +1,41 @@
+contract_version: v3.0.0-purged-train-rzsm
+governance_authority: contracts/A0/thesis_revised_baseline_and_data_contract.yaml
+training_partition_scope:
+  train_issue_date_range:
+  - '2015-01-01'
+  - '2023-09-23'
+  train_w4_window_end_inclusive: '2023-10-20'
+  train_issue_count: 851
+  daily_rzsm_timesteps_used: 3215
+  active_evaluation_cells: 126
+  sealed_test_and_val_accessed: false
+rzsm_parameters:
+  seasonal_anomaly:
+    min: -0.1851058453321457
+    max: 0.15744134783744812
+    mean: 3.846809093488446e-09
+    std: 0.03984704613685608
+    range: 0.3425471931695938
+    formula: (x - min) / (max - min)
+  volumetric_rolling_7d:
+    min: 0.10301895439624786
+    max: 0.5042263865470886
+    units: m^3/m^3
+dry_event_thresholds_p20_summary:
+  DJF:
+    active_cell_min: 0.20026548206806183
+    active_cell_median: 0.39381861686706543
+    active_cell_max: 0.46112364530563354
+  MAM:
+    active_cell_min: 0.13914361596107483
+    active_cell_median: 0.3211905360221863
+    active_cell_max: 0.44208890199661255
+  JJA:
+    active_cell_min: 0.2769521176815033
+    active_cell_median: 0.4096314311027527
+    active_cell_max: 0.4766845405101776
+  SON:
+    active_cell_min: 0.27443554997444153
+    active_cell_median: 0.4128868877887726
+    active_cell_max: 0.4765615463256836
+climatology_and_threshold_netcdf: processed/rzsm/v3_purged_train_climatology_and_thresholds.nc
