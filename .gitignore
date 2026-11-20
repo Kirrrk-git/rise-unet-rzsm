@@ -32,6 +32,7 @@ service_account*.json
 Thumbs.db
 .vscode/
 .idea/
+.agents/
 scratch/
 
 # Raw Downloads & Large Remote Geodatabases (Archived in GCS: gs://rise-unet-rzsm/raw/)
